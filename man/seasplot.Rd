@@ -6,8 +6,8 @@
 \description{Seasonal plots and crude trend/season tests.}
 
 \usage{
-seasplot(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,outplot=1,
-         decomposition=c("multiplicative","additive"),cma=NULL)
+seasplot(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,outplot=c(1,0,2,3,4,5),
+         decomposition=c("multiplicative","additive"),cma=NULL,labels=NULL)
 }
 
 \arguments{
@@ -38,14 +38,17 @@ seasplot(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,outplot=1,
   \item{cma}{
     Input precalculated level/trend for the analysis. Overrides trend=NULL.
 }
+  \item{labels}{
+    External labels for the seasonal periods. Use NULL for default. If length(labels) < m, then this input is ignored.
+}
 }
 \value{
-\item{out$season}{Matrix of (detrended) seasonal elements.}
-\item{out$season.exist}{TRUE/FALSE results of friedman test.}
-\item{out$season.pval}{Friedman test p-value.}
-\item{out$trend}{CMA estimate or NULL if trend == FALSE.}
-\item{out$trend.exist}{TRUE/FALSE result of kpss test.}
-\item{out$trend.pval}{kpss (approximate) p-value.}
+\item{season}{Matrix of (detrended) seasonal elements.}
+\item{season.exist}{TRUE/FALSE results of friedman test.}
+\item{season.pval}{Friedman test p-value.}
+\item{trend}{CMA estimate or NULL if trend == FALSE.}
+\item{trend.exist}{TRUE/FALSE result of kpss test.}
+\item{trend.pval}{kpss (approximate) p-value.}
 }
 \author{
 Nikolaos Kourentzes
