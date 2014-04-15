@@ -8,12 +8,12 @@
 \usage{
 nemenyi(data, conf.int=0.95, sort=TRUE, 
 plottype=c("vline","none","mcb","vmcb","line"), console=FALSE, 
-silent=FALSE, pcol=NULL, title=NULL)
+silent=FALSE, pcol=NULL, title=NULL, select=NULL, labels=NULL)
 }
 
 \arguments{
   \item{data}{
-    Error matrix, including measures of accuracy for several methods (in columns) for several time series (rows).
+    A matrix that includes measures of accuracy for several methods (in columns) for several time series (rows), of size n x k.
 }
   \item{conf.int}{
     The width of the confidence interval. Default is 0.95.
@@ -37,12 +37,18 @@ silent=FALSE, pcol=NULL, title=NULL)
   \item{title}{
     Override default title.
 }
+  \item{select}{
+    Highlight selected model (column). Number 1 to k. Select NULL for no highlighting.
+}
+  \item{labels}{
+    Optional labels for models. If NULL column names of 'data' will be used. If number of labels < k, then it is assumed as NULL. 
+}
 }
 \value{
-\item{out$means}{Mean rank of each method.}
-\item{out$intervals}{Nemenyi intervals for each method.}
-\item{out$fpval}{Friedman test p-value.}
-\item{out$cd}{Critical distance for nemenyi.}
+\item{means}{Mean rank of each method.}
+\item{intervals}{Nemenyi intervals for each method.}
+\item{fpval}{Friedman test p-value.}
+\item{cd}{Critical distance for nemenyi.}
 }
 \references{
 Hibbon M., Crone S. F., Kourentzes N., 2012. Statistical significance of forecasting methods: An empirical evaluation of the robustness and interpretability of the MCB, ANOM and Nemenyi tests, The 32nd Annual International Symposium on Forecasting, Boston.
