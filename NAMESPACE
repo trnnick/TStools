@@ -1,5 +1,4 @@
-
 importFrom(tseries,kpss.test)
 import(forecast)
 
-export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode)
+export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp)
