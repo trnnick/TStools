@@ -121,7 +121,7 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
   # Fill with NA start and end of season
   k <- m - (n %% m)
   ks <- s-1
-  ke <- k-ks
+  ke <- m - ((n+ks) %% m)
   ynt <- c(rep(NA,times=ks),as.vector(ynt),rep(NA,times=ke))
   ns <- length(ynt)/m
   ynt <- matrix(ynt,nrow=ns,ncol=m,byrow=TRUE)
