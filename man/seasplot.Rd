@@ -27,7 +27,7 @@ seasplot(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,outplot=c(1,0,2,3,4,5
     Single colour override for plots.
 }
   \item{alpha}{
-    Significance level for statistical tests (kpss and friedman).
+    Significance level for statistical tests (Cox-Stuart and Friedman).
 }
   \item{outplot}{
     Provide plot output: 0 - None; 1 - Seasonal diagramme; 2 - Seasonal boxplots; 3 - Seasonal subseries; 4 - Seasonal distribution; 5 - Seasonal density.
@@ -47,8 +47,8 @@ seasplot(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,outplot=c(1,0,2,3,4,5
 \item{season.exist}{TRUE/FALSE results of friedman test.}
 \item{season.pval}{Friedman test p-value.}
 \item{trend}{CMA estimate or NULL if trend == FALSE.}
-\item{trend.exist}{TRUE/FALSE result of kpss test.}
-\item{trend.pval}{kpss (approximate) p-value.}
+\item{trend.exist}{TRUE/FALSE result of Cox-Stuart test.}
+\item{trend.pval}{Cox-Stuart p-value.}
 }
 \author{
 Nikolaos Kourentzes

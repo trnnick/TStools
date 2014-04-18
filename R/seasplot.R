@@ -93,8 +93,8 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
   
   # Test for changes in the CMA (trend)
   if (is.null(trend)){
-    trend.pval <- suppressWarnings(kpss.test(cma))$p.value 
-    trend.exist <- trend.pval <= alpha
+    trend.pval <- coxstuart(cma)$p.value 
+    trend.exist <- trend.pval <= alpha/2
     trend <- trend.exist
   } else {
     trend.exist <- NULL
