@@ -1,12 +1,12 @@
-wins <- function (x, prc=0.05, n=NULL){
+wins <- function (x, p=0.05){
 # Winsorise a vector
 #
 # Inputs
 #   x       Vector to be winsorised
-#   prc     Percentage of observations to be winsorised. 
-#           Values about 0.5 are overriden to 0.5
-#   n       Number of observations to be winsorised. If given this overrides prc. 
-#           If n > floor((length(x)-1)/2) then it is set equal to floor((length(x)-1)/2).
+#   p       Percentage or number of observations to be winsorised. 
+#           If value is <1 then it is used as a percentages. Otheriwse it is the number
+#           of observations to winsorise. If the resulting p > floor((length(x)-1)/2) 
+#           then it is set equal to floor((length(x)-1)/2).
 #
 # Output
 #   x.out   Winsorised vector.
@@ -18,42 +18,45 @@ wins <- function (x, prc=0.05, n=NULL){
 # Nikolaos Kourentzes, 2014 <nikolaos@kourentzes.com>
   
   l <- length(x)
+  n <- sum(is.na(x))
+  c <- l - n
   
   # Convert percentage to number of observations  
-  # n overrides prc
-  if (is.null(n)){
-    n <- ceiling(l*prc)
+  if (p<1){
+    p <- ceiling(c*p)
   }
   
   # At maximum floor((l-1)/2) observations are taken from each side
-  if (n>floor((l-1)/2)){
-    n <- floor((l-1)/2)
+  if (p>floor((c-1)/2)){
+    p <- floor((c-1)/2)
   }
   
   # Sort and find wmin and wmax
   x.sort <- sort(x)
-  x.wmin <- x.sort[n+1]
-  x.wmax <- x.sort[l-n]
+  x.wmin <- x.sort[p+1]
+  x.wmax <- x.sort[c-p]
   
-  # Winsorise
+  # Winsorise (ignore NAs)
   x.out <- x
-  x.out[x<x.wmin] <- x.wmin
-  x.out[x>x.wmax] <- x.wmax
+  idx <- !is.na(x)
+  x.w <- x.out[idx]
+  x.w[x[idx]<x.wmin] <- x.wmin
+  x.w[x[idx]>x.wmax] <- x.wmax
+  x.out[idx] <- x.w
   
   return(x.out)
   
 }
 
-colWins <- function (x, prc=0.05, n=NULL){
+colWins <- function (x, p=0.05){
 # Winsorise by columns
 #
 # Inputs
 #   x       Array/matrix to be winsorised
-#   prc     Percentage of observations to be winsorised per column.
-#           Values about 0.5 are overriden to 0.5
-#   n       Number of observations to be winsorised per column. If given this overrides prc. 
-#           If n > floor((length(x)-1)/2) then it is set equal to floor((length(x)-1)/2).
-#
+#   p       Percentage or number of observations to be winsorised. 
+#           If value is <1 then it is used as a percentages. Otheriwse it is the number
+#           of observations to winsorise. If the resulting p > floor((length(x)-1)/2) 
+#           then it is set equal to floor((length(x)-1)/2).#
 # Output
 #   x.out   Winsorised array/matrix.
 #
@@ -64,22 +67,23 @@ colWins <- function (x, prc=0.05, n=NULL){
 # Nikolaos Kourentzes, 2014 <nikolaos@kourentzes.com>
 
   k <- dim(x)[2]
-  v.wins <- Vectorize(function(i){temp <- wins(x[,i], prc, n)})
+  v.wins <- Vectorize(function(i){temp <- wins(x[,i], p)})
   x.out <- v.wins(1:k)
   x.out <- x.out + 0*x
   
+  return(x.out)
+  
 }
 
-rowWins <- function (x, prc=0.05, n=NULL){
+rowWins <- function (x, p=0.05){
 # Winsorise by rows
 #
 # Inputs
 #   x       Array/matrix to be winsorised
-#   prc     Percentage of observations to be winsorised per row.
-#           Values about 0.5 are overriden to 0.5
-#   n       Number of observations to be winsorised per row. If given this overrides prc. 
-#           If n > floor((length(x)-1)/2) then it is set equal to floor((length(x)-1)/2).
-#
+#   p       Percentage or number of observations to be winsorised. 
+#           If value is <1 then it is used as a percentages. Otheriwse it is the number
+#           of observations to winsorise. If the resulting p > floor((length(x)-1)/2) 
+#           then it is set equal to floor((length(x)-1)/2).#
 # Output
 #   x.out   Winsorised array/matrix.
 #
@@ -90,9 +94,11 @@ rowWins <- function (x, prc=0.05, n=NULL){
 # Nikolaos Kourentzes, 2014 <nikolaos@kourentzes.com>
   
   d <- dim(x)
-  v.wins <- Vectorize(function(i){temp <- wins(x[i,], prc, n)})
+  v.wins <- Vectorize(function(i){temp <- wins(x[i,], p)})
   x.out <- v.wins(1:d[1])
   x.out <- array(t(x.out),d)
   x.out <- x.out + 0*x
+  
+  return(x.out) 
   
 }

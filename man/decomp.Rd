@@ -8,7 +8,7 @@
 \usage{
 decomp <- function(y,m=NULL,s=NULL,trend=NULL,outplot=c(FALSE,TRUE),
                    decomposition=c("multiplicative","additive"),
-                   h=0,type=c("mean","median","pure.seasonal"))
+                   h=0,type=c("mean","median","pure.seasonal"),w=NULL)
 }
 
 \arguments{
@@ -35,6 +35,9 @@ decomp <- function(y,m=NULL,s=NULL,trend=NULL,outplot=c(FALSE,TRUE),
 }
   \item{type}{
     Type of calculation for seasonal component: "mean" - The mean of each seasonal period; "median" - The median of each seasonal period; "pure.seasonal" - Model using a pure seasonal model.
+}
+  \item{w}{
+    Percentage or number of observations to winsorise in the calculation of mean seasonal indices. If w>1 then it is the number of observations, otherwise it is a percentage. If type != "mean" then this is ignored.
 }
 }
 \value{

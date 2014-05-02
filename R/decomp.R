@@ -1,6 +1,6 @@
 decomp <- function(y,m=NULL,s=NULL,trend=NULL,outplot=c(FALSE,TRUE),
                    decomposition=c("multiplicative","additive"),
-                   h=0,type=c("mean","median","pure.seasonal"))
+                   h=0,type=c("mean","median","pure.seasonal"),w=NULL)
 {
 # Decomposition of series
 #
@@ -17,6 +17,9 @@ decomp <- function(y,m=NULL,s=NULL,trend=NULL,outplot=c(FALSE,TRUE),
 #                   "mean"          - The mean of each seasonal period
 #                   "median"        - The median of each seasonal period
 #                   "pure.seasonal" - Model using a pure seasonal model
+#   w             Percentage or number of observations to winsorise in the calculation
+#                 of mean seasonal indices. If w>1 then it is the number of observations, 
+#                 otherwise it is a percentage. If type != "mean" then this is ignored.
 #
 # Outputs:
 #   List with the following elements:
@@ -73,12 +76,14 @@ decomp <- function(y,m=NULL,s=NULL,trend=NULL,outplot=c(FALSE,TRUE),
     ynt <- y - trend
   }
     
-  ymin.s <- min(ynt)
-  ymax.s <- max(ynt)
-  yminmax.s <- c(ymin.s-0.1*(ymax.s-ymin.s),ymax.s+0.1*(ymax.s-ymin.s))
-  ymin.y <- min(y)
-  ymax.y <- max(y)
-  yminmax.y <- c(ymin.y-0.1*(ymax.y-ymin.y),ymax.y+0.1*(ymax.y-ymin.y))
+  if (outplot != FALSE){
+    ymin.s <- min(ynt)
+    ymax.s <- max(ynt)
+    yminmax.s <- c(ymin.s-0.1*(ymax.s-ymin.s),ymax.s+0.1*(ymax.s-ymin.s))
+    ymin.y <- min(y)
+    ymax.y <- max(y)
+    yminmax.y <- c(ymin.y-0.1*(ymax.y-ymin.y),ymax.y+0.1*(ymax.y-ymin.y))
+  }
   
   # Fill with NA start and end of season
   k <- m - (n %% m)
@@ -94,6 +99,9 @@ decomp <- function(y,m=NULL,s=NULL,trend=NULL,outplot=c(FALSE,TRUE),
   g <- NULL
   if (type=="mean"){
     # Calculate the seasonality as the overall mean
+    if (!is.null(w)){
+      ynt <- colWins(ynt,w)
+    }
     season <- colMeans(ynt, na.rm=TRUE)
     if (h>0){
       f.season <- rep(season,h+m*2)

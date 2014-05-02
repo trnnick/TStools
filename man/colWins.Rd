@@ -6,18 +6,15 @@
 \description{Winsorise per column to either a percentage or number of observations.}
 
 \usage{
-colWins(x, prc=0.05, n=NULL)
+colWins(x, p=0.05)
 }
 
 \arguments{
   \item{x}{
     Array/matrix to be winsorised.
 }
-  \item{prc}{
-    Percentage of observations to be winsorised per column. Values about 0.5 are overriden to 0.5.
-}
-  \item{n}{
-    Number of observations to be winsorised per column. If given this overrides prc. If n > floor((length(x)-1)/2) then it is set equal to floor((length(x)-1)/2).
+  \item{p}{
+    Percentage or number of observations to be winsorised. If value is <1 then it is used as a percentages. Otheriwse it is the number of observations to winsorise. If the resulting p > floor((length(x)-1)/2) then it is set equal to floor((length(x)-1)/2).
 }
 }
 \value{
