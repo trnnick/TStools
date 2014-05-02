@@ -1,7 +1,7 @@
 \name{rowWins}
 \alias{rowWins}
 
-\title{Winsorise per column}
+\title{Winsorise per row}
 
 \description{Winsorise per row to either a percentage or number of observations.}
 

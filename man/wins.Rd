@@ -1,7 +1,7 @@
 \name{wins}
 \alias{wins}
 
-\title{Winsorise vector}
+\title{Winsorise}
 
 \description{Winsorise vector to either a percentage or number of observations.}
 
