@@ -6,9 +6,10 @@
 \description{Friedman and Nemenyi tests for nonparametric comparisons between methods.}
 
 \usage{
-nemenyi(data, conf.int=0.95, sort=TRUE, 
-plottype=c("vline","none","mcb","vmcb","line"), console=FALSE, 
-silent=FALSE, pcol=NULL, title=NULL, select=NULL, labels=NULL)
+nemenyi(data, conf.int=0.95, sort=c(TRUE,FALSE), 
+        plottype=c("vline","none","mcb","vmcb","line"), 
+        console=c(FALSE,TRUE), silent=c(FALSE,TRUE), 
+        pcol=NULL, title=NULL, select=NULL, labels=NULL)
 }
 
 \arguments{

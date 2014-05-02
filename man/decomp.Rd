@@ -6,9 +6,9 @@
 \description{Decompose series into its components.}
 
 \usage{
-decomp <- function(y,m=NULL,s=NULL,trend=NULL,outplot=c(FALSE,TRUE),
-                   decomposition=c("multiplicative","additive"),
-                   h=0,type=c("mean","median","pure.seasonal"),w=NULL)
+decomp(y,m=NULL,s=NULL,trend=NULL,outplot=c(FALSE,TRUE),
+       decomposition=c("multiplicative","additive"),
+       h=0,type=c("mean","median","pure.seasonal"),w=NULL)
 }
 
 \arguments{

@@ -134,7 +134,7 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
   # Reseasonalise
   if (season.exist == TRUE){
     # Seasonality is modelled with a pure seasonal smoothing
-    sout <- opt.sfit(ynt,costs,g0,n,m)
+    sout <- opt.sfit(ynt,costs,n,m)
     season <- sout$season
     # sstd <- sd(season)
     season <- rep(season, h %/% m + 1)[1:h]
@@ -207,7 +207,7 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
   
 }
 
-opt.sfit <- function(ynt,costs,g0,n,m){
+opt.sfit <- function(ynt,costs,n,m){
   # Optimise pure seasonal model and predict out-of-sample seasonality
   g0 <- c(0.001,colMeans(ynt,na.rm=TRUE))       # Initialise seasonal model
   season.sample <- matrix(t(ynt),ncol=1)        # Transform back to vector
