@@ -129,7 +129,7 @@ decomp <- function(y,m=NULL,s=NULL,trend=NULL,outplot=c(FALSE,TRUE),
   }
   if (type=="pure.seasonal"){
     # Seasonality is modelled with a pure seasonal smoothing
-    sout <- opt.sfit(ynt,"MSE",0.001,n,m)
+    sout <- opt.sfit(ynt=ynt,costs="MSE",n=n,m=m)
     g <- sout$g
     if (h>0){
       season <- sout$season
@@ -221,9 +221,9 @@ decomp <- function(y,m=NULL,s=NULL,trend=NULL,outplot=c(FALSE,TRUE),
 }
 
 
-opt.sfit <- function(ynt,costs,g0,n,m){
+opt.sfit <- function(ynt,costs,n,m){
   # Optimise pure seasonal model and predict out-of-sample seasonality
-  g0 <- c(g0,colMeans(ynt,na.rm=TRUE))          # Initialise seasonal model
+  g0 <- c(0.001,colMeans(ynt,na.rm=TRUE))       # Initialise seasonal model
   season.sample <- matrix(t(ynt),ncol=1)        # Transform back to vector
   season.sample <- season.sample[!is.na(season.sample)]
   opt <- optim(par=g0, cost.sfit, method = "Nelder-Mead", season.sample=season.sample, 
