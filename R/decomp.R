@@ -38,7 +38,7 @@ decomp <- function(y,m=NULL,s=NULL,trend=NULL,outplot=c(FALSE,TRUE),
   
   # Get m (seasonality)
   if (is.null(m)){
-    if (class(y) == "ts"){
+    if (class(y)[1] == "ts"){
       m <- frequency(y)
     } else {
       stop("Seasonality not defined (y not ts object).")
@@ -47,7 +47,7 @@ decomp <- function(y,m=NULL,s=NULL,trend=NULL,outplot=c(FALSE,TRUE),
   
   # Get starting period in seasonality if available
   if (is.null(s)){
-    if (class(y) == "ts"){
+    if (class(y)[1] == "ts"){
       s <- start(y)
       s <- s[2]
     } else {
@@ -145,7 +145,7 @@ decomp <- function(y,m=NULL,s=NULL,trend=NULL,outplot=c(FALSE,TRUE),
   }
   
   # Convert f.season to ts object
-  if (class(y) == "ts" && h>0){
+  if (class(y)[1] == "ts" && h>0){
     s <- end(y)
     if (s[2]==m){
       s[1] <- s[1]+1
