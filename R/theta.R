@@ -76,7 +76,8 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
   trend.exist <- coxstuart(cma)$p.value <= sign.level/2
   
   # Get seasonal matrix and test for seasonality
-  if (m>1){
+  if (m>1 && (length(y)/m)>=2){
+    k <- m - (n %% m)
     if (multiplicative == TRUE){
       ynt <- y / cma
     } else {

@@ -129,7 +129,7 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
   rownames(ynt) <- paste("s",1:ns,sep="")
   
   # Check seasonality with Friedman
-  if (m>1){
+  if (m>1 && (length(y)/m)>=2){
     season.pval <- friedman.test(ynt)$p.value
     season.exist <- season.pval <= alpha
     if (season.exist==TRUE){
