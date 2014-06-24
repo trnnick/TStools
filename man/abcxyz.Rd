@@ -26,6 +26,9 @@ abcxyz(imp,frc,outplot=c(TRUE,FALSE))
 \author{
 Nikolaos Kourentzes
 }
+\seealso{
+\code{\link{abc}}, \code{\link{xyz}}.
+}
 \examples{
 x <- abs(matrix(cumsum(rnorm(5400,0,1)),36,150))
 abcxyz(abc(x,outplot=FALSE),xyz(x,type="cv",outplot=FALSE))

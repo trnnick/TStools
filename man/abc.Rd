@@ -29,6 +29,9 @@ abc(x,prc=c(0.2,0.3,0.5),outplot=c(TRUE,FALSE))
 \author{
 Nikolaos Kourentzes
 }
+\seealso{
+\code{\link{xyz}}, \code{\link{abcxyz}}.
+}
 \examples{
 x <- abs(matrix(cumsum(rnorm(5400,0,1)),36,150))
 abc(x,outplot=TRUE)

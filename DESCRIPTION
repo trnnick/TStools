@@ -9,3 +9,4 @@ Description: This package contains functions to help in time series modelling an
 LazyData: yes
 License: GPL (>=2)
 Depends: forecast, tseries
+URL: http://kourentzes.com/forecasting/2014/04/19/tstools-for-r/

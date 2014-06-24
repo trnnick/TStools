@@ -36,6 +36,9 @@ xyz(x,m=NULL,prc=c(0.2,0.3,0.5),type=c("naive","ets","cv"),outplot=c(TRUE,FALSE)
 \author{
 Nikolaos Kourentzes
 }
+\seealso{
+\code{\link{abc}}, \code{\link{abcxyz}}.
+}
 \examples{
 x <- abs(matrix(cumsum(rnorm(5400,0,1)),36,150))
 xyz(x,m=12,outplot=TRUE)
