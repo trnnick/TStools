@@ -114,10 +114,14 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
   theta2 <- 2*y.des - theta0          # Construct theta2 
   a <- opt.ses(theta2,cost2,a0,2)     # Optimise theta2 
   
+  # In-sample fit
+  in.theta0 <- theta0
+  in.theta2 <- fun.ses(theta2,a)$ins
+  in.fit <- (in.theta0 + in.theta2)/2
+  
   # Prediction
   frc.theta0 <- b[1] + b[2]*((n+1):(n+h))
-  frc.theta2 <- fun.ses(theta2,a)$out * rep(1,h)
-  
+  frc.theta2 <- fun.ses(theta2,a)$outs * rep(1,h)
   frc <- (frc.theta0 + frc.theta2)/2
   
   # Convert to ts object
@@ -142,8 +146,10 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
     g <- sout$g
     if (multiplicative == TRUE){
       frc <- frc * season
+      in.fit <- in.fit * sout$in.season
     } else {
       frc <- frc + season
+      in.fit <- in.fit + sout$in.season
     }
   } else {
     g <- NULL
@@ -176,9 +182,9 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
       }
       frc.theta0 <- ts(frc.theta0,start=s,frequency=m)  
       frc.theta2 <- ts(frc.theta2,start=s,frequency=m)  
-      ts.plot(y,theta0,frc.theta0,theta2,frc.theta2,frc,
-              gpars=list(col=c("black","forestgreen","forestgreen","red","red","blue"),
-                         lwd=c(1,1,1,1,1,2),lty=c(1,1,2,1,2,1)))
+      ts.plot(y,theta0,frc.theta0,theta2,frc.theta2,frc,in.fit,
+              gpars=list(col=c("black","forestgreen","forestgreen","red","red","blue","blue"),
+                         lwd=c(1,1,1,1,1,2,1),lty=c(1,1,2,1,2,1,1)))
     } else {
     ymin <- min(min(y),min(theta0),min(theta2),min(frc),min(frc.theta0),min(frc.theta2))
     ymax <- max(min(y),max(theta0),max(theta2),max(frc),max(frc.theta0),max(frc.theta2))
@@ -189,6 +195,7 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
     lines((n+1):(n+h),frc.theta0,col="forestgreen",type="l",lty=2)
     lines((n+1):(n+h),frc.theta2,col="red",type="l",lty=2)
     lines((n+1):(n+h),frc,col="blue",type="l",lwd=2)
+    lines(1:n,in.fit,col="blue",lwd=1)
     }
   }
   
@@ -204,7 +211,7 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
   costf <- rbind(cost0,cost2,costs)
   rownames(costf) <- c("Theta0","Theta2","Seasonal")
   return(list("frc"=frc,"exist"=exist,"theta0"=frc.theta0,"theta2"=frc.theta2,
-              "season"=season,"cost"=costf,"a"=a,"b"=b, "g"=g)) # ,"std.season"=sstd))
+              "season"=season,"cost"=costf,"a"=a,"b"=b, "g"=g, "fit"=in.fit)) # ,"std.season"=sstd))
   
 }
 
@@ -216,8 +223,10 @@ opt.sfit <- function(ynt,costs,n,m){
   opt <- optim(par=g0, cost.sfit, method = "Nelder-Mead", season.sample=season.sample, 
                cost=costs, n=n, m=m, control = list(maxit = 2000))
   g <- opt$par
-  season <- fun.sfit(season.sample,g,n,m)$outs
-  return(list("season"=season,"g"=g))
+  sfit <- fun.sfit(season.sample,g,n,m)
+  out.season <- sfit$outs
+  in.season <- sfit$ins
+  return(list("season"=out.season,"in.season"=in.season,"g"=g))
 }
 
 fun.sfit <- function(season.sample,g,n,m){

@@ -54,6 +54,7 @@ theta(y,m=NULL,h=10,outplot=0,sign.level=0.05,
 \item{a}{SES parameters of theta2.}
 \item{b}{Regression parameters of theta0.}
 \item{g}{Pure seasonal exponential smoothing parameters of season.}
+\item{fit}{In-sample fit.}
 }
 \note{This implementation of Theta method tests automatically for seasonality and trend. Seasonal decomposition can be done either additively or multiplicatively and the seasonality is treated as a pure seasonal model. The various components of Theta can be optimised using different cost functions. The originally proposed Theta method always assume multiplicative seasonality and presence of trend, while all theta lines are optimised using MSE. Seasonality is estimated using classical decomposition.}
 \author{
