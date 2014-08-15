@@ -61,7 +61,7 @@ kdemode <- function(data,type=c("diffusion","SJ","nrd0"),outplot=c(FALSE,TRUE)){
            col=c("red","yellow","green"), pch=19, bty="n")
   }
   
-  return(mo)
+  return(list(mode=mo,xd=x,fd=f))
 
 }
 
