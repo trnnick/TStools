@@ -1,6 +1,6 @@
 importFrom(tseries,kpss.test)
 import(forecast)
 
-export(cmav,nemenyi,regopt,seasplot,kdemode,decomp,
+export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        coxstuart,wins,rowWins,colWins,theta,abc,xyz,abcxyz,
-       nzlength)
+       nzlength,init.ets)
