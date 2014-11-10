@@ -147,15 +147,11 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
   # Produce plots
   if (outplot != 0){
     yminmax <- c(ymin - 0.1*(ymax-ymin),ymax + 0.1*(ymax-ymin))
-    if (is.null(plot.title)){
-      if (is.null(season.pval)){
-        plottitle <- paste(title.trend, "\n", title.season,sep="")
-      } else {
-        plottitle <- paste(title.trend, "\n", title.season,
-                     " (p-val: ",round(season.pval,3),")",sep="")
-      }
+    if (is.null(season.pval)){
+      plottitle <- paste(title.trend, "\n", title.season,sep="")
     } else {
-      plottitle <- plot.title
+      plottitle <- paste(title.trend, "\n", title.season,
+                   " (p-val: ",round(season.pval,3),")",sep="")
     }
   }
   
@@ -172,7 +168,11 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
       lines(ynt[i,],type="l",col=cmp[i])
     }
     lines(c(0,m+1),c(ymid,ymid),col="black",lty=2)
-    title(paste("Seasonal diagramme ",main=plottitle,sep=""))
+    if (is.null(plot.title)){
+      title(paste("Seasonal diagramme ",main=plottitle,sep=""))
+    } else {
+      title(main=plot.title)
+    }
     legend("topleft",c("Oldest","Newest"),col=c(cmp[1],cmp[ns]),lty=1,bty="n",lwd=2,cex=0.7)
     axis(1,at=1:m,labels=labels)
   } 
@@ -183,7 +183,11 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
     }
     boxplot(ynt,col=cmp,ylim=yminmax,xlim=c(1,m),xlab="Period")
     lines(c(0,m+1),c(ymid,ymid),col="black",lty=2)
-    title(paste("Seasonal boxplot ",main=plottitle,sep=""))
+    if (is.null(plot.title)){
+      title(paste("Seasonal boxplot ",main=plottitle,sep=""))
+    } else {
+      title(main=plot.title)
+    }
   }
   if (outplot == 3){
     # Subseries plots
@@ -204,7 +208,11 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
       }
     }
     lines(c(0,m*ns+1),c(ymid,ymid),col="black",lty=2)
-    title(paste("Seasonal subseries ",main=plottitle,sep=""))
+    if (is.null(plot.title)){
+      title(paste("Seasonal subseries ",main=plottitle,sep=""))
+    } else {
+      title(main=plot.title)
+    }
     axis(1,at=seq(0.5+(ns/2),0.5+m*ns-ns/2,ns),labels=labels)
   }
   if (outplot == 4){
@@ -223,7 +231,11 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
     lines(1:m,qntl[4,],col=cmp,lwd=2)
     lines(c(0,m*ns+1),c(ymid,ymid),col="black",lty=2)
     legend("topleft",c("Median","25%-75%","10%-90%","MinMax"),col=c(cmp,"skyblue","lightblue",gray(0.8)),lty=1,bty="n",lwd=2,cex=0.7)
-    title(paste("Seasonal distribution ",main=plottitle,sep=""))
+    if (is.null(plot.title)){
+      title(paste("Seasonal distribution ",main=plottitle,sep=""))
+    } else {
+      title(main=plot.title)
+    }
     axis(1,at=1:m,labels=labels)
   }
   if (outplot == 5){
@@ -241,7 +253,11 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
     # filled.contour(1:m,llc,dnst,ylim=yminmax,xlab="Period",ylab="",nlevels=50,color.palette=rainbow)
     lines(colMeans(ynt,na.rm=TRUE),type="o",lty=1,bg="skyblue",pch=21,cex=0.7)
     lines(c(0,m*ns+1),c(ymid,ymid),col="black",lty=2)
-    title(paste("Seasonal density ",main=plottitle,sep=""))
+    if (is.null(plot.title)){
+      title(paste("Seasonal density ",main=plottitle,sep=""))
+    } else {
+      title(main=plot.title)
+    }
     axis(1,at=1:m,labels=labels)
   }
   
