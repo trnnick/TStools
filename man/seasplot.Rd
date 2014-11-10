@@ -41,6 +41,9 @@ seasplot(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,outplot=c(1,0,2,3,4,5
   \item{labels}{
     External labels for the seasonal periods. Use NULL for default. If length(labels) < m, then this input is ignored.
 }
+  \item{plot.title}{
+    External title for the seasonal plot. Use NULL for default.
+}
 }
 \value{
 \item{season}{Matrix of (detrended) seasonal elements.}

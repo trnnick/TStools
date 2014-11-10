@@ -1,6 +1,6 @@
 seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
                      outplot=c(1,0,2,3,4,5),decomposition=c("multiplicative","additive"),
-                     cma=NULL,labels=NULL)
+                     cma=NULL,labels=NULL,plot.title=NULL)
 {
 # Seasonal plots and crude trend/season tests
 #
@@ -20,10 +20,11 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
 #                   3 - Seasonal subseries
 #                   4 - Seasonal distribution
 #                   5 - Seasonal density
-#   decomposition type of seasonal decomposition: "multiplicative" or "additive".
+#   decomposition Type of seasonal decomposition: "multiplicative" or "additive".
 #   cma           Input precalculated level/trend for the analysis. Overrides trend=NULL.
 #   labels        External labels for the seasonal periods. Use NULL for default. 
 #                 If length(labels) < m, then this input is ignored.
+#   plot.title    External title for the seasonal plot. Use NULL for default.
 #
 # Outputs:
 #   List with the following elements:
@@ -146,11 +147,15 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
   # Produce plots
   if (outplot != 0){
     yminmax <- c(ymin - 0.1*(ymax-ymin),ymax + 0.1*(ymax-ymin))
-    if (is.null(season.pval)){
-      plottitle <- paste(title.trend, "\n", title.season,sep="")
+    if (is.null(plot.title)){
+      if (is.null(season.pval)){
+        plottitle <- paste(title.trend, "\n", title.season,sep="")
+      } else {
+        plottitle <- paste(title.trend, "\n", title.season,
+                     " (p-val: ",round(season.pval,3),")",sep="")
+      }
     } else {
-      plottitle <- paste(title.trend, "\n", title.season,
-                   " (p-val: ",round(season.pval,3),")",sep="")
+      plottitle <- plot.title
     }
   }
   
