@@ -7,7 +7,7 @@
 
 \usage{
 seasplot(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,outplot=c(1,0,2,3,4,5),
-         decomposition=c("multiplicative","additive"),cma=NULL,labels=NULL)
+         decomposition=c("multiplicative","additive"),cma=NULL,labels=NULL,plot.title=NULL)
 }
 
 \arguments{
