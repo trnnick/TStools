@@ -3,4 +3,4 @@ import(forecast)
 
 export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        coxstuart,wins,rowWins,colWins,theta,abc,xyz,abcxyz,
-       nzlength,init.ets)
+       nzlength,init.ets,mre,mre.plot,bias.coeff)

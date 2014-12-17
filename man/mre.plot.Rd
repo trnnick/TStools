@@ -1,0 +1,38 @@
+\name{mre.plot}
+\alias{mre.plot}
+
+\title{Mean Root Error Bias Plot}
+
+\description{Plots the `Bias Plot' for MRE.}
+
+\usage{
+mre(e,op=c("mean","sum","gm"))
+}
+
+\arguments{
+  \item{mre}{
+    k Root or Mean Root Errors to be plotted. These must already be complex numbers.
+}
+  \item{main}{
+    Main title for plot.
+}
+  \item{plot.legend}{
+    If TRUE plot legend when k>1.
+}
+}
+\references{
+Kourentzes N., Trapero J. R., Svetunkov I. Measuring the behaviour of experts on demand forecasting: a complex task. Working paper
+http://kourentzes.com/forecasting/2014/12/17/measuring-the-behaviour-of-experts-on-demand-forecasting-a-complex-task/
+}
+\author{
+Nikolaos Kourentzes
+}
+\examples{
+# Create some random MRE
+mre <- runif(10,0,5) + runif(10,0,5)*1i
+plot.mre(mre)
+}
+\keyword{ ~mre }
+\seealso{
+\code{\link{bias.coeff}}, \code{\link{mre}}.
+}
