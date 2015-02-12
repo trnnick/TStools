@@ -4,7 +4,7 @@ Title: Time series analysis tools and functions
 Version: 1.0
 Date: 2014-03-22
 Author: Nikolaos Kourentzes and Ivan Svetunkov
-Maintainer: Nikolaos Kourentzes <n.kourentzes@lancaster.ac.uk> 
+Maintainer: Nikolaos Kourentzes <n.kourentzes@lancaster.ac.uk>
 Description: This package contains functions to help in time series modelling and analysis
 LazyData: yes
 License: GPL (>=2)
