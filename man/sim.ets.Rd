@@ -77,6 +77,9 @@ Ivan Svetunkov, \email{ivan@svetunkov.ru}
 # Create 40 observations of quarterly data using AAA model with errors from normal distribution
 sim.ets(model="AAA",seas.freq=4,obs=40,randomizer="rnorm",mean=0,sd=100)-> ETS.AAA
 
+# Create 50 series of quarterly data using AAA model with 40 observations eachwith errors from normal distribution
+sim.ets(model="AAA",seas.freq=4,obs=40,randomizer="rnorm",mean=0,sd=100,nseries=50)-> ETS.AAA
+
 # Create 60 observations of monthly data using ANN model with errors from beta distribution
 sim.ets(model="ANN",persistence=c(1.5),seas.freq=12,obs=60,randomizer="rbeta",sshape1=1.5,sshape2=1.5)-> ETS.ANN
 plot(ETS.ANN$states)
@@ -85,7 +88,7 @@ plot(ETS.ANN$states)
 sim.ets(model="MAM",persistence=c(0.3,0.2,0.1),initial=c(2000,50),phi=0.8,seas.freq=12,obs=60,randomizer="runif",min=-0.5,max=0.5)-> ETS.MAM
 
 # Create 80 observations of quarterly data using MMM model with predefined initial values and errors from the normal distribution
-sim.ets(model="MMM",persistence=c(0.1,0.1,0.1),initial=c(2000,1),initial.seas=c(1.1,1.05,0.9,.95),seas.freq=4,obs=80,mean=0,sd=0.1)-> ETS.MMM
+sim.ets(model="MMM",persistence=c(0.1,0.1,0.1),initial=c(2000,1),initial.seas=c(1.1,1.05,0.9,.95),seas.freq=4,obs=80,mean=0,sd=0.01)-> ETS.MMM
 }
 
 \keyword{ exponential smoothing }
