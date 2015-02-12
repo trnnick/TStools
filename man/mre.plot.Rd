@@ -6,7 +6,7 @@
 \description{Plots the `Bias Plot' for MRE.}
 
 \usage{
-mre(e,op=c("mean","sum","gm"))
+mre.plot(mre,main=NULL,plot.legend=c(TRUE,FALSE))
 }
 
 \arguments{
@@ -30,7 +30,7 @@ Nikolaos Kourentzes
 \examples{
 # Create some random MRE
 mre <- runif(10,0,5) + runif(10,0,5)*1i
-plot.mre(mre)
+mre.plot(mre)
 }
 \keyword{ ~mre }
 \seealso{
