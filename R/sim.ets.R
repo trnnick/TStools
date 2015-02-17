@@ -153,6 +153,9 @@ ry.value <- function(error.type, trend.type, season.type, xt){
         persistence.length <- persistence.length + 1;
 # n.components.s is needed to estimate if the number of initial parameters correspond to the chosen model
         n.components.s <- seas.freq;
+# model.freq is used in the cases of seasonal models.
+#   if model.freq==1 then non-seasonal data will be produced with the defined seas.freq.
+        model.freq <- seas.freq;
         lags <- c(lags,seas.freq);
         component.names <- c(component.names,"seasonality");
         mat.w <- c(mat.w,1);
@@ -206,7 +209,7 @@ ry.value <- function(error.type, trend.type, season.type, xt){
         }
     }
 
-# If the seasonal model is chosen, fill in the first "seas.freq" values.
+# If the seasonal model is chosen, fill in the first "seas.freq" values of seasonal component.
     if(seasonal.component==TRUE & !is.null(initial.season)){
         mat.xt[1:seas.freq,(n.components+1)] <- initial.season;
     }
@@ -231,6 +234,13 @@ for(k in 1:nseries){
     if(is.null(persistence)){
 ### All the random smoothing parameters lie randomly between 0 and 1 for now!
         vec.g <- runif(persistence.length,0,1);
+# For the case of "usual" bounds make restrictions on the generated smoothing parameters so the ETS can be "averaging" model.
+        if(bounds=="usual" & persistence.length > 1){
+            vec.g[2] <- runif(1,0,vec.g[1]);
+            if(persistence.length==3){
+                vec.g[3] <- runif(1,0,max(0,1-vec.g[1]));
+            }
+        }
     }
 
 # Generate initial stated of level and trend if they were not supplied
@@ -273,10 +283,10 @@ for(k in 1:nseries){
     if(any(names(match.call(expand.dots=FALSE)[-1]) == "...")==FALSE){
 # If the error is multiplicative, scale it!
         if(error.type=="M" & max(abs(errors))>0.1){
-            errors <- 0.1 * errors / max(abs(errors));
+            errors <- 0.05 * errors / max(abs(errors));
         }
     }
-    
+
 ##### Simulation of first model.freq observations #####
     if(season.type!="M"){
         if(season.type=="A"){
@@ -289,21 +299,17 @@ for(k in 1:nseries){
             j <- 2;
             if(trend.type!="M"){
 ### ZAA and ZNA
-                while(j <= seas.freq){
+                while(j <= model.freq){
                     y[j] <- mat.w[1:n.components] %*% mat.xt[cbind((j-lags[1:n.components]),c(1:n.components))] + mat.xt[j,n.components+1] + errors[j] * ry.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-c(lags[1:n.components],0)),c(1:persistence.length))]);
-                    mat.xt[j,1:n.components] <- mat.F[1:n.components,1:n.components] %*% mat.xt[cbind((j-lags[1:n.components]),c(1:n.components))]
-                    + vec.g[1:n.components] * errors[j] *
-                        r.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-c(lags[1:n.components],0)),c(1:persistence.length))])[1:n.components];
+                    mat.xt[j,1:n.components] <- mat.F[1:n.components,1:n.components] %*% mat.xt[cbind((j-lags[1:n.components]),c(1:n.components))] + vec.g[1:n.components] * errors[j] * r.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-c(lags[1:n.components],0)),c(1:persistence.length))])[1:n.components];
                     j <- j + 1;
                 }
             }
             else{
 ### ZMA
-                while(j <= seas.freq){
+                while(j <= model.freq){
                     y[j] <- exp(mat.w[1:n.components] %*% log(mat.xt[cbind((j-lags[1:n.components]),c(1:n.components))])) + mat.xt[j,n.components+1] + errors[j] * ry.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-c(lags[1:n.components],0)),c(1:persistence.length))]);
-                    mat.xt[j,1:n.components] <- exp(mat.F[1:n.components,1:n.components] %*% log(mat.xt[cbind((j-lags[1:n.components]),c(1:n.components))]))
-                    + vec.g[1:n.components] * errors[j] *
-                        r.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-c(lags[1:n.components],0)),c(1:persistence.length))])[1:n.components];
+                    mat.xt[j,1:n.components] <- exp(mat.F[1:n.components,1:n.components] %*% log(mat.xt[cbind((j-lags[1:n.components]),c(1:n.components))])) + vec.g[1:n.components] * errors[j] * r.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-c(lags[1:n.components],0)),c(1:persistence.length))])[1:n.components];
                     j <- j + 1;
                 }
             }
@@ -329,21 +335,17 @@ for(k in 1:nseries){
         j <- 2;
         if(trend.type!="M"){
 ### ZAM and ZNM
-            while(j <= seas.freq){
+            while(j <= model.freq){
                 y[j] <- mat.w[1:n.components] %*% mat.xt[cbind((j-lags[1:n.components]),c(1:n.components))] * mat.xt[j,n.components+1] + errors[j] * ry.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-c(lags[1:n.components],0)),c(1:persistence.length))])
-                mat.xt[j,1:n.components] <- mat.F[1:n.components,1:n.components] %*% mat.xt[cbind((j-lags[1:n.components]),c(1:n.components))]
-                + vec.g[1:n.components] * errors[j] * 
-                    r.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-c(lags[1:n.components],0)),c(1:persistence.length))])[1:n.components];
+                mat.xt[j,1:n.components] <- mat.F[1:n.components,1:n.components] %*% mat.xt[cbind((j-lags[1:n.components]),c(1:n.components))] + vec.g[1:n.components] * errors[j] * r.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-c(lags[1:n.components],0)),c(1:persistence.length))])[1:n.components];
                 j <- j + 1;
             }
         }
         else{
 ### ZMM
-            while(j <= seas.freq){
+            while(j <= model.freq){
                 y[j] <- exp(mat.w %*% log(mat.xt[cbind((j-c(lags[1:n.components],0)),c(1:persistence.length))])) + errors[j] * ry.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-c(lags[1:n.components],0)),c(1:persistence.length))])
-                mat.xt[j,1:n.components] <- exp(mat.F[1:n.components,1:n.components] %*% log(mat.xt[cbind((j-lags[1:n.components]),c(1:n.components))]))
-                + vec.g[1:n.components] * errors[j] *
-                    r.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-c(lags[1:n.components],0)),c(1:persistence.length))])[1:n.components];
+                mat.xt[j,1:n.components] <- exp(mat.F[1:n.components,1:n.components] %*% log(mat.xt[cbind((j-lags[1:n.components]),c(1:n.components))])) + vec.g[1:n.components] * errors[j] * r.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-c(lags[1:n.components],0)),c(1:persistence.length))])[1:n.components];
                 j <- j + 1;
             }
         }
@@ -356,8 +358,7 @@ for(k in 1:nseries){
 ### ZNN and ZAN
             while(j<=obs){
                 y[j] <- mat.w %*% mat.xt[cbind((j-lags),c(1:persistence.length))] + errors[j] * ry.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-lags),c(1:persistence.length))]);
-                mat.xt[j,] <- mat.F %*% mat.xt[cbind((j-lags),c(1:persistence.length))] + vec.g * errors[j] *
-                    r.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-lags),c(1:persistence.length))]);
+                mat.xt[j,] <- mat.F %*% mat.xt[cbind((j-lags),c(1:persistence.length))] + vec.g * errors[j] * r.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-lags),c(1:persistence.length))]);
                 j <- j + 1;
             }
         }
@@ -365,8 +366,7 @@ for(k in 1:nseries){
 ### ZMN
             while(j<=obs){
                 y[j] <- exp(mat.w %*% log(mat.xt[cbind((j-lags),c(1:persistence.length))])) + errors[j] * ry.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-lags),c(1:persistence.length))]);
-                mat.xt[j,] <- exp(mat.F %*% log(mat.xt[cbind((j-lags),c(1:persistence.length))])) + vec.g * errors[j] *
-                    r.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-lags),c(1:persistence.length))]);
+                mat.xt[j,] <- exp(mat.F %*% log(mat.xt[cbind((j-lags),c(1:persistence.length))])) + vec.g * errors[j] * r.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-lags),c(1:persistence.length))]);
 #Failsafe for the negative components
                 if(mat.xt[j,1] < 0){
                     mat.xt[j,1] <- mat.xt[j-1,1];
@@ -383,8 +383,7 @@ for(k in 1:nseries){
 ### ZNA and ZAA
             while(j<=obs){
                 y[j] <- mat.w %*% mat.xt[cbind((j-lags),c(1:persistence.length))] + errors[j] * ry.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-lags),c(1:persistence.length))]);
-                mat.xt[j,] <- mat.F %*% mat.xt[cbind((j-lags),c(1:persistence.length))] + vec.g *
-                    r.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-lags),c(1:persistence.length))]);
+                mat.xt[j,] <- mat.F %*% mat.xt[cbind((j-lags),c(1:persistence.length))] + vec.g * errors[j] * r.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-lags),c(1:persistence.length))]);
 # Renormalize seasonal component
                 at <- vec.g[n.components+1] / seas.freq * errors[j] * ry.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-lags),c(1:persistence.length))]);
                 mat.xt[j,1] <- mat.xt[j,1] + at;
@@ -396,8 +395,7 @@ for(k in 1:nseries){
 ### ZMA
             while(j<=obs){
                 y[j] <- exp(mat.w[1:n.components] %*% log(mat.xt[cbind((j-lags[1:n.components]),c(1:n.components))])) + mat.xt[j-seas.freq,n.components+1] + errors[j] * ry.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-lags),c(1:persistence.length))]);
-                mat.xt[j,] <- Re(exp(mat.F %*% log(as.complex(mat.xt[cbind((j-lags),c(1:persistence.length))])))) + vec.g * errors[j] *
-                    r.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-lags),c(1:persistence.length))]);
+                mat.xt[j,] <- Re(exp(mat.F %*% log(as.complex(mat.xt[cbind((j-lags),c(1:persistence.length))])))) + vec.g * errors[j] * r.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-lags),c(1:persistence.length))]);
 #Failsafe for the negative components
                 if(mat.xt[j,1] < 0){
                     mat.xt[j,1] <- mat.xt[j-1,1]
@@ -434,8 +432,7 @@ for(k in 1:nseries){
 ### ZMM
             while(j<=obs){
                 y[j] <- exp(mat.w %*% log(mat.xt[cbind((j-lags),c(1:persistence.length))])) + errors[j] * ry.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-lags),c(1:persistence.length))]);
-                mat.xt[j,] <- Re(exp(mat.F %*% log(as.complex(mat.xt[cbind((j-lags),c(1:persistence.length))])))) + vec.g * errors[j] *
-                    r.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-lags),c(1:persistence.length))]);
+                mat.xt[j,] <- Re(exp(mat.F %*% log(as.complex(mat.xt[cbind((j-lags),c(1:persistence.length))])))) + vec.g * errors[j] * r.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-lags),c(1:persistence.length))]);
 # Failsafe mechanism for the cases with negative components
                 if(mat.xt[j,1] < 0){
                     mat.xt[j,1] <- mat.xt[j-1,1]
