@@ -151,8 +151,6 @@ ry.value <- function(error.type, trend.type, season.type, xt){
 
     if(season.type!="N"){
         persistence.length <- persistence.length + 1;
-# n.components.s is needed to estimate if the number of initial parameters correspond to the chosen model
-        n.components.s <- seas.freq;
 # model.freq is used in the cases of seasonal models.
 #   if model.freq==1 then non-seasonal data will be produced with the defined seas.freq.
         model.freq <- seas.freq;
@@ -170,7 +168,6 @@ ry.value <- function(error.type, trend.type, season.type, xt){
     }
     else{
         seasonal.component <- FALSE;
-        n.components.s <- 0;
         model.freq <- 1;
     }
 
@@ -185,7 +182,6 @@ ry.value <- function(error.type, trend.type, season.type, xt){
             print("Falling back to random number generator in... now!");
             persistence <- NULL;
         }
-        vec.g <- persistence;
     }
 
 # Check the inital vector length
@@ -196,13 +192,12 @@ ry.value <- function(error.type, trend.type, season.type, xt){
         if(n.components!=length(initial)){
             print("The length of initial state vector does not correspond to the chosen model!");
             print("Falling back to random number generator in... now!");
-            initial <- rep(NULL,n.components);                
+            initial <- NULL;
         }
-        mat.xt[1,1:n.components] <- initial;
     }
 
     if(!is.null(initial.season)){
-        if(n.components.s!=length(initial.season)){
+        if(model.freq!=length(initial.season)){
             print("The length of seasonal initial states does not correspond to the chosen frequency!");
             print("Falling back to random number generator in... now!");
             initial.season <- NULL;
@@ -242,6 +237,9 @@ for(k in 1:nseries){
             }
         }
     }
+    else{
+        vec.g <- persistence;
+    }
 
 # Generate initial stated of level and trend if they were not supplied
     if(is.null(initial)){
@@ -254,20 +252,23 @@ for(k in 1:nseries){
         }
         else{
             mat.xt[1,1] <- runif(1,500,5000);
-            mat.xt[1,2] <- runif(1,0.75,1.25);
+            mat.xt[1,2] <- 1;
         }
+    }
+    else{
+        mat.xt[1,1:n.components] <- initial;
     }
 
 # Generate seasonal states if they were not supplied
     if(seasonal.component==TRUE & is.null(initial.season)){
 # Create and normalize seasonal components. Use geometric mean for multiplicative case
         if(season.type == "A"){
-            mat.xt[1:n.components.s,n.components+1] <- runif(n.components.s,-500,500);
-            mat.xt[1:n.components.s,n.components+1] <- mat.xt[1:n.components.s,n.components+1] - mean(mat.xt[1:n.components.s,n.components+1]);
+            mat.xt[1:model.freq,n.components+1] <- runif(model.freq,-500,500);
+            mat.xt[1:model.freq,n.components+1] <- mat.xt[1:model.freq,n.components+1] - mean(mat.xt[1:model.freq,n.components+1]);
         }
         else{
-            mat.xt[1:n.components.s,n.components+1] <- runif(n.components.s,0.3,1.7);
-            mat.xt[1:n.components.s,n.components+1] <- mat.xt[1:n.components.s,n.components+1] / exp(mean(log(mat.xt[1:n.components.s,n.components+1])));
+            mat.xt[1:model.freq,n.components+1] <- runif(model.freq,0.3,1.7);
+            mat.xt[1:model.freq,n.components+1] <- mat.xt[1:model.freq,n.components+1] / exp(mean(log(mat.xt[1:model.freq,n.components+1])));
         }
     }
 
