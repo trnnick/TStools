@@ -46,7 +46,7 @@ sim.ets(model="ANN",seas.freq=1,
   the number of series to generate.
 }
   \item{randomizer}{
-  the type of the random number generator function.
+  the type of the random number generator function. The defaults are: \code{rnorm}, \code{rt}, \code{runif}, \code{rbeta}. But any function from \link[stats]{Distributions} will do the trick if the appropriate parameters are passed. For example \code{rpois} with \code{lambda=2} can be used.
 }
   \item{...}{
   additional parameters passed to the chosen randomizer. All the parameters should be passed in the order they are used in the chosen function. For example, passing \code{sd=0.5} to \code{rnorm} function will lead to the call \code{rnorm(obs, mean=0.5, sd=1)}.
@@ -71,7 +71,7 @@ Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
 
 \seealso{
-\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}}
+\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[stats]{Distributions}}
 }
 \examples{
 # Create 40 observations of quarterly data using AAA model with errors from normal distribution

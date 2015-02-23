@@ -222,6 +222,12 @@ ry.value <- function(error.type, trend.type, season.type, xt){
     cat("Series simulated:  ");
     }
 
+# If the chosen randomizer is not rnorm, rt and runif and no parameters are provided, change to rnorm.
+    if(randomizer!="rnorm" & randomizer!="rt" & randomizer!="runif" & (any(names(match.call(expand.dots=FALSE)[-1]) == "...")==FALSE)){
+      warning(paste0("The chosen randomizer - ",randomizer," - needs some arbitrary parameters! Changing to 'rnorm' now."),call.=FALSE);
+      randomizer = "rnorm";
+    }
+
 ##### Start the loop #####
 for(k in 1:nseries){
 
@@ -275,16 +281,52 @@ for(k in 1:nseries){
 # Create vector for the series
     y <- rep(NA,obs);
 
-# Create vector of the errors
-    errors <- eval(parse(text=paste0(randomizer,"(n=",obs,",", toString(as.character(list(...))),")")));
-    if(randomizer=="rbeta"){
-        errors <- errors - 0.5;
-    }
 # Check if any argument was passed in dots
     if(any(names(match.call(expand.dots=FALSE)[-1]) == "...")==FALSE){
+# Create vector of the errors
+        if(randomizer=="rnorm" | randomizer=="runif"){
+          errors <- eval(parse(text=paste0(randomizer,"(n=",obs,")")));
+        }
+        else if(randomizer=="rt"){
+# The degrees of freedom are df = n - k.
+          errors <- rt(obs,obs-(persistence.length + model.freq));
+        }
+
+# Center errors just in case
+        errors <- errors - mean(errors);
+# Change variance to make some sense. Errors should not be rediculously high and not too low.
+        errors <- errors * sqrt(abs(mat.xt[1,1]));
 # If the error is multiplicative, scale it!
-        if(error.type=="M" & max(abs(errors))>0.1){
+        if(error.type=="M" & max(abs(errors))>0.05){
             errors <- 0.05 * errors / max(abs(errors));
+        }
+    }
+# If arguments are passed, use them.
+    else{
+        errors <- eval(parse(text=paste0(randomizer,"(n=",obs,",", toString(as.character(list(...))),")")));
+
+        if(randomizer=="rbeta"){
+# Center the errors around 0.5
+          errors <- errors - 0.5;
+# Make a meaningful variance of data. Something resembling to var=1.
+          errors <- errors / sqrt(var(errors)) * sqrt(abs(mat.xt[1,1]));
+# If the error is multiplicative, scale it!
+            if(error.type=="M" & max(abs(errors))>0.05){
+                errors <- 0.05 * errors / max(abs(errors));
+            }
+        }
+        else if(randomizer=="rt"){
+# Make a meaningful variance of data.
+          errors <- errors * sqrt(abs(mat.xt[1,1]));
+# If the error is multiplicative, scale it!
+            if(error.type=="M" & max(abs(errors))>0.05){
+                errors <- 0.05 * errors / max(abs(errors));
+            }
+        }
+
+# Center errors in case all of them are positive or negative to get rid of bias.
+        if(all(errors>0) | all(errors<0)){
+            errors <- errors - mean(errors);
         }
     }
 
