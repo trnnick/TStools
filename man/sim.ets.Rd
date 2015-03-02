@@ -11,7 +11,7 @@ Function generates data using ETS with Single Source of Error as a data generati
 sim.ets(model="ANN",seas.freq=1,
              persistence=NULL, phi=1,
              initial=NULL, initial.season=NULL,
-             bounds=c("both","usual","admissible"),
+             bounds=c("usual","admissible","restricted"),
              obs=10, nseries=1,
              randomizer=c("rnorm","runif","rbeta","rt"),
              ...)
@@ -80,8 +80,8 @@ sim.ets(model="AAA",seas.freq=4,obs=40,randomizer="rnorm",mean=0,sd=100)-> ETS.A
 # Create 50 series of quarterly data using AAA model with 40 observations each with errors from normal distribution
 sim.ets(model="AAA",seas.freq=4,obs=40,randomizer="rnorm",mean=0,sd=100,nseries=50)-> ETS.AAA
 
-# Create 50 series of quarterly data using AAdA model with 40 observations each with errors from normal distribution and smoothing parameters lying in the "admissible" range.
-sim.ets(model="AAA",phi=0.9,seas.freq=4,obs=40,bounds="admissible",randomizer="rnorm",mean=0,sd=100,nseries=50)-> ETS.AAA
+# Create 50 series of quarterly data using AAdA model with 40 observations each with smoothing parameters lying in the "admissible" range.
+sim.ets(model="AAA",phi=0.9,seas.freq=4,obs=40,bounds="admissible",nseries=50)-> ETS.AAdA
 
 # Create 60 observations of monthly data using ANN model with errors from beta distribution
 sim.ets(model="ANN",persistence=c(1.5),seas.freq=12,obs=60,randomizer="rbeta",sshape1=1.5,sshape2=1.5)-> ETS.ANN
