@@ -1,7 +1,7 @@
 sim.ets <- function(model="ANN",seas.freq=1,
              persistence=NULL, phi=1,
              initial=NULL, initial.season=NULL,
-             bounds=c("usual","both","admissible","restricted"),
+             bounds=c("usual","admissible","restricted"),
              obs=10, nseries=1,
              randomizer=c("rnorm","runif","rbeta","rt"),
              ...){
@@ -236,19 +236,49 @@ for(k in 1:nseries){
 # For the case of "usual" bounds make restrictions on the generated smoothing parameters so the ETS can be "averaging" model.
         if(bounds=="usual"){
             vec.g <- runif(persistence.length,0,1);
-            if(persistence.length > 1){
+            if(trend.type!="N"){
                 vec.g[2] <- runif(1,0,vec.g[1]);
-                if(persistence.length==3){
-                    vec.g[3] <- runif(1,0,max(0,1-vec.g[1]));
-                }
+            }
+            if(season.type!="N"){
+                vec.g[persistence.length] <- runif(1,0,max(0,1-vec.g[1]));
             }
         }
         else if(bounds=="restricted"){
             vec.g <- runif(persistence.length,0,0.3);            
-            if(persistence.length > 1){
+            if(trend.type!="N"){
                 vec.g[2] <- runif(1,0,vec.g[1]);
-                if(persistence.length==3){
-                    vec.g[3] <- runif(1,0,max(0,1-vec.g[1]));
+            }
+            if(season.type!="N"){
+                vec.g[persistence.length] <- runif(1,0,max(0,1-vec.g[1]));
+            }
+        }
+        else if(bounds=="admissible"){
+            vec.g <- runif(persistence.length,1-1/phi,1+1/phi);
+            if(trend.type!="N"){
+                vec.g[2] <- runif(1,vec.g[1]*(phi-1),(2-vec.g[1])*(1+phi));
+                if(season.type!="N"){
+                    vec.g[3] <- runif(1,max(1-1/phi-vec.g[1],0),1+1/phi-vec.g[1]);
+                    B <- phi*(4-3*vec.g[3])+vec.g[3]*(1-phi)/model.freq;
+                    C <- sqrt(B^2-8*(phi^2*(1-vec.g[3])^2+2*(phi-1)*(1-vec.g[3])-1)+8*vec.g[3]^2*(1-phi)/model.freq);
+                    vec.g[1] <- runif(1,1-1/phi-vec.g[3]*(1-model.freq+phi*(1+model.freq))/(2*phi*model.freq),(B+C)/(4*phi));
+# Solve the equation to get Theta value. Theta
+                    Theta.func <- function(Theta){
+                        result <- (phi*vec.g[1]+phi+1)/(vec.g[3]) +
+                            ((phi-1)*(1+cos(Theta)-cos(model.freq*Theta))+cos((model.freq-1)*Theta)-phi*cos((model.freq+1)*Theta))/(2*(1+cos(Theta))*(1-cos(model.freq*Theta)))
+                        return(abs(result));
+                    }
+                    Theta <- 0.1;
+                    Theta <- optim(Theta,Theta.func,method="Brent",lower=0,upper=1)$par;
+
+                    D <- (phi*(1-vec.g[1])+1)*(1-cos(Theta)) - vec.g[3]*((1+phi)*(1-cos(Theta)-cos(model.freq*Theta))+cos((model.freq-1)*Theta)+phi*cos((model.freq+1)*Theta))/(2*(1+cos(Theta))*(1-cos(model.freq*Theta)))
+                    vec.g[2] <- runif(1,-(1-phi)*(vec.g[3]/model.freq+vec.g[1]),D+(phi-1)*vec.g[1]);
+                }
+            }
+            else{
+                if(season.type!="N"){
+                    vec.g[1] <- runif(1,-2/(model.freq-1),2);
+                    vec.g[2] <- runif(1,max(-model.freq*vec.g[1],0),2-vec.g[1]);
+                    vec.g[1] <- runif(1,-2/(model.freq-1),2-vec.g[2]);
                 }
             }
         }

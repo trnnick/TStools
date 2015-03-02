@@ -37,7 +37,7 @@ sim.ets(model="ANN",seas.freq=1,
   the vector of initial states for seasonal coefficients. Should correspond to the \code{seas.freq} parameter If \code{NULL}, all the values will be taken at random.
 }
   \item{bounds}{
-  the type of bounds to use for the persistence vector. NOT IMPLEMENTED YET.
+  the type of bounds to use for the persistence vector. "usual" - the bounds from p.156 by Hyndman et. al., 2008. "restricted" - similar to "usual" but with the high bound equal to 0.3. "admissible" - bounds from tables 10.1 and 10.2 of Hyndman et. al., 2008.
 }
   \item{obs}{
   the number of observations in each generated time series.
@@ -77,8 +77,11 @@ Ivan Svetunkov, \email{ivan@svetunkov.ru}
 # Create 40 observations of quarterly data using AAA model with errors from normal distribution
 sim.ets(model="AAA",seas.freq=4,obs=40,randomizer="rnorm",mean=0,sd=100)-> ETS.AAA
 
-# Create 50 series of quarterly data using AAA model with 40 observations eachwith errors from normal distribution
+# Create 50 series of quarterly data using AAA model with 40 observations each with errors from normal distribution
 sim.ets(model="AAA",seas.freq=4,obs=40,randomizer="rnorm",mean=0,sd=100,nseries=50)-> ETS.AAA
+
+# Create 50 series of quarterly data using AAdA model with 40 observations each with errors from normal distribution and smoothing parameters lying in the "admissible" range.
+sim.ets(model="AAA",phi=0.9,seas.freq=4,obs=40,bounds="admissible",randomizer="rnorm",mean=0,sd=100,nseries=50)-> ETS.AAA
 
 # Create 60 observations of monthly data using ANN model with errors from beta distribution
 sim.ets(model="ANN",persistence=c(1.5),seas.freq=12,obs=60,randomizer="rbeta",sshape1=1.5,sshape2=1.5)-> ETS.ANN
