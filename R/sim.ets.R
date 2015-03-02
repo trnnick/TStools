@@ -1,7 +1,7 @@
 sim.ets <- function(model="ANN",seas.freq=1,
              persistence=NULL, phi=1,
              initial=NULL, initial.season=NULL,
-             bounds=c("both","usual","admissible"),
+             bounds=c("usual","both","admissible","restricted"),
              obs=10, nseries=1,
              randomizer=c("rnorm","runif","rbeta","rt"),
              ...){
@@ -233,14 +233,27 @@ for(k in 1:nseries){
 
 # If the persistence is NULL or was of the wrong length, generate the values
     if(is.null(persistence)){
-### All the random smoothing parameters lie randomly between 0 and 1 for now!
-        vec.g <- runif(persistence.length,0,1);
 # For the case of "usual" bounds make restrictions on the generated smoothing parameters so the ETS can be "averaging" model.
-        if(bounds=="usual" & persistence.length > 1){
-            vec.g[2] <- runif(1,0,vec.g[1]);
-            if(persistence.length==3){
-                vec.g[3] <- runif(1,0,max(0,1-vec.g[1]));
+        if(bounds=="usual"){
+            vec.g <- runif(persistence.length,0,1);
+            if(persistence.length > 1){
+                vec.g[2] <- runif(1,0,vec.g[1]);
+                if(persistence.length==3){
+                    vec.g[3] <- runif(1,0,max(0,1-vec.g[1]));
+                }
             }
+        }
+        else if(bounds=="restricted"){
+            vec.g <- runif(persistence.length,0,0.3);            
+            if(persistence.length > 1){
+                vec.g[2] <- runif(1,0,vec.g[1]);
+                if(persistence.length==3){
+                    vec.g[3] <- runif(1,0,max(0,1-vec.g[1]));
+                }
+            }
+        }
+        else{
+            vec.g <- runif(persistence.length,0,1);
         }
     }
     else{
