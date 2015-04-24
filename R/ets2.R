@@ -11,6 +11,7 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
     bounds <- bounds[1];
     IC <- IC[1];
+
 # If chosen model is "AAdN" or anything like that, we are taking the appropriate values
     if(nchar(model)==4){
         error.type <- substring(model,1,1);
@@ -18,16 +19,27 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         season.type <- substring(model,4,4);
         damped <- TRUE;
         if(substring(model,3,3)!="d"){
-            message(parse0("You have defined a strange model: ",model));
+            message(paste0("You have defined a strange model: ",model));
             sowhat(model);
+            model <- paste0(error.type,trend.type,"d",season.type);
         }
     }
-    else{
+    else if(nchar(model)==3){
         error.type <- substring(model,1,1);
         trend.type <- substring(model,2,2);
         season.type <- substring(model,3,3);
         phi <- 1;
         damped <- FALSE;
+    }
+    else{
+        message(paste0("You have defined a strange model: ",model));
+        sowhat(model);
+        model <- "ZZZ";
+
+        error.type <- "Z";
+        trend.type <- "Z";
+        season.type <- "Z";
+        damped <- TRUE;
     }
 
 # Define obs.all, the overal number of observations (in-sample + holdout)
@@ -215,10 +227,8 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             mat.xt[1:seas.freq,2] <- rep(slope,seas.freq);
         }
         else if(trend.type=="M"){
-            slope <- cov(log(y[1:min(12,obs)]),log(c(1:min(12,obs))))/var(log(c(1:min(12,obs))));
-            intercept <- exp(mean(log(y[1:min(12,obs)])) - slope * (mean(log(c(1:min(12,obs))))) - 1);
-            mat.xt[1:seas.freq,1] <- rep(intercept,seas.freq);
-            mat.xt[1:seas.freq,2] <- rep(slope,seas.freq);
+            mat.xt[1:seas.freq,1] <- rep(mean(data[1:min(12,obs)]),seas.freq);
+            mat.xt[1:seas.freq,2] <- rep(1,seas.freq);
         }
         estimate.initial <- TRUE;
     }
@@ -610,23 +620,6 @@ hin.constrains.usual <- function(C){
     return(constrains);
 }
 
-heq.constrains.usual <- function(C){
-    i.s <- 0;
-
-### Constrains on initial seasonal parameters (-Inf, Inf) for additive and (0.1, 1.9) for multiplicative
-    if(estimate.initial.season==TRUE){
-        n <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial;
-            if(season.type=="A"){
-                i.s <- mean(C[(n + 1):(n + seas.freq)]);
-            }
-            else{
-                i.s <- 1 - exp(mean(log(C[(n + 1):(n + seas.freq)])));
-            }
-    }
-
-    return(i.s);
-}
-
 # For the automatic model selection. If data has negative or zero values,
 # exclude multiplicative models
 #if(any(y<=0)){
@@ -647,32 +640,42 @@ heq.constrains.usual <- function(C){
 # Fill in the vector of initial values used in estimation
     if(estimate.persistence==TRUE | estimate.phi==TRUE | estimate.initial==TRUE | estimate.initial.season==TRUE){
         C <- NA;
+        C.lower <- NA;
+        C.upper <- NA;
+
         if(estimate.persistence==TRUE){
             C <- c(C,vec.g);
+            C.lower <- c(C.lower,rep(0,length(vec.g)));
+            C.upper <- c(C.upper,rep(1,length(vec.g)));
         }
         if(estimate.phi==TRUE){
             C <- c(C,phi);
+            C.lower <- c(C.lower,0);
+            C.upper <- c(C.upper,1.2);
         }
         if(estimate.initial==TRUE){
             C <- c(C,mat.xt[seas.freq,1:(n.components - seasonal.component)]);
+            C.lower <- c(C.lower,rep(-Inf,(n.components - seasonal.component)));
+            C.upper <- c(C.upper,rep(Inf,(n.components - seasonal.component)));
         }
         if(estimate.initial.season==TRUE){
             C <- c(C,mat.xt[1:seas.freq,n.components]);
+            if(season.type=="A"){
+                C.lower <- c(C.lower,rep(-Inf,seas.freq));
+                C.upper <- c(C.upper,rep(Inf,seas.freq));
+            }
+            else{
+                C.lower <- c(C.lower,rep(0,seas.freq));
+                C.upper <- c(C.upper,rep(2,seas.freq));
+            }
         }
         C <- C[!is.na(C)];
+        C.lower <- C.lower[!is.na(C.lower)];
+        C.upper <- C.upper[!is.na(C.upper)];
 
-
-#        if(trace==TRUE){
-#library(nloptr);
-            res <- cobyla(C, CF, hin=hin.constrains.usual);
-#library(alabama);
-#            res <- auglag(C, CF, hin=hin.constrains.usual, heq=heq.constrains.usual, control.outer=list(method="nlminb",trace=FALSE));
-            CF.objective <- res$value;
-#        }
-#        else{
-#            res <- nlminb(C, CF)
-#            CF.objective <- res$objective;
-#        }
+library(nloptr);
+        res <- cobyla(C, CF, hin=hin.constrains.usual, lower=C.lower, upper=C.upper);
+        CF.objective <- res$value;
 
         init.ets <- estim.values(mat.xt,vec.g,phi,res$par);
         vec.g <- init.ets$vec.g;
@@ -732,7 +735,7 @@ if(silent==FALSE){
         print(paste0("MASE: ",MASE(coredata(data)[(obs+1):obs.all],coredata(y.for),mean(abs(diff(coredata(data)[1:obs]))),round=3)));
         print(paste0("MASE.lvl: ",MASE.lvl(coredata(data)[(obs+1):obs.all],coredata(y.for),round=5)*100,"%"));
     }
-    
+
     par(mfrow=c(1,1), mar=c(5,3,2,1))
     plot(data,type="l",xlim=range(time(data)[1],time(y.for)[h]),
          ylim=plot.range,xlab="Time", ylab="")
