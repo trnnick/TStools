@@ -1,12 +1,12 @@
 Package: TStools
 Type: Package
 Title: Time series analysis tools and functions
-Version: 1.0
-Date: 2014-03-22
+Version: 1.1
+Date: 2015-04-24
 Author: Nikolaos Kourentzes and Ivan Svetunkov
 Maintainer: Nikolaos Kourentzes <n.kourentzes@lancaster.ac.uk>
 Description: This package contains functions to help in time series modelling and analysis
 LazyData: yes
 License: GPL (>=2)
-Depends: forecast, tseries
+Depends: forecast, tseries, nloptr
 URL: http://kourentzes.com/forecasting/2014/04/19/tstools-for-r/

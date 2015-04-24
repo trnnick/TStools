@@ -48,6 +48,8 @@ ets2(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{silent}{ If TRUE, no output or graphs are printed out.
   }
+  \item{legend}{ If FALSE, no legend is drawn on the output plot.
+  }
   \item{...}{ Other parameters that are passed to DON'T KNOW YET WHAT.
   }
 }
@@ -86,14 +88,14 @@ To do:
 }
 
 \seealso{
-\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[stats]{Distributions} \link[prognosis]{sim.ets}}
+\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[stats]{Distributions} \link[TStools]{sim.ets}}
 }
 \examples{
 library(Mcomp)
 
-ets2(M3$N1245$x,model="AAdN",h=12,holdout=F,trace=F) -> test
-ets2(M3$N1245$x,model="AAdN",h=12,holdout=F,trace=T) -> test
-ets2(M3$N2568$x,model="AMA",h=12,holdout=T,trace=T) -> test
+ets2(M3$N1245$x,model="AAdN",h=12,holdout=FALSE,trace=FALSE) -> test
+ets2(M3$N1245$x,model="AAdN",h=12,holdout=FALSE,trace=TRUE) -> test
+ets2(M3$N2568$x,model="AMA",h=12,holdout=TRUE,trace=TRUE) -> test
 
 }
 \keyword{ exponential smoothing }

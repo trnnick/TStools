@@ -17,6 +17,10 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         trend.type <- substring(model,2,2);
         season.type <- substring(model,4,4);
         damped <- TRUE;
+        if(substring(model,3,3)!="d"){
+            message(parse0("You have defined a strange model: ",model));
+            sowhat(model);
+        }
     }
     else{
         error.type <- substring(model,1,1);
@@ -542,7 +546,7 @@ MASE <- function(a,f,scale,round=3){
     return(result);
 }
 
-constrains.usual <- function(C){
+hin.constrains.usual <- function(C){
     p <- NA;
     d <- NA;
     i <- NA;
@@ -606,6 +610,23 @@ constrains.usual <- function(C){
     return(constrains);
 }
 
+heq.constrains.usual <- function(C){
+    i.s <- 0;
+
+### Constrains on initial seasonal parameters (-Inf, Inf) for additive and (0.1, 1.9) for multiplicative
+    if(estimate.initial.season==TRUE){
+        n <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial;
+            if(season.type=="A"){
+                i.s <- mean(C[(n + 1):(n + seas.freq)]);
+            }
+            else{
+                i.s <- 1 - exp(mean(log(C[(n + 1):(n + seas.freq)])));
+            }
+    }
+
+    return(i.s);
+}
+
 # For the automatic model selection. If data has negative or zero values,
 # exclude multiplicative models
 #if(any(y<=0)){
@@ -642,10 +663,10 @@ constrains.usual <- function(C){
 
 
 #        if(trace==TRUE){
-library(nloptr);
-            res <- cobyla(C, CF, hin=constrains.usual);
+#library(nloptr);
+            res <- cobyla(C, CF, hin=hin.constrains.usual);
 #library(alabama);
-#            res <- auglag(C, CF, hin=constrains.usual, control.outer=list(trace=FALSE,method="nlminb"));
+#            res <- auglag(C, CF, hin=hin.constrains.usual, heq=heq.constrains.usual, control.outer=list(method="nlminb",trace=FALSE));
             CF.objective <- res$value;
 #        }
 #        else{
