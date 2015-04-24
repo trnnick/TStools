@@ -316,7 +316,7 @@ estim.values <- function(mat.xt,vec.g,phi,C){
     }
     
 # If initial values are not provided, write them in the matrix
-    if(estimate.initial){
+    if(estimate.initial==TRUE){
         mat.xt[1:seas.freq,1:(n.components - seasonal.component)] <- rep(C[(n.components*estimate.persistence + estimate.phi + 1):(n.components*estimate.persistence + estimate.phi + n.components - seasonal.component)],each=seas.freq);
     }
     
@@ -628,15 +628,6 @@ hin.constrains.usual <- function(C){
 #    season.pool <- c("N","A");
 #}
 
-    if(estimate.persistence==FALSE & estimate.phi==FALSE & estimate.initial==FALSE & estimate.initial.season==FALSE){
-        CF.objective <- mean(errors^2);
-#        n.param <- n.components + damped + (n.components - seasonal.component) + seas.freq*seasonal.component;
-        n.param <- 0;
-    }
-    else{
-        n.param <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + seas.freq*estimate.initial.season;
-    }
-
 # Fill in the vector of initial values used in estimation
     if(estimate.persistence==TRUE | estimate.phi==TRUE | estimate.initial==TRUE | estimate.initial.season==TRUE){
         C <- NA;
@@ -703,6 +694,16 @@ library(nloptr);
     }
     else{
         plot.range <- range(min(data,y.fit,y.for),max(data,y.fit,y.for));
+    }
+
+    if(estimate.persistence==FALSE & estimate.phi==FALSE & estimate.initial==FALSE & estimate.initial.season==FALSE){
+        C <- c(vec.g,phi,initial,initial.season);
+        CF.objective <- CF(C);
+#        n.param <- n.components + damped + (n.components - seasonal.component) + seas.freq*seasonal.component;
+        n.param <- 0;
+    }
+    else{
+        n.param <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + seas.freq*estimate.initial.season;
     }
 
 # Information criteria are calculated with the constant part "log(2*pi*exp(1)*h)*obs".
@@ -794,5 +795,5 @@ if(silent==FALSE){
     par(mfrow=c(1,1), mar=c(5,4,4,2))
 }
 
-return(list(persistence=vec.g,phi=phi,states=mat.xt,fitted=y.fit,forecast=y.for,residuals=errors,x=data,ICs=ICs));
+return(list(persistence=vec.g,phi=phi,states=mat.xt,fitted=y.fit,forecast=y.for,residuals=errors,x=data,ICs=ICs,CF=CF.objective));
 }
