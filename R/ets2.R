@@ -213,7 +213,7 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
 # If initial values are provided, write them down
     if(!is.null(initial)){
-        mat.xt[1:seas.freq,1:(n.components - seasonal.component)] <- rep(initial,seas.freq);
+        mat.xt[1:seas.freq,1:(n.components - seasonal.component)] <- rep(initial,each=seas.freq);
         estimate.initial <- FALSE;
     }
     else{
@@ -527,7 +527,24 @@ CF <- function(C){
 
     mat.errors <- errors.ets(mat.xt,mat.F,mat.w,vec.g,trace);
 
-    CF.res <- exp(sum(log(colMeans(mat.errors^2,na.rm=TRUE))));
+    if(trace==TRUE){
+        for(i in 2:h){
+            mat.errors[,i] <- c(rep(NA,(i-1)),mat.errors[1:(obs-i+1),i]);
+        }
+#        n.obs <- diag(h)
+#        for(i in h:2){
+#            n.obs[,i] <- obs-i+1;
+#            n.obs[i,] <- obs-i+1;
+#        }
+#        mat.errors <<- mat.errors
+#        mat.errors[which(is.na(mat.errors))] <- 0;
+#        CF.res <- det(t(mat.errors) %*% (mat.errors) / n.obs);
+#        CF.res <- det(var(mat.errors,na.rm=TRUE));
+        CF.res <- exp(sum(log(colMeans(mat.errors^2,na.rm=TRUE))));
+    }
+    else{
+        CF.res <- mean(mat.errors^2,na.rm=TRUE);
+    }
 
     return(CF.res);
 }
@@ -679,7 +696,7 @@ library(nloptr);
     mat.w <- matrices$mat.w;
 
     fitting <- fit.ets(y,mat.xt,mat.F,mat.w,vec.g);
-    mat.xt <- ts(fitting$mat.xt,start=time(data)[1] - deltat(data)*(frequency(data)),frequency=frequency(data));
+    mat.xt <- ts(fitting$mat.xt,start=(time(data)[1] - deltat(data)*seas.freq),frequency=frequency(data));
     y.fit <- ts(fitting$y.fit,start=start(data),frequency=frequency(data));
     errors <- ts(fitting$errors,start=start(data),frequency=frequency(data));
 
@@ -707,7 +724,7 @@ library(nloptr);
     }
 
 # Information criteria are calculated with the constant part "log(2*pi*exp(1)*h)*obs".
-# And it is based on the mean of the sum squared residuals either than sum
+# And it is based on the mean of the sum squared residuals either than sum.
 # Hyndman likelihood is: llikelihood <- obs*log(obs*CF.objective);
     llikelihood <- obs*((h^trace)*log(2*pi*exp(1)) + log(CF.objective));
     AIC.coef <- 2*n.param + llikelihood;
