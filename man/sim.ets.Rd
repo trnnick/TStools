@@ -11,7 +11,7 @@ Function generates data using ETS with Single Source of Error as a data generati
 sim.ets(model="ANN",seas.freq=1,
              persistence=NULL, phi=1,
              initial=NULL, initial.season=NULL,
-             bounds=c("usual","admissible","restricted"),
+             bounds=c("both","usual","admissible"),
              obs=10, nseries=1,
              randomizer=c("rnorm","runif","rbeta","rt"),
              ...)
@@ -37,7 +37,7 @@ sim.ets(model="ANN",seas.freq=1,
   the vector of initial states for seasonal coefficients. Should correspond to the \code{seas.freq} parameter If \code{NULL}, all the values will be taken at random.
 }
   \item{bounds}{
-  the type of bounds to use for the persistence vector. "usual" - the bounds from p.156 by Hyndman et. al., 2008. "restricted" - similar to "usual" but with the high bound equal to 0.3. "admissible" - bounds from tables 10.1 and 10.2 of Hyndman et. al., 2008.
+  the type of bounds to use for the persistence vector. "usual" - the bounds from p.156 by Hyndman et. al., 2008. "restricted" - similar to "usual" but with the high bound equal to 0.3. "admissible" - bounds from tables 10.1 and 10.2 of Hyndman et. al., 2008. Using first letter of the type of bounds also works.
 }
   \item{obs}{
   the number of observations in each generated time series.
@@ -61,7 +61,8 @@ The list of the following values is returned:
   \item{data}{The ts vector of the generated series.}
   \item{states}{The states matrix. States are in columns, time is in rows. Also includes error term in the last column.}
   \item{persistence}{The vector of smoothing parameters used in the simulation.}
-
+  \item{model}{The name of the used ETS model.}
+  \item{llikelihood}{Log-likelihood of the constructed model.}
 }
 \references{
 Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008) Forecasting with exponential smoothing: the state space approach, Springer-Verlag. \url{http://www.exponentialsmoothing.net}.
@@ -80,8 +81,8 @@ sim.ets(model="AAA",seas.freq=4,obs=40,randomizer="rnorm",mean=0,sd=100)-> ETS.A
 # Create 50 series of quarterly data using AAA model with 40 observations each with errors from normal distribution
 sim.ets(model="AAA",seas.freq=4,obs=40,randomizer="rnorm",mean=0,sd=100,nseries=50)-> ETS.AAA
 
-# Create 50 series of quarterly data using AAdA model with 40 observations each with smoothing parameters lying in the "admissible" range.
-sim.ets(model="AAA",phi=0.9,seas.freq=4,obs=40,bounds="admissible",nseries=50)-> ETS.AAdA
+# Create 50 series of quarterly data using AAdA model with 40 observations each with errors from normal distribution and smoothing parameters lying in the "admissible" range.
+sim.ets(model="AAA",phi=0.9,seas.freq=4,obs=40,bounds="admissible",randomizer="rnorm",mean=0,sd=100,nseries=50)-> ETS.AAA
 
 # Create 60 observations of monthly data using ANN model with errors from beta distribution
 sim.ets(model="ANN",persistence=c(1.5),seas.freq=12,obs=60,randomizer="rbeta",sshape1=1.5,sshape2=1.5)-> ETS.ANN
@@ -91,7 +92,7 @@ plot(ETS.ANN$states)
 sim.ets(model="MAM",persistence=c(0.3,0.2,0.1),initial=c(2000,50),phi=0.8,seas.freq=12,obs=60,randomizer="runif",min=-0.5,max=0.5)-> ETS.MAM
 
 # Create 80 observations of quarterly data using MMM model with predefined initial values and errors from the normal distribution
-sim.ets(model="MMM",persistence=c(0.1,0.1,0.1),initial=c(2000,1),initial.seas=c(1.1,1.05,0.9,0.95),seas.freq=4,obs=80,mean=0,sd=0.01)-> ETS.MMM
+sim.ets(model="MMM",persistence=c(0.1,0.1,0.1),initial=c(2000,1),initial.seas=c(1.1,1.05,0.9,.95),seas.freq=4,obs=80,mean=0,sd=0.01)-> ETS.MMM
 }
 
 \keyword{ exponential smoothing }

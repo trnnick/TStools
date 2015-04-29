@@ -7,8 +7,8 @@ sim.ets <- function(model="ANN",seas.freq=1,
              ...){
 # Function generates data using ETS with Single Source of Error as a data generating process.
 #    Copyright (C) 2015  Ivan Svetunkov
-    
-    bounds <- bounds[1];
+
+    bounds <- substring(bounds[1],1,1);
     randomizer <- randomizer[1];
 
     error.type <- substring(model,1,1);
@@ -135,6 +135,9 @@ ry.value <- function(error.type, trend.type, season.type, xt){
         mat.w <- c(mat.w,phi);
         mat.F <- matrix(c(1,0,phi,phi),2,2);
         trend.component=TRUE;
+        if(phi!=1){
+            model <- paste0(error.type,trend.type,"d",season.type);
+        }
     }
     else{
         trend.component=FALSE;
@@ -163,7 +166,7 @@ ry.value <- function(error.type, trend.type, season.type, xt){
             mat.F <- matrix(c(1,0,0,1),2,2);
         }
         else{
-            mat.F <- matrix(c(1,0,0,phi,1,0,0,0,1),3,3);
+            mat.F <- matrix(c(1,0,0,phi,phi,0,0,0,1),3,3);
         }
     }
     else{
@@ -178,8 +181,8 @@ ry.value <- function(error.type, trend.type, season.type, xt){
 # Check the persistence vector length
     if(!is.null(persistence)){
         if(persistence.length != length(persistence)){
-            print("The length of persistence vector does not correspond to the chosen model!");
-            print("Falling back to random number generator in... now!");
+            message("The length of persistence vector does not correspond to the chosen model!");
+            message("Falling back to random number generator in... now!");
             persistence <- NULL;
         }
     }
@@ -190,16 +193,16 @@ ry.value <- function(error.type, trend.type, season.type, xt){
             stop("The length of the initial value is wrong! It should not be greater than 2.",call.=FALSE);
         }
         if(n.components!=length(initial)){
-            print("The length of initial state vector does not correspond to the chosen model!");
-            print("Falling back to random number generator in... now!");
+            message("The length of initial state vector does not correspond to the chosen model!");
+            message("Falling back to random number generator in... now!");
             initial <- NULL;
         }
     }
 
     if(!is.null(initial.season)){
         if(model.freq!=length(initial.season)){
-            print("The length of seasonal initial states does not correspond to the chosen frequency!");
-            print("Falling back to random number generator in... now!");
+            message("The length of seasonal initial states does not correspond to the chosen frequency!");
+            message("Falling back to random number generator in... now!");
             initial.season <- NULL;
         }
     }
@@ -234,7 +237,7 @@ for(k in 1:nseries){
 # If the persistence is NULL or was of the wrong length, generate the values
     if(is.null(persistence)){
 # For the case of "usual" bounds make restrictions on the generated smoothing parameters so the ETS can be "averaging" model.
-        if(bounds=="usual"){
+        if(bounds=="u"){
             vec.g <- runif(persistence.length,0,1);
             if(trend.type!="N"){
                 vec.g[2] <- runif(1,0,vec.g[1]);
@@ -243,7 +246,7 @@ for(k in 1:nseries){
                 vec.g[persistence.length] <- runif(1,0,max(0,1-vec.g[1]));
             }
         }
-        else if(bounds=="restricted"){
+        else if(bounds=="r"){
             vec.g <- runif(persistence.length,0,0.3);            
             if(trend.type!="N"){
                 vec.g[2] <- runif(1,0,vec.g[1]);
@@ -252,7 +255,7 @@ for(k in 1:nseries){
                 vec.g[persistence.length] <- runif(1,0,max(0,1-vec.g[1]));
             }
         }
-        else if(bounds=="admissible"){
+        else if(bounds=="a"){
             vec.g <- runif(persistence.length,1-1/phi,1+1/phi);
             if(trend.type!="N"){
                 vec.g[2] <- runif(1,vec.g[1]*(phi-1),(2-vec.g[1])*(1+phi));
@@ -585,11 +588,12 @@ for(k in 1:nseries){
         mat.xt <- cbind(mat.xt,errors);
         mat.xt <- ts(mat.xt,frequency=seas.freq);
         colnames(mat.xt) <- c(component.names,"error");
-    
-        return(list(data=y,states=mat.xt,persistence=vec.g));
+        llikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(var(errors)));
+
+        return(list(data=y,states=mat.xt,persistence=vec.g,residuals=errors,model=model,llikelihood=llikelihood));
     }
     else{
         mat.yt <- ts(mat.yt,frequency=seas.freq);
-        return(list(data=mat.yt,states=arr.xt,persistence=mat.g));
+        return(list(data=mat.yt,states=arr.xt,persistence=mat.g,model=model));
     }
 }
