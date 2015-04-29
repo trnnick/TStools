@@ -2,7 +2,8 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
                   cost0=c("MSE","MdSE","MAE","MdAE"),
                   cost2=c("MSE","MdSE","MAE","MdAE"),
                   costs=c("MSE","MdSE","MAE","MdAE"),
-                  multiplicative=c(TRUE,FALSE),cma=NULL){
+                  multiplicative=c(TRUE,FALSE),cma=NULL,
+                  outliers=NULL){
 # Theta method 
 # This implementation of Theta method tests automatically for seasonality and trend.
 # Seasonal decomposition can be done either additively or multiplicatively and the seasonality
@@ -29,6 +30,8 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
 #                   Otherwise additive is used.
 #   cma             Input pre-calculated centred moving average. 
 #                   Use NULL to calculate internally.
+#   outliers        Optional. Provide vector of location of observations that are considered outliers.
+#                   These will be included in theta0 estimation. To consider no outliers then use NULL.
 #
 # Output
 #   frc         Forecasts.
@@ -38,6 +41,7 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
 #   season      Forecasted values of seasonal element.
 #   a           SES parameters of theta2.
 #   b           Regression parameters of theta0.
+#   c           Coefficients of outliers from theta0 estimation.
 #   g           Pure seasonal exponential smoothing parameters of season.
 #
 # Example:
@@ -101,14 +105,33 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
   }
   
   # Create theta lines
-  X <- cbind(matrix(1,nrow=n,ncol=1),matrix(c(1:n), nrow=n, ncol=1))
+  
+  # Include in theta0 outliers if any provided
+  if (is.null(outliers)){
+    X.out <- NULL
+    n.out <- 0
+  } else {
+    n.out <- length(outliers)
+    X.out <- array(0,c(n,n.out))
+    X.out[outliers+n*(0:(n.out-1))] <- 1
+  }
+  # Include trend component in theta0
   if (trend.exist == TRUE){
+    X.trend <- matrix(c(1:n), nrow=n, ncol=1)
+  } else {
+    X.trend <- NULL
+  }
+  X <- cbind(matrix(1,nrow=n,ncol=1),X.trend,X.out)
+  
+#   if (trend.exist == TRUE || !is.null(outliers)){
+  if ((n.out + trend.exist)>=1){
     b0 <- solve(t(X)%*%X)%*%t(X)%*%y.des # Initialise theta0 parameters
     b <- opt.trnd(y.des,X,cost0,b0)      # Optimise theta0
   } else {
     # If no trend then theta0 is just a mean
-    b <- rbind(mean(y.des),0)
+    b <- mean(y.des)
   }
+
   theta0 <- X%*%b + 0*y.des           # 0*y.des To take ts object properties
   a0 <- rbind(0.1,y.des[1])           # Initialise theta2 parameters
   theta2 <- 2*y.des - theta0          # Construct theta2 
@@ -119,6 +142,18 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
   in.theta2 <- fun.ses(theta2,a)$ins
   in.fit <- (in.theta0 + in.theta2)/2
   
+  # Separate theta0 parameters into b and outliers (c){
+  if (n.out > 0){
+    c <- matrix(b[(2+trend.exist):(1+trend.exist+n.out)],nrow=n.out)
+  } else {
+    c <- NULL
+  }
+  b <- b[1:(1+trend.exist)]
+  if (trend.exist == FALSE){
+    b <- rbind(b, 0)
+  } 
+  b <- matrix(b,nrow=2)
+
   # Prediction
   frc.theta0 <- b[1] + b[2]*((n+1):(n+h))
   frc.theta2 <- fun.ses(theta2,a)$outs * rep(1,h)
@@ -203,7 +238,7 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
   exist <- rbind(trend.exist,season.exist)
   rownames(exist) <- c("Trend","Season")
   rownames(a) <- c("Alpha","Initial level")
-  rownames(b) <- c("Beta","Intercept")
+  rownames(b) <- c("Intercept","Slope")
   if (season.exist==TRUE){
     g <- matrix(g,nrow=1,ncol=m+1)
     colnames(g) <- c("Gamma",paste("s",1:m,sep=""))
@@ -211,7 +246,7 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
   costf <- rbind(cost0,cost2,costs)
   rownames(costf) <- c("Theta0","Theta2","Seasonal")
   return(list("frc"=frc,"exist"=exist,"theta0"=frc.theta0,"theta2"=frc.theta2,
-              "season"=season,"cost"=costf,"a"=a,"b"=b, "g"=g, "fit"=in.fit)) # ,"std.season"=sstd))
+              "season"=season,"cost"=costf,"a"=a,"b"=b,"c"=c,"g"=g, "fit"=in.fit)) # ,"std.season"=sstd))
   
 }
 

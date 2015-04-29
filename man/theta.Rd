@@ -10,7 +10,8 @@ theta(y,m=NULL,h=10,outplot=0,sign.level=0.05,
       cost0=c("MSE","MdSE","MAE","MdAE"),
       cost2=c("MSE","MdSE","MAE","MdAE"),
       costs=c("MSE","MdSE","MAE","MdAE"),
-      multiplicative=c(TRUE,FALSE),cma=NULL)
+      multiplicative=c(TRUE,FALSE),cma=NULL,
+      outliers=NULL)
 }
 
 \arguments{
@@ -44,6 +45,9 @@ theta(y,m=NULL,h=10,outplot=0,sign.level=0.05,
   \item{cma}{
     Input pre-calculated centred moving average. Use NULL to calculate internally. 
 }
+  \item{outliers}{
+    Optional. Provide vector of location of observations that are considered outliers. These will be included in theta0 estimation. To consider no outliers then use NULL.
+}
 }
 \value{
 \item{frc}{Forecasts.}
@@ -53,6 +57,7 @@ theta(y,m=NULL,h=10,outplot=0,sign.level=0.05,
 \item{season}{Forecasted values of seasonal element.}
 \item{a}{SES parameters of theta2.}
 \item{b}{Regression parameters of theta0.}
+\item{c}{Coefficients of outliers from theta0 estimation.}
 \item{g}{Pure seasonal exponential smoothing parameters of season.}
 \item{fit}{In-sample fit.}
 }
