@@ -11,7 +11,7 @@ Function constructs ETS model and returns forecast, fitted values, errors and ma
 ets2(data, model="ZZZ", persistence=NULL, phi=NULL,
     bounds=c("usual","admissible"),
     initial=NULL, initial.season=NULL,
-    IC=c("AIC","AICc","BIC"), trace=FALSE,
+    IC=c("AIC","AICc","BIC"), trace=FALSE, general.v=TRUE,
     intervals=FALSE, int.w=0.95, xreg=NULL,
     holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
     ...)
@@ -36,6 +36,8 @@ ets2(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{trace}{ If TRUE, the trace likelihood is used in the estimation with trace of the length h.
   }
+  \item{general.v}{ If TRUE, the general variance is estimated and used as Cost Function. If FALSE, the diagonal matrix of variances is used.
+  }
   \item{intervals}{ If TRUE, the prediction interval is constructed. NOT IMPLEMENTED YET
   }
   \item{int.w}{ Defines the width of the prediction interval. NOT IMPLEMENTED YET
@@ -47,8 +49,6 @@ ets2(data, model="ZZZ", persistence=NULL, phi=NULL,
   \item{h}{ The length of the forecasting horizon.
   }
   \item{silent}{ If TRUE, no output or graphs are printed out.
-  }
-  \item{legend}{ If FALSE, no legend is drawn on the output plot.
   }
   \item{...}{ Other parameters that are passed to DON'T KNOW YET WHAT.
   }
@@ -89,7 +89,7 @@ To do:
 }
 
 \seealso{
-\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[stats]{Distributions} \link[TStools]{sim.ets}}
+\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[stats]{Distributions} \link[prognosis]{sim.ets}}
 }
 \examples{
 library(Mcomp)

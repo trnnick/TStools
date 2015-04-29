@@ -1,7 +1,7 @@
 ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                  bounds=c("usual","admissible"),
                  initial=NULL, initial.season=NULL,
-                 IC=c("AIC","AICc","BIC"), trace=FALSE,
+                 IC=c("AIC","AICc","BIC"), trace=FALSE, general.v=TRUE,
                  intervals=FALSE, int.w=0.95, xreg=NULL,
                  holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
                  ...){
@@ -528,19 +528,23 @@ CF <- function(C){
     mat.errors <- errors.ets(mat.xt,mat.F,mat.w,vec.g,trace);
 
     if(trace==TRUE){
-        for(i in 2:h){
-            mat.errors[,i] <- c(rep(NA,(i-1)),mat.errors[1:(obs-i+1),i]);
-        }
+#        for(i in 2:h){
+#            mat.errors[,i] <- c(rep(NA,(i-1)),mat.errors[1:(obs-i+1),i]);
+#        }
 #        n.obs <- diag(h)
 #        for(i in h:2){
 #            n.obs[,i] <- obs-i+1;
 #            n.obs[i,] <- obs-i+1;
 #        }
-#        mat.errors <<- mat.errors
+#        n.obs <- obs - h + 1;
 #        mat.errors[which(is.na(mat.errors))] <- 0;
-#        CF.res <- det(t(mat.errors) %*% (mat.errors) / n.obs);
-#        CF.res <- det(var(mat.errors,na.rm=TRUE));
-        CF.res <- exp(sum(log(colMeans(mat.errors^2,na.rm=TRUE))));
+        if(general.v==TRUE){
+            mat.errors[!is.na(mat.errors[,h]),] -> mat.errors;
+            CF.res <- det(t(mat.errors) %*% (mat.errors) / mat.errors.obs);            
+        }
+        else{
+            CF.res <- exp(sum(log(colMeans(mat.errors^2,na.rm=TRUE))));
+        }
     }
     else{
         CF.res <- mean(mat.errors^2,na.rm=TRUE);
@@ -681,6 +685,9 @@ hin.constrains.usual <- function(C){
         C.lower <- C.lower[!is.na(C.lower)];
         C.upper <- C.upper[!is.na(C.upper)];
 
+# Number of observations in the mat.error matrix excluding NAs.
+        mat.errors.obs <- obs - h + 1;
+
 library(nloptr);
         res <- cobyla(C, CF, hin=hin.constrains.usual, lower=C.lower, upper=C.upper);
         CF.objective <- res$value;
@@ -726,10 +733,10 @@ library(nloptr);
 # Information criteria are calculated with the constant part "log(2*pi*exp(1)*h)*obs".
 # And it is based on the mean of the sum squared residuals either than sum.
 # Hyndman likelihood is: llikelihood <- obs*log(obs*CF.objective);
-    llikelihood <- obs*((h^trace)*log(2*pi*exp(1)) + log(CF.objective));
-    AIC.coef <- 2*n.param + llikelihood;
+    llikelihood <- -obs/2 *((h^trace)*log(2*pi*exp(1)) + log(CF.objective));
+    AIC.coef <- 2*n.param - 2*llikelihood;
     AICc.coef <- AIC.coef + 2 * n.param * (n.param + 1) / (obs - n.param - 1);
-    BIC.coef <- log(obs)*n.param + llikelihood;
+    BIC.coef <- log(obs)*n.param - 2*llikelihood;
 
     ICs <- c(AIC.coef, AICc.coef, BIC.coef);
     names(ICs) <- c("AIC", "AICc", "BIC");
@@ -748,6 +755,7 @@ if(silent==FALSE){
     }
     print(paste0("Residuals sigma: ",round(sqrt(var(errors)),3)));
     print(paste0("CF value is: ",round(CF.objective,0)));
+    print(paste0("Unbiased log-likelihood: ",round((llikelihood - n.param),0)));
     print(paste0("AIC: ",round(AIC.coef,3),"; AICc: ", round(AICc.coef,3), "; BIC: ", round(BIC.coef,3)));
     if(holdout==T){
         print(paste0("MASE: ",MASE(coredata(data)[(obs+1):obs.all],coredata(y.for),mean(abs(diff(coredata(data)[1:obs]))),round=3)));
