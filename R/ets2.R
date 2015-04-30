@@ -1,7 +1,7 @@
 ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                  bounds=c("usual","admissible"),
                  initial=NULL, initial.season=NULL,
-                 IC=c("AIC","AICc","BIC"), trace=FALSE, general.v=TRUE,
+                 IC=c("AIC","AICc","BIC"), trace=FALSE, CF.type=c("GV","TLV","TV"),
                  intervals=FALSE, int.w=0.95, xreg=NULL,
                  holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
                  ...){
@@ -11,6 +11,13 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
     bounds <- bounds[1];
     IC <- IC[1];
+    CF.type <- CF.type[1];
+
+    if(CF.type!="GV" & CF.type!="TLV" & CF.type!="TV"){
+        message(paste0("The strange Cost Function is chosen: ",CF.type));
+        message("Switching to 'GV'");
+        CF.type <- "GV";
+    }
 
 # If chosen model is "AAdN" or anything like that, we are taking the appropriate values
     if(nchar(model)==4){
@@ -525,11 +532,11 @@ CF <- function(C){
     y.fit <- fitting$y.fit;
     errors <- fitting$errors;
 
-    mat.errors <- errors.ets(mat.xt,mat.F,mat.w,vec.g,trace);
+    errors.mat <- errors.ets(mat.xt,mat.F,mat.w,vec.g,trace);
 
     if(trace==TRUE){
 #        for(i in 2:h){
-#            mat.errors[,i] <- c(rep(NA,(i-1)),mat.errors[1:(obs-i+1),i]);
+#            errors.mat[,i] <- c(rep(NA,(i-1)),errors.mat[1:(obs-i+1),i]);
 #        }
 #        n.obs <- diag(h)
 #        for(i in h:2){
@@ -537,17 +544,20 @@ CF <- function(C){
 #            n.obs[i,] <- obs-i+1;
 #        }
 #        n.obs <- obs - h + 1;
-#        mat.errors[which(is.na(mat.errors))] <- 0;
-        if(general.v==TRUE){
-            mat.errors[!is.na(mat.errors[,h]),] -> mat.errors;
-            CF.res <- det(t(mat.errors) %*% (mat.errors) / mat.errors.obs);            
+#        errors.mat[which(is.na(errors.mat))] <- 0;
+        if(CF.type=="GV"){
+            errors.mat <- errors.mat[!is.na(errors.mat[,h]),];
+            CF.res <- det(t(errors.mat) %*% (errors.mat) / errors.mat.obs);
         }
-        else{
-            CF.res <- exp(sum(log(colMeans(mat.errors^2,na.rm=TRUE))));
+        else if(CF.type=="TLV"){
+            CF.res <- exp(sum(log(colMeans(errors.mat^2,na.rm=TRUE))));
+        }
+        else if(CF.type=="TV"){
+            CF.res <- sum(colMeans(errors.mat^2,na.rm=TRUE));
         }
     }
     else{
-        CF.res <- mean(mat.errors^2,na.rm=TRUE);
+        CF.res <- mean(errors.mat^2,na.rm=TRUE);
     }
 
     return(CF.res);
@@ -667,8 +677,14 @@ hin.constrains.usual <- function(C){
         }
         if(estimate.initial==TRUE){
             C <- c(C,mat.xt[seas.freq,1:(n.components - seasonal.component)]);
-            C.lower <- c(C.lower,rep(-Inf,(n.components - seasonal.component)));
-            C.upper <- c(C.upper,rep(Inf,(n.components - seasonal.component)));
+            if(trend.type!="M"){
+                C.lower <- c(C.lower,rep(-Inf,(n.components - seasonal.component)));
+                C.upper <- c(C.upper,rep(Inf,(n.components - seasonal.component)));
+            }
+            else{
+                C.lower <- c(C.lower,1,0.01);
+                C.upper <- c(C.upper,Inf,2);
+            }
         }
         if(estimate.initial.season==TRUE){
             C <- c(C,mat.xt[1:seas.freq,n.components]);
@@ -686,9 +702,9 @@ hin.constrains.usual <- function(C){
         C.upper <- C.upper[!is.na(C.upper)];
 
 # Number of observations in the mat.error matrix excluding NAs.
-        mat.errors.obs <- obs - h + 1;
+        errors.mat.obs <- obs - h + 1;
 
-library(nloptr);
+#library(nloptr);
         res <- cobyla(C, CF, hin=hin.constrains.usual, lower=C.lower, upper=C.upper);
         CF.objective <- res$value;
 
@@ -754,6 +770,9 @@ if(silent==FALSE){
         print(paste0("Initial seasonal components: ", paste(round(mat.xt[1:seas.freq,n.components],3),collapse=", ")));
     }
     print(paste0("Residuals sigma: ",round(sqrt(var(errors)),3)));
+    if(trace==TRUE){
+        print(paste0("CF type: ",CF.type));
+    }
     print(paste0("CF value is: ",round(CF.objective,0)));
     print(paste0("Unbiased log-likelihood: ",round((llikelihood - n.param),0)));
     print(paste0("AIC: ",round(AIC.coef,3),"; AICc: ", round(AICc.coef,3), "; BIC: ", round(BIC.coef,3)));

@@ -11,7 +11,7 @@ Function constructs ETS model and returns forecast, fitted values, errors and ma
 ets2(data, model="ZZZ", persistence=NULL, phi=NULL,
     bounds=c("usual","admissible"),
     initial=NULL, initial.season=NULL,
-    IC=c("AIC","AICc","BIC"), trace=FALSE, general.v=TRUE,
+    IC=c("AIC","AICc","BIC"), trace=FALSE, CF.type=c("GV","TLV","TV"),
     intervals=FALSE, int.w=0.95, xreg=NULL,
     holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
     ...)
@@ -36,7 +36,7 @@ ets2(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{trace}{ If TRUE, the trace likelihood is used in the estimation with trace of the length h.
   }
-  \item{general.v}{ If TRUE, the general variance is estimated and used as Cost Function. If FALSE, the diagonal matrix of variances is used.
+  \item{CF.type}{ Type of Cost Function used in trace optimization. Can be "GV" - Generalized Variance, "TLV" - Total Logarythmic Variation and "TV" - Total Variation.
   }
   \item{intervals}{ If TRUE, the prediction interval is constructed. NOT IMPLEMENTED YET
   }
