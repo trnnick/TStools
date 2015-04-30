@@ -449,7 +449,7 @@ fit.ets <- function(y,mat.xt,mat.F,mat.w,vec.g){
             vec.r <- r.value(mat.xt[cbind((j-lags),c(1:n.components))],mat.w);
             y.fit[j-seas.freq] <- exp(mat.w[1:(n.components-1)] %*% log(mat.xt[cbind((j-lags[1:(n.components-1)]),c(1:(n.components-1)))])) + mat.xt[j-lags[n.components],n.components];
             errors[j-seas.freq] <- error(y[j-seas.freq],y.fit[j-seas.freq]);
-            mat.xt[j,] <- exp(mat.F %*% log(mat.xt[cbind((j-lags),c(1:n.components))])) + vec.g * errors[j-seas.freq] * vec.r;
+            mat.xt[j,] <- Re(exp(mat.F %*% log(as.complex(mat.xt[cbind((j-lags),c(1:n.components))])))) + vec.g * errors[j-seas.freq] * vec.r;
         }
     }
     return(list(mat.xt=mat.xt, errors=errors, y.fit=y.fit));

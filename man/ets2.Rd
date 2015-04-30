@@ -50,6 +50,8 @@ ets2(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{silent}{ If TRUE, no output or graphs are printed out.
   }
+  \item{legend}{ If TRUE, the legend is drawn in the outplot.
+  }
   \item{...}{ Other parameters that are passed to DON'T KNOW YET WHAT.
   }
 }

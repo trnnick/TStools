@@ -9,12 +9,12 @@ Function generates data using ETS with Single Source of Error as a data generati
 }
 \usage{
 sim.ets(model="ANN",seas.freq=1,
-             persistence=NULL, phi=1,
-             initial=NULL, initial.season=NULL,
-             bounds=c("both","usual","admissible"),
-             obs=10, nseries=1,
-             randomizer=c("rnorm","runif","rbeta","rt"),
-             ...)
+    persistence=NULL, phi=1,
+    initial=NULL, initial.season=NULL,
+    bounds=c("usual","admissible","restricted"),
+    obs=10, nseries=1,
+    randomizer=c("rnorm","runif","rbeta","rt"),
+    ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
