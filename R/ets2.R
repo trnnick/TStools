@@ -58,9 +58,14 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # Define the actual values
     y <- coredata(data);
 
+# Check if the data is vector
+    if(!is.numeric(data) & !is.ts(data)){
+        stop("The provided data is not a vector or ts object! Can't build any model!", call.=FALSE);
+    }
+
 # Check if the data is ts-object
     if(!is.ts(data)){
-        message("The provided data is not ts object. Only non-seasonal models are available");
+        message("The provided data is not ts object. Only non-seasonal models are available.");
         season.type <- "N";
     }
     seas.freq <- frequency(data);
@@ -535,16 +540,6 @@ CF <- function(C){
     errors.mat <- errors.ets(mat.xt,mat.F,mat.w,vec.g,trace);
 
     if(trace==TRUE){
-#        for(i in 2:h){
-#            errors.mat[,i] <- c(rep(NA,(i-1)),errors.mat[1:(obs-i+1),i]);
-#        }
-#        n.obs <- diag(h)
-#        for(i in h:2){
-#            n.obs[,i] <- obs-i+1;
-#            n.obs[i,] <- obs-i+1;
-#        }
-#        n.obs <- obs - h + 1;
-#        errors.mat[which(is.na(errors.mat))] <- 0;
         if(CF.type=="GV"){
             errors.mat <- errors.mat[!is.na(errors.mat[,h]),];
             CF.res <- det(t(errors.mat) %*% (errors.mat) / errors.mat.obs);
