@@ -9,14 +9,23 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # Start measuring the time of calculations
     start.time <- Sys.time();
 
-    bounds <- bounds[1];
+    bounds <- substring(bounds[1],1,1);
     IC <- IC[1];
     CF.type <- CF.type[1];
 
-    if(CF.type!="GV" & CF.type!="TLV" & CF.type!="TV"){
-        message(paste0("The strange Cost Function is chosen: ",CF.type));
-        message("Switching to 'GV'");
-        CF.type <- "GV";
+# Check if CF.type is appropriate in the case of trace==TRUE
+    if(trace==TRUE){
+        if(CF.type!="GV" & CF.type!="TLV" & CF.type!="TV"){
+            message(paste0("The strange Cost Function is chosen: ",CF.type));
+            message("Switching to 'GV'");
+            CF.type <- "GV";
+        }
+    }
+
+# Check if "bounds" parameter makes any sense
+    if(bounds!="u" & bounds!="a"){
+        message("The strange bounds are defined. Switching to 'usual'.");
+        bounds <- "u";
     }
 
 # If chosen model is "AAdN" or anything like that, we are taking the appropriate values
@@ -582,7 +591,8 @@ MASE <- function(a,f,scale,round=3){
     return(result);
 }
 
-hin.constrains.usual <- function(C){
+# Constrains for the usual bounds
+hin.constrains.u <- function(C){
     p <- NA;
     d <- NA;
     i <- NA;
@@ -646,6 +656,97 @@ hin.constrains.usual <- function(C){
     return(constrains);
 }
 
+# Constrains for the admissible bounds
+hin.constrains.a <- function(C){
+    p <- NA;
+    d <- NA;
+    i <- NA;
+    i.s <- NA;
+
+### Constrains for persistence vector
+    if(estimate.persistence==TRUE){
+# smoothing parameters constrains
+        p <- rep(NA,n.components*2);
+
+        if(estimate.phi==TRUE){
+            phi <- C[3];
+        }
+        if(seasonal.component==FALSE){
+# alpha restrictions
+            p[1] <- C[1] - 1 + 1 / phi;
+            p[2] <- 1 + 1 / phi - C[1];
+            if(trend.component==TRUE){
+# beta restrictions
+                p[3] <- C[2] - C[1] * (phi - 1);
+                p[4] <- (1 + phi) * (2 - C[1]) - C[2];
+            }
+        }
+        else{
+            if(trend.component==FALSE){
+# alpha restrictions
+                p[1] <- C[1] + 2 / (seas.freq - 1);
+                p[2] <- 2 - C[2] - C[1];
+# gamma restrictions
+                p[3] <- C[2] - max(- seas.freq * C[1], 0);
+                p[4] <- 2 - C[1] - C[2];
+            }
+            else{
+                B.value <- phi*(4-3*C[3])+C[3]*(1-phi) / seas.freq;
+                C.value <- sqrt(B.value^2-8*(phi^2*(1-C[3])^2+2*(phi-1)*(1-C[3])-1)+8*C[3]^2*(1-phi) / seas.freq);
+### Solve the equation to get Theta value for D.value variable
+                Theta.func <- function(Theta){
+                    result <- (phi*C[1]+phi+1)/(C[3]) +
+                        ((phi-1)*(1+cos(Theta)-cos(seas.freq*Theta))+cos((seas.freq-1)*Theta)-phi*cos((seas.freq+1)*Theta))/(2*(1+cos(Theta))*(1-cos(seas.freq*Theta)))
+                    return(abs(result));
+                }
+                Theta <- 0.1;
+                Theta <- optim(Theta,Theta.func,method="Brent",lower=0,upper=1)$par;
+                D.value <- (phi*(1-C[1])+1)*(1-cos(Theta)) - C[3]*((1+phi)*(1-cos(Theta)-cos(seas.freq*Theta))+cos((seas.freq-1)*Theta)+phi*cos((seas.freq+1)*Theta))/(2*(1+cos(Theta))*(1-cos(seas.freq*Theta)))
+
+# alpha restrictions
+                p[1] <- C[1] - 1 + 1 / phi + C[3] * (1 - seas.freq + phi * (1 + seas.freq)) / (2 * phi * seas.freq);
+                p[2] <- (B.value + C.value) / (4 * phi) - C[1];
+# beta restrictions
+                p[3] <- C[2] + (1 - phi) * (C[3]/seas.freq + C[1]);
+                p[4] <- D.value + (phi - 1) * C[1] - C[2];
+# gamma restrictions
+                p[5] <- C[3] - max(1 - 1/phi - C[1], 0);
+                p[6] <- 1 + 1/phi - C[3];
+            }
+        }
+    }
+
+### Constrains for damping parameter (0, 1)
+    if(estimate.phi==TRUE){
+        d <- rep(NA,2);
+        d[1] <- C[n.components*estimate.persistence + 1];
+        d[2] <- 1 - C[n.components*estimate.persistence + 1];
+    }
+
+### Constrains on initial parameters (-Inf, Inf)
+    if(estimate.initial){
+        i <- 1;
+    }
+
+### Constrains on initial seasonal parameters (-Inf, Inf) for additive and (0.1, 1.9) for multiplicative
+    if(estimate.initial.season==TRUE){
+        i.s <- rep(NA,(seas.freq*2));
+        n <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial;
+            if(season.type=="A"){
+                i.s <- 1;
+            }
+            else{
+                i.s[1:seas.freq] <- C[(n + 1):(n + seas.freq)] - 0.1;
+                i.s[(seas.freq+1):(2*seas.freq)] <- 1.9 - C[(n + 1):(n + seas.freq)];
+            }
+    }
+
+    constrains <- c(p,d,i,i.s);
+    constrains <- constrains[!is.na(constrains)];
+
+    return(constrains);
+}
+
 # For the automatic model selection. If data has negative or zero values,
 # exclude multiplicative models
 #if(any(y<=0)){
@@ -654,44 +755,87 @@ hin.constrains.usual <- function(C){
 #    season.pool <- c("N","A");
 #}
 
-# Fill in the vector of initial values used in estimation
+# Fill in the vector of initial values and vector of constrains used in estimation
     if(estimate.persistence==TRUE | estimate.phi==TRUE | estimate.initial==TRUE | estimate.initial.season==TRUE){
-        C <- NA;
-        C.lower <- NA;
-        C.upper <- NA;
+        if(bounds=="u"){
+            C <- NA;
+            C.lower <- NA;
+            C.upper <- NA;
 
-        if(estimate.persistence==TRUE){
-            C <- c(C,vec.g);
-            C.lower <- c(C.lower,rep(0,length(vec.g)));
-            C.upper <- c(C.upper,rep(1,length(vec.g)));
-        }
-        if(estimate.phi==TRUE){
-            C <- c(C,phi);
-            C.lower <- c(C.lower,0);
-            C.upper <- c(C.upper,1.2);
-        }
-        if(estimate.initial==TRUE){
-            C <- c(C,mat.xt[seas.freq,1:(n.components - seasonal.component)]);
-            if(trend.type!="M"){
-                C.lower <- c(C.lower,rep(-Inf,(n.components - seasonal.component)));
-                C.upper <- c(C.upper,rep(Inf,(n.components - seasonal.component)));
+            if(estimate.persistence==TRUE){
+                C <- c(C,vec.g);
+                C.lower <- c(C.lower,rep(0,length(vec.g)));
+                C.upper <- c(C.upper,rep(1,length(vec.g)));
             }
-            else{
-                C.lower <- c(C.lower,1,0.01);
-                C.upper <- c(C.upper,Inf,2);
+            if(estimate.phi==TRUE){
+                C <- c(C,phi);
+                C.lower <- c(C.lower,0);
+                C.upper <- c(C.upper,1.2);
             }
+            if(estimate.initial==TRUE){
+                C <- c(C,mat.xt[seas.freq,1:(n.components - seasonal.component)]);
+                if(trend.type!="M"){
+                    C.lower <- c(C.lower,rep(-Inf,(n.components - seasonal.component)));
+                    C.upper <- c(C.upper,rep(Inf,(n.components - seasonal.component)));
+                }
+                else{
+                    C.lower <- c(C.lower,1,0.01);
+                    C.upper <- c(C.upper,Inf,2);
+                }
+            }
+            if(estimate.initial.season==TRUE){
+                C <- c(C,mat.xt[1:seas.freq,n.components]);
+                if(season.type=="A"){
+                    C.lower <- c(C.lower,rep(-Inf,seas.freq));
+                    C.upper <- c(C.upper,rep(Inf,seas.freq));
+                }
+                else{
+                    C.lower <- c(C.lower,rep(0,seas.freq));
+                    C.upper <- c(C.upper,rep(2,seas.freq));
+                }
+            }
+            hin.constrains <- hin.constrains.u;
         }
-        if(estimate.initial.season==TRUE){
-            C <- c(C,mat.xt[1:seas.freq,n.components]);
-            if(season.type=="A"){
-                C.lower <- c(C.lower,rep(-Inf,seas.freq));
-                C.upper <- c(C.upper,rep(Inf,seas.freq));
+        else{
+            C <- NA;
+            C.lower <- NA;
+            C.upper <- NA;
+
+            if(estimate.persistence==TRUE){
+                C <- c(C,vec.g);
+                C.lower <- c(C.lower,rep(-1,length(vec.g)));
+                C.upper <- c(C.upper,rep(5,length(vec.g)));
             }
-            else{
-                C.lower <- c(C.lower,rep(0,seas.freq));
-                C.upper <- c(C.upper,rep(2,seas.freq));
+            if(estimate.phi==TRUE){
+                C <- c(C,phi);
+                C.lower <- c(C.lower,0);
+                C.upper <- c(C.upper,1.2);
             }
+            if(estimate.initial==TRUE){
+                C <- c(C,mat.xt[seas.freq,1:(n.components - seasonal.component)]);
+                if(trend.type!="M"){
+                    C.lower <- c(C.lower,rep(-Inf,(n.components - seasonal.component)));
+                    C.upper <- c(C.upper,rep(Inf,(n.components - seasonal.component)));
+                }
+                else{
+                    C.lower <- c(C.lower,1,0.01);
+                    C.upper <- c(C.upper,Inf,2);
+                }
+            }
+            if(estimate.initial.season==TRUE){
+                C <- c(C,mat.xt[1:seas.freq,n.components]);
+                if(season.type=="A"){
+                    C.lower <- c(C.lower,rep(-Inf,seas.freq));
+                    C.upper <- c(C.upper,rep(Inf,seas.freq));
+                }
+                else{
+                    C.lower <- c(C.lower,rep(0,seas.freq));
+                    C.upper <- c(C.upper,rep(2,seas.freq));
+                }
+            }
+            hin.constrains <- hin.constrains.a;
         }
+
         C <- C[!is.na(C)];
         C.lower <- C.lower[!is.na(C.lower)];
         C.upper <- C.upper[!is.na(C.upper)];
@@ -700,7 +844,7 @@ hin.constrains.usual <- function(C){
         errors.mat.obs <- obs - h + 1;
 
 #library(nloptr);
-        res <- cobyla(C, CF, hin=hin.constrains.usual, lower=C.lower, upper=C.upper);
+        res <- cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper);
         CF.objective <- res$value;
 
         init.ets <- estim.values(mat.xt,vec.g,phi,res$par);
@@ -764,7 +908,7 @@ if(silent==FALSE){
     if(seasonal.component==TRUE){
         print(paste0("Initial seasonal components: ", paste(round(mat.xt[1:seas.freq,n.components],3),collapse=", ")));
     }
-    print(paste0("Residuals sigma: ",round(sqrt(var(errors)),3)));
+    print(paste0("Residuals sigma: ",round(sqrt(mean(errors^2)),3)));
     if(trace==TRUE){
         print(paste0("CF type: ",CF.type));
     }
