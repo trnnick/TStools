@@ -26,13 +26,13 @@ ets2(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{phi}{ The value of damping parameter. If NULL then the parameter is estimated.
   }
-  \item{bounds}{ What type of bouds to use for the smoothing parameters. ONLY USUAL BOUNDS ARE IMPLEMENTED FOR NOW.
+  \item{bounds}{ What type of bouds to use for the smoothing parameters.
   }
   \item{initial}{ The vector of initial values for level and trend. If NULL, it is estimated in the optimization.
   }
   \item{initial.season}{ The vector of initial values for seasonal components. If NULL, they are estimated in the optimization.
   }
-  \item{IC}{ The information criterion to use in the model selection. NOT IMPLEMENTED YET
+  \item{IC}{ The information criterion to use in the model selection.
   }
   \item{trace}{ If TRUE, the trace likelihood is used in the estimation with trace of the length h.
   }
@@ -91,7 +91,7 @@ To do:
 }
 
 \seealso{
-\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[stats]{Distributions} \link[TStools]{sim.ets}}
+\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[stats]{Distributions} \link[prognosis]{sim.ets}}
 }
 \examples{
 library(Mcomp)

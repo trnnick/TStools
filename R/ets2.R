@@ -1,7 +1,7 @@
 ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                  bounds=c("usual","admissible"),
                  initial=NULL, initial.season=NULL,
-                 IC=c("AIC","AICc","BIC"), trace=FALSE, CF.type=c("GV","TLV","TV"),
+                 IC=c("AICc","AIC","BIC"), trace=FALSE, CF.type=c("TLV","GV","TV"),
                  intervals=FALSE, int.w=0.95, xreg=NULL,
                  holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
                  ...){
@@ -13,10 +13,16 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     IC <- IC[1];
     CF.type <- CF.type[1];
 
+# Check if the data is vector
+    if(!is.numeric(data) & !is.ts(data)){
+        stop("The provided data is not a vector or ts object! Can't build any model!", call.=FALSE);
+    }
+
 # Check if CF.type is appropriate in the case of trace==TRUE
     if(trace==TRUE){
         if(CF.type!="GV" & CF.type!="TLV" & CF.type!="TV"){
             message(paste0("The strange Cost Function is chosen: ",CF.type));
+            sowhat(CF.type);
             message("Switching to 'GV'");
             CF.type <- "GV";
         }
@@ -44,12 +50,12 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         error.type <- substring(model,1,1);
         trend.type <- substring(model,2,2);
         season.type <- substring(model,3,3);
-        phi <- 1;
         damped <- FALSE;
     }
     else{
         message(paste0("You have defined a strange model: ",model));
         sowhat(model);
+        message("Switching to 'ZZZ'");
         model <- "ZZZ";
 
         error.type <- "Z";
@@ -67,17 +73,24 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # Define the actual values
     y <- coredata(data);
 
-# Check if the data is vector
-    if(!is.numeric(data) & !is.ts(data)){
-        stop("The provided data is not a vector or ts object! Can't build any model!", call.=FALSE);
-    }
-
 # Check if the data is ts-object
     if(!is.ts(data)){
         message("The provided data is not ts object. Only non-seasonal models are available.");
         season.type <- "N";
     }
     seas.freq <- frequency(data);
+
+# If model selection is chosen, forget about the initial values and persistence
+    if(error.type=="Z" | trend.type=="Z" | season.type=="Z"){
+        if(!is.null(initial) | !is.null(initial.season) | !is.null(persistence) | !is.null(phi)){
+            message("Model selection doesn't go well with the predefined values.");
+            message("Switching to the estimation of all the parameters.");
+            initial <- NULL;
+            initial.season <- NULL;
+            persistence <- NULL;
+            phi <- NULL;
+        }
+    }
 
 ### Check all the parameters for the possible errors.
     if(!is.null(persistence) & length(persistence)>3){
@@ -92,12 +105,6 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         message("Changing to 'Z'");
         error.type <- "Z";
     }
-# The number of components of ETS
-        n.components <- 1;
-# The lag of components (needed mainly for the seasonal models)
-        lags <- 1;
-# The names of the state vector components
-        component.names <- "level";
 
 ### Check the trend type
     if(trend.type!="Z" & trend.type!="N" & trend.type!="A" & trend.type!="M"){
@@ -106,20 +113,10 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         trend.type <- "Z";
     }
 
-    if(trend.type!="N"){
-        n.components <- n.components + 1;
-        lags <- c(lags,1);
-        component.names <- c(component.names,"trend");
-        trend.component=TRUE;
-    }
-    else{
-        trend.component=FALSE;
-    }
-
 ### Check the seasonaity type
-    if((season.type=="Z" | season.type=="A" | season.type=="M" ) & seas.freq==1){
+    if(season.type!="N" & seas.freq==1){
         message("Cannot build the seasonal model on the data with the frequency 1.");
-        message(paste0("Switching to non-seasonal model: ETS(",error.type,",",trend.type,",N)"));
+        message(paste0("Switching to non-seasonal model: ETS(",substring(model,1,nchar(model)-1),"N)"));
         season.type <- "N";
     }
     if(season.type!="Z" & season.type!="N" & season.type!="A" & season.type!="M"){
@@ -132,18 +129,6 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             message("Changing to 'Z'");
             season.type <- "Z";
         }
-    }
-
-    if(season.type!="N"){
-        n.components <- n.components + 1;
-        lags <- c(lags,seas.freq);
-        component.names <- c(component.names,"seasonality");
-        seasonal.component <- TRUE;
-    }
-    else{
-        seasonal.component <- FALSE;
-# In the cases of non-seasonal models built on seasonal data seasonality is equal to 1
-        seas.freq <- 1;
     }
 
     if(any(y<=0)){
@@ -161,7 +146,158 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         }
     }
 
-### Check the length of initial and persistence vectors
+
+# Function fills in the initial values of xt estimating the series.
+define.xt <- function(trend.type,season.type,seas.freq,n.components){
+    xt <- matrix(NA,seas.freq,n.components);
+
+    if(trend.type=="N"){
+        xt[1:seas.freq,1] <- rep(mean(y[1:min(12,obs)]),times=seas.freq);
+    }
+    else if(trend.type=="A"){
+        slope <- cov(y[1:min(12,obs)],c(1:min(12,obs)))/var(c(1:min(12,obs)));
+        intercept <- mean(y[1:min(12,obs)]) - slope * (mean(c(1:min(12,obs))) - 1);
+        xt[1:seas.freq,1] <- rep(intercept,seas.freq);
+        xt[1:seas.freq,2] <- rep(slope,seas.freq);
+    }
+    else if(trend.type=="M"){
+        xt[1:seas.freq,1] <- rep(mean(data[1:min(12,obs)]),seas.freq);
+        xt[1:seas.freq,2] <- rep(1,seas.freq);
+    }
+
+    if(season.type=="A"){
+        xt[1:seas.freq,n.components] <- decompose(ts(data[1:obs],frequency=seas.freq),type="additive")$seasonal[1:seas.freq];
+    }
+    else if(season.type=="M"){
+        xt[1:seas.freq,n.components] <- decompose(ts(data[1:obs],frequency=seas.freq),type="multiplicative")$seasonal[1:seas.freq];
+    }
+
+    return(xt);
+}
+
+# Function defines the number of components, lags and seas.freq depending on the chosen model
+define.param <- function(trend.type,season.type,damped,phi){
+# The number of components of ETS
+    n.components <- 1;
+# The lag of components (needed mainly for the seasonal models)
+    lags <- 1;
+# The names of the state vector components
+    component.names <- "level";
+
+    if(trend.type!="N"){
+        n.components <- n.components + 1;
+        lags <- c(lags,1);
+        component.names <- c(component.names,"trend");
+        trend.component <- TRUE;
+    }
+    else{
+        trend.component <- FALSE;
+    }
+
+    if(season.type!="N"){
+        n.components <- n.components + 1;
+        lags <- c(lags,frequency(data));
+        component.names <- c(component.names,"seasonality");
+        seasonal.component <- TRUE;
+        seas.freq <- frequency(data);
+    }
+    else{
+        seasonal.component <- FALSE;
+# In the cases of non-seasonal models built on seasonal data seasonality is equal to 1
+        seas.freq <- 1;
+    }
+
+### Create the essential matrices and vectors
+# Create the matrix of state vectors.
+# First seas.freq rows are initial values, excluded from estimation.
+    mat.xt <- matrix(NA,nrow=(obs+seas.freq),ncol=n.components);
+    colnames(mat.xt) <- component.names;
+
+# If the persistence vector is provided, use it
+    if(!is.null(persistence)){
+        vec.g <- persistence;
+        estimate.persistence <- FALSE;
+    }
+    else{
+        vec.g <- rep(0.3,n.components);
+        estimate.persistence <- TRUE;
+    }
+
+# If phi is not provided, mark that
+    if(damped==TRUE){
+        if(is.null(phi)){
+            estimate.phi <- TRUE;
+            phi <- 0.95;
+        }
+        else{
+            if(phi<0 | phi>2){
+                message("Damping parameter should lie in (0, 2) region.");
+                message("Changing to the estimation of phi.");
+                phi <- 0.95;
+                estimate.phi <- TRUE;
+            }
+            else{
+                estimate.phi <- FALSE;
+            }
+        }
+    }
+    else{
+        phi <- 1;
+        estimate.phi <- FALSE;
+    }
+
+# If initial values are provided, write them down
+    if(!is.null(initial)){
+        mat.xt[1:seas.freq,1:(n.components - seasonal.component)] <- rep(initial,each=seas.freq);
+        estimate.initial <- FALSE;
+    }
+    else{
+        mat.xt[1:seas.freq,1:(n.components - seasonal.component)] <- define.xt(trend.type,season.type,seas.freq,n.components)[1:seas.freq,1:(n.components - seasonal.component)];
+        estimate.initial <- TRUE;
+    }
+
+# If the seasonal model is chosen and initials are provided, fill in the first "seas.freq" values of seasonal component.
+    if(seasonal.component==TRUE & !is.null(initial.season)){
+        mat.xt[1:seas.freq,n.components] <- initial.season;
+        estimate.initial.season <- FALSE;
+    }
+    else if(seasonal.component==TRUE & is.null(initial.season)){
+        mat.xt[1:seas.freq,n.components] <- define.xt(trend.type,season.type,seas.freq,n.components)[1:seas.freq,n.components];
+        estimate.initial.season <- TRUE;
+    }
+    else{
+        estimate.initial.season <- FALSE;
+    }
+
+    return(list(n.components=n.components,lags=lags,seas.freq=seas.freq,
+                mat.xt=mat.xt,vec.g=vec.g,phi=phi,
+                trend.component=trend.component,
+                seasonal.component=seasonal.component,
+                estimate.persistence=estimate.persistence,
+                estimate.phi=estimate.phi,
+                estimate.initial=estimate.initial,
+                estimate.initial.season=estimate.initial.season));
+}
+
+#########################################
+
+    param.values <- define.param(trend.type=trend.type,season.type=season.type,damped=damped,phi=phi);
+    n.components <- param.values$n.components;
+    lags <- param.values$lags;
+    seas.freq <- param.values$seas.freq;
+    mat.xt <- param.values$mat.xt;
+    vec.g <- param.values$vec.g;
+    phi <- param.values$phi;
+    trend.component <- param.values$trend.component;
+    seasonal.component <- param.values$seasonal.component;
+    estimate.persistence <- param.values$estimate.persistence;
+    estimate.phi <- param.values$estimate.phi;
+    estimate.initial <- param.values$estimate.initial;
+    estimate.initial.season <- param.values$estimate.initial.season;
+
+#########################################
+
+### Check the length of initials and persistence vectors
 # Check the persistence vector length
     if(!is.null(persistence)){
         if(n.components != length(persistence)){
@@ -187,89 +323,11 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
 # Check the seasonal inital vector length
     if(!is.null(initial.season)){
-        if(seas.freq!=length(initial.season)){
-            message("The length of seasonal initial states does not correspond to the chosen frequency!");
-            message("Values of initial vector will be estimated.");
+        if(frequency(data)!=length(initial.season)){
+            message("The length of seasonal initial states does not correspond to the frequency of the data!");
+            message("Values of initial seasonals will be estimated.");
             initial.season <- NULL;
         }
-    }
-
-### Create the essential matrices and vectors
-# Create the matrix of state vectors.
-# First seas.freq rows are initial values, excluded from estimation.
-    mat.xt <- matrix(NA,nrow=(obs+seas.freq),ncol=n.components);
-    colnames(mat.xt) <- component.names;
-
-# If the persistence vector is provided, use it
-    if(!is.null(persistence)){
-        vec.g <- persistence;
-        estimate.persistence <- FALSE;
-    }
-    else{
-        vec.g <- rep(0.3,n.components);
-        estimate.persistence <- TRUE;
-    }
-
-# If phi is not provided, mark that
-    if(damped==TRUE){
-        if(is.null(phi)){
-            estimate.phi = TRUE;
-            phi <- 0.95;
-        }
-        else{
-            if(phi<0 | phi>2){
-                message("Damping parameter should lie in (0, 2) region.");
-                message("Changing to the estimation of phi.");
-                phi <- 0.95;
-                estimate.phi = TRUE;
-            }
-            else{
-                estimate.phi = FALSE;
-            }
-        }
-    }
-    else{
-        estimate.phi = FALSE;
-    }
-
-# If initial values are provided, write them down
-    if(!is.null(initial)){
-        mat.xt[1:seas.freq,1:(n.components - seasonal.component)] <- rep(initial,each=seas.freq);
-        estimate.initial <- FALSE;
-    }
-    else{
-        if(trend.type=="N"){
-            mat.xt[1:seas.freq,1] <- rep(mean(y[1:min(12,obs)]),times=seas.freq);
-        }
-        else if(trend.type=="A"){
-            slope <- cov(y[1:min(12,obs)],c(1:min(12,obs)))/var(c(1:min(12,obs)));
-            intercept <- mean(y[1:min(12,obs)]) - slope * (mean(c(1:min(12,obs))) - 1);
-            mat.xt[1:seas.freq,1] <- rep(intercept,seas.freq);
-            mat.xt[1:seas.freq,2] <- rep(slope,seas.freq);
-        }
-        else if(trend.type=="M"){
-            mat.xt[1:seas.freq,1] <- rep(mean(data[1:min(12,obs)]),seas.freq);
-            mat.xt[1:seas.freq,2] <- rep(1,seas.freq);
-        }
-        estimate.initial <- TRUE;
-    }
-
-# If the seasonal model is chosen and initials are provided, fill in the first "seas.freq" values of seasonal component.
-    if(seasonal.component==TRUE & !is.null(initial.season)){
-        mat.xt[1:seas.freq,n.components] <- initial.season;
-        estimate.initial.season <- FALSE;
-    }
-    else if(seasonal.component==TRUE & is.null(initial.season)){
-        estimate.initial.season <- TRUE;
-        if(season.type=="A"){
-            mat.xt[1:seas.freq,n.components] <- decompose(ts(data[1:obs],frequency=seas.freq),type="additive")$seasonal[1:seas.freq];
-        }
-        else if(season.type=="M"){
-            mat.xt[1:seas.freq,n.components] <- decompose(ts(data[1:obs],frequency=seas.freq),type="multiplicative")$seasonal[1:seas.freq];
-        }
-    }
-    else{
-        estimate.initial.season <- FALSE;
     }
 
 # Vectors of fitted data and errors
@@ -323,8 +381,8 @@ mat.ets <- function(trend.component,seasonal.component,phi){
     return(list(mat.F=mat.F,mat.w=mat.w));
 }
 
-# Function fills in the initial values of mat.xt
-estim.values <- function(mat.xt,vec.g,phi,C){
+# Function fills in the initial values of mat.xt using values of C
+estim.values <- function(mat.xt,vec.g,phi,C,n.components,seas.freq,seasonal.component){
 
 # If the persistence vector is provided, use it
     if(estimate.persistence==TRUE){
@@ -335,22 +393,25 @@ estim.values <- function(mat.xt,vec.g,phi,C){
     if(estimate.phi==TRUE){
         phi <- C[n.components*estimate.persistence + 1];
     }
-    
+
 # If initial values are not provided, write them in the matrix
     if(estimate.initial==TRUE){
         mat.xt[1:seas.freq,1:(n.components - seasonal.component)] <- rep(C[(n.components*estimate.persistence + estimate.phi + 1):(n.components*estimate.persistence + estimate.phi + n.components - seasonal.component)],each=seas.freq);
     }
-    
+
 # If the seasonal model is chosen and initials are provided, fill in the first "seas.freq" values of seasonal component.
-    if(estimate.initial.season==TRUE){
-        mat.xt[1:seas.freq,n.components] <- C[(n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + 1):(n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + seas.freq)];
+    if(seasonal.component==TRUE){
+        if(estimate.initial.season==TRUE){
+            mat.xt[1:seas.freq,n.components] <- C[(n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + 1):(n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + seas.freq)];
+        }
     }
 
     return(list(vec.g=vec.g,phi=phi,mat.xt=mat.xt));
 }
 
 # Function returns the value of r based on the type of the model
-r.value <- function(xt,mat.w){
+r.value <- function(xt,mat.w,error.type,trend.type,season.type,n.components){
+
     if(error.type=="A"){
         if(trend.type=="N"){
             if(season.type!="M"){
@@ -389,7 +450,7 @@ r.value <- function(xt,mat.w){
                 r <- rep(xt[1] + xt[2],n.components);
             }
             else if(season.type=="M"){
-                r <- c(x[1], x[2]);
+                r <- c(xt[1], xt[2]);
             }
         }
         else if(trend.type=="A"){
@@ -416,7 +477,7 @@ r.value <- function(xt,mat.w){
 }
 
 # Function returns error depending on error type
-error <- function(y.act,y.est){
+error <- function(y.act,y.est,error.type){
     if(error.type=="A"){
         error <- y.act - y.est;
     }
@@ -427,23 +488,23 @@ error <- function(y.act,y.est){
 }
 
 # Function constructs ETS with given values
-fit.ets <- function(y,mat.xt,mat.F,mat.w,vec.g){
+fit.ets <- function(mat.xt,mat.F,mat.w,vec.g,error.type,trend.type,season.type,seas.freq,n.components,lags){
 ## Cases of ZNN, ZAN, ZNA, ZAA
     if(trend.type!="M" & season.type!="M"){
         for(j in (seas.freq+1):(obs+seas.freq)){
-            vec.r <- r.value(mat.xt[cbind((j-lags),c(1:n.components))],mat.w);
+            vec.r <- r.value(mat.xt[cbind((j-lags),c(1:n.components))],mat.w,error.type,trend.type,season.type,n.components);
             y.fit[j-seas.freq] <- mat.w %*% mat.xt[cbind((j-lags),c(1:n.components))];
-            errors[j-seas.freq] <- error(y[j-seas.freq],y.fit[j-seas.freq]);
+            errors[j-seas.freq] <- error(y[j-seas.freq],y.fit[j-seas.freq],error.type);
             mat.xt[j,] <- mat.F %*% mat.xt[cbind((j-lags),c(1:n.components))] + vec.g * errors[j-seas.freq] * vec.r;
         }
     }
 ## Cases of ZMN, ZNM, ZMM
     else if(trend.type!="A" & season.type!="A"){
-        if(trend.type!="N"){
+        if(trend.type=="M" | season.type=="M"){
             for(j in (seas.freq+1):(obs+seas.freq)){
-                vec.r <- r.value(mat.xt[cbind((j-lags),c(1:n.components))],mat.w);
+                vec.r <- r.value(mat.xt[cbind((j-lags),c(1:n.components))],mat.w,error.type,trend.type,season.type,n.components);
                 y.fit[j-seas.freq] <- exp(mat.w %*% log(mat.xt[cbind((j-lags),c(1:n.components))]));
-                errors[j-seas.freq] <- error(y[j-seas.freq],y.fit[j-seas.freq]);
+                errors[j-seas.freq] <- error(y[j-seas.freq],y.fit[j-seas.freq],error.type);
                 mat.xt[j,] <- exp(mat.F %*% log(mat.xt[cbind((j-lags),c(1:n.components))])) + vec.g * errors[j-seas.freq] * vec.r;
             }
         }
@@ -451,18 +512,18 @@ fit.ets <- function(y,mat.xt,mat.F,mat.w,vec.g){
 ## Case of ZAM
     else if(trend.type=="A" & season.type=="M"){
         for(j in (seas.freq+1):(obs+seas.freq)){
-            vec.r <- r.value(mat.xt[cbind((j-lags),c(1:n.components))],mat.w);
+            vec.r <- r.value(mat.xt[cbind((j-lags),c(1:n.components))],mat.w,error.type,trend.type,season.type,n.components);
             y.fit[j-seas.freq] <- mat.w[1:(n.components-1)] %*% mat.xt[cbind((j-lags[1:(n.components-1)]),c(1:(n.components-1)))] * mat.xt[j-lags[n.components],n.components];
-            errors[j-seas.freq] <- error(y[j-seas.freq],y.fit[j-seas.freq]);
+            errors[j-seas.freq] <- error(y[j-seas.freq],y.fit[j-seas.freq],error.type);
             mat.xt[j,] <- mat.F %*% mat.xt[cbind((j-lags),c(1:n.components))] + vec.g * errors[j-seas.freq] * vec.r;
         }
     }
 ## Case of ZMA
     else if(trend.type=="M" & season.type=="A"){
         for(j in (seas.freq+1):(obs+seas.freq)){
-            vec.r <- r.value(mat.xt[cbind((j-lags),c(1:n.components))],mat.w);
+            vec.r <- r.value(mat.xt[cbind((j-lags),c(1:n.components))],mat.w,error.type,trend.type,season.type,n.components);
             y.fit[j-seas.freq] <- exp(mat.w[1:(n.components-1)] %*% log(mat.xt[cbind((j-lags[1:(n.components-1)]),c(1:(n.components-1)))])) + mat.xt[j-lags[n.components],n.components];
-            errors[j-seas.freq] <- error(y[j-seas.freq],y.fit[j-seas.freq]);
+            errors[j-seas.freq] <- error(y[j-seas.freq],y.fit[j-seas.freq],error.type);
             mat.xt[j,] <- Re(exp(mat.F %*% log(as.complex(mat.xt[cbind((j-lags),c(1:n.components))])))) + vec.g * errors[j-seas.freq] * vec.r;
         }
     }
@@ -470,8 +531,7 @@ fit.ets <- function(y,mat.xt,mat.F,mat.w,vec.g){
 }
 
 # Function makes forecast from the specified point to the specified horizon
-forec.ets <- function(xt,mat.F,mat.w,vec.g,h=1,j){
-    
+forec.ets <- function(xt,mat.F,mat.w,vec.g,h=1,n.components,trend.type,season.type,seas.freq){
     y.for <- rep(NA,h);
 
 ## Form vector of non-seasonal and vector of seasonal components
@@ -513,18 +573,18 @@ forec.ets <- function(xt,mat.F,mat.w,vec.g,h=1,j){
 
 # The function constructs the forecasts from each point and
 # estimates errors. Needed for trace. SHOULD CALL forec.ets
-errors.ets <- function(mat.xt,mat.F,mat.w,vec.g,trace){
+errors.ets <- function(mat.xt,mat.F,mat.w,vec.g,trace,seas.freq,n.components,trend.type,season.type){
     if(trace==TRUE){
 	    residuals <- matrix(NA,obs,h);
 	    for(j in (1+seas.freq):(obs+seas.freq)){
 		hh <- min(h,(obs+seas.freq)-j+1);
-	        residuals[(j-seas.freq),1:hh] <- y[(j-seas.freq):(j-seas.freq+hh-1)] - forec.ets(xt=mat.xt[(j-seas.freq):(j-1),],mat.F,mat.w,vec.g,h=hh);
+	        residuals[(j-seas.freq),1:hh] <- y[(j-seas.freq):(j-seas.freq+hh-1)] - forec.ets(xt=mat.xt[(j-seas.freq):(j-1),],mat.F,mat.w,vec.g,h=hh,n.components,trend.type,season.type,seas.freq);
 	    }
     }
     else{
 	    residuals <- matrix(NA,obs,1);
 	    for(j in (1+seas.freq):(obs+seas.freq)){
-	        residuals[(j-seas.freq),1] <- y[j-seas.freq] - forec.ets(xt=mat.xt[(j-seas.freq):(j-1),],mat.F,mat.w,vec.g,h=1);
+	        residuals[(j-seas.freq),1] <- y[j-seas.freq] - forec.ets(xt=mat.xt[(j-seas.freq):(j-1),],mat.F,mat.w,vec.g,h=1,n.components,trend.type,season.type,seas.freq);
 	    }
     }
     return(residuals);
@@ -532,7 +592,7 @@ errors.ets <- function(mat.xt,mat.F,mat.w,vec.g,trace){
 
 # Cost function for ETS
 CF <- function(C){
-    init.ets <- estim.values(mat.xt,vec.g,phi,C);
+    init.ets <- estim.values(mat.xt,vec.g,phi,C,n.components,seas.freq,seasonal.component);
     vec.g <- init.ets$vec.g;
     phi <- init.ets$phi;
     mat.xt <- init.ets$mat.xt;
@@ -541,12 +601,10 @@ CF <- function(C){
     mat.F <- matrices$mat.F;
     mat.w <- matrices$mat.w;
 
-    fitting <- fit.ets(y,mat.xt,mat.F,mat.w,vec.g);
+    fitting <- fit.ets(mat.xt,mat.F,mat.w,vec.g,error.type,trend.type,season.type,seas.freq,n.components,lags);
     mat.xt <- fitting$mat.xt;
-    y.fit <- fitting$y.fit;
-    errors <- fitting$errors;
 
-    errors.mat <- errors.ets(mat.xt,mat.F,mat.w,vec.g,trace);
+    errors.mat <- errors.ets(mat.xt,mat.F,mat.w,vec.g,trace,seas.freq,n.components,trend.type,season.type);
 
     if(trace==TRUE){
         if(CF.type=="GV"){
@@ -747,42 +805,35 @@ hin.constrains.a <- function(C){
     return(constrains);
 }
 
-# For the automatic model selection. If data has negative or zero values,
-# exclude multiplicative models
-#if(any(y<=0)){
-#    errors.pool <- c("N","A");
-#    trends.pool <- c("N","A");
-#    season.pool <- c("N","A");
-#}
+# Function constructs default bounds where C values should lie
+C.values <- function(bounds,trend.type,season.type,vec.g,mat.xt,phi,seas.freq,n.components,seasonal.component){
+    if(bounds=="u"){
+        C <- NA;
+        C.lower <- NA;
+        C.upper <- NA;
 
-# Fill in the vector of initial values and vector of constrains used in estimation
-    if(estimate.persistence==TRUE | estimate.phi==TRUE | estimate.initial==TRUE | estimate.initial.season==TRUE){
-        if(bounds=="u"){
-            C <- NA;
-            C.lower <- NA;
-            C.upper <- NA;
-
-            if(estimate.persistence==TRUE){
-                C <- c(C,vec.g);
-                C.lower <- c(C.lower,rep(0,length(vec.g)));
-                C.upper <- c(C.upper,rep(1,length(vec.g)));
+        if(estimate.persistence==TRUE){
+            C <- c(C,vec.g);
+            C.lower <- c(C.lower,rep(0,length(vec.g)));
+            C.upper <- c(C.upper,rep(1,length(vec.g)));
+        }
+        if(estimate.phi==TRUE){
+            C <- c(C,phi);
+            C.lower <- c(C.lower,0);
+            C.upper <- c(C.upper,1.2);
+        }
+        if(estimate.initial==TRUE){
+            C <- c(C,mat.xt[seas.freq,1:(n.components - seasonal.component)]);
+            if(trend.type!="M"){
+                C.lower <- c(C.lower,rep(-Inf,(n.components - seasonal.component)));
+                C.upper <- c(C.upper,rep(Inf,(n.components - seasonal.component)));
             }
-            if(estimate.phi==TRUE){
-                C <- c(C,phi);
-                C.lower <- c(C.lower,0);
-                C.upper <- c(C.upper,1.2);
+            else{
+                C.lower <- c(C.lower,1,0.01);
+                C.upper <- c(C.upper,Inf,2);
             }
-            if(estimate.initial==TRUE){
-                C <- c(C,mat.xt[seas.freq,1:(n.components - seasonal.component)]);
-                if(trend.type!="M"){
-                    C.lower <- c(C.lower,rep(-Inf,(n.components - seasonal.component)));
-                    C.upper <- c(C.upper,rep(Inf,(n.components - seasonal.component)));
-                }
-                else{
-                    C.lower <- c(C.lower,1,0.01);
-                    C.upper <- c(C.upper,Inf,2);
-                }
-            }
+        }
+        if(season.type!="N"){
             if(estimate.initial.season==TRUE){
                 C <- c(C,mat.xt[1:seas.freq,n.components]);
                 if(season.type=="A"){
@@ -794,34 +845,35 @@ hin.constrains.a <- function(C){
                     C.upper <- c(C.upper,rep(2,seas.freq));
                 }
             }
-            hin.constrains <- hin.constrains.u;
         }
-        else{
-            C <- NA;
-            C.lower <- NA;
-            C.upper <- NA;
+    }
+    else{
+        C <- NA;
+        C.lower <- NA;
+        C.upper <- NA;
 
-            if(estimate.persistence==TRUE){
-                C <- c(C,vec.g);
-                C.lower <- c(C.lower,rep(-1,length(vec.g)));
-                C.upper <- c(C.upper,rep(5,length(vec.g)));
+        if(estimate.persistence==TRUE){
+            C <- c(C,vec.g);
+            C.lower <- c(C.lower,rep(-1,length(vec.g)));
+            C.upper <- c(C.upper,rep(5,length(vec.g)));
+        }
+        if(estimate.phi==TRUE){
+            C <- c(C,phi);
+            C.lower <- c(C.lower,0);
+            C.upper <- c(C.upper,1.2);
+        }
+        if(estimate.initial==TRUE){
+            C <- c(C,mat.xt[seas.freq,1:(n.components - seasonal.component)]);
+            if(trend.type!="M"){
+                C.lower <- c(C.lower,rep(-Inf,(n.components - seasonal.component)));
+                C.upper <- c(C.upper,rep(Inf,(n.components - seasonal.component)));
             }
-            if(estimate.phi==TRUE){
-                C <- c(C,phi);
-                C.lower <- c(C.lower,0);
-                C.upper <- c(C.upper,1.2);
+            else{
+                C.lower <- c(C.lower,1,0.01);
+                C.upper <- c(C.upper,Inf,2);
             }
-            if(estimate.initial==TRUE){
-                C <- c(C,mat.xt[seas.freq,1:(n.components - seasonal.component)]);
-                if(trend.type!="M"){
-                    C.lower <- c(C.lower,rep(-Inf,(n.components - seasonal.component)));
-                    C.upper <- c(C.upper,rep(Inf,(n.components - seasonal.component)));
-                }
-                else{
-                    C.lower <- c(C.lower,1,0.01);
-                    C.upper <- c(C.upper,Inf,2);
-                }
-            }
+        }
+        if(season.type!="N"){
             if(estimate.initial.season==TRUE){
                 C <- c(C,mat.xt[1:seas.freq,n.components]);
                 if(season.type=="A"){
@@ -833,58 +885,18 @@ hin.constrains.a <- function(C){
                     C.upper <- c(C.upper,rep(2,seas.freq));
                 }
             }
-            hin.constrains <- hin.constrains.a;
         }
-
-        C <- C[!is.na(C)];
-        C.lower <- C.lower[!is.na(C.lower)];
-        C.upper <- C.upper[!is.na(C.upper)];
-
-# Number of observations in the mat.error matrix excluding NAs.
-        errors.mat.obs <- obs - h + 1;
-
-#library(nloptr);
-        res <- cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper);
-        CF.objective <- res$value;
-
-        init.ets <- estim.values(mat.xt,vec.g,phi,res$par);
-        vec.g <- init.ets$vec.g;
-        phi <- init.ets$phi;
-        mat.xt <- init.ets$mat.xt;
     }
 
-    matrices <- mat.ets(trend.component,seasonal.component,phi);
-    mat.F <- matrices$mat.F;
-    mat.w <- matrices$mat.w;
+    C <- C[!is.na(C)];
+    C.lower <- C.lower[!is.na(C.lower)];
+    C.upper <- C.upper[!is.na(C.upper)];
+    
+    return(list(C=C,C.lower=C.lower,C.upper=C.upper));
+}
 
-    fitting <- fit.ets(y,mat.xt,mat.F,mat.w,vec.g);
-    mat.xt <- ts(fitting$mat.xt,start=(time(data)[1] - deltat(data)*seas.freq),frequency=frequency(data));
-    y.fit <- ts(fitting$y.fit,start=start(data),frequency=frequency(data));
-    errors <- ts(fitting$errors,start=start(data),frequency=frequency(data));
-
-    y.for <- ts(forec.ets(xt=mat.xt[((obs+seas.freq)-seas.freq+1):(obs+seas.freq),],mat.F,mat.w,vec.g,h=h),start=time(data)[obs]+deltat(data),frequency=frequency(data));
-
-    y <- data;
-
-    if(intervals==T){
-        y.low <- ts(y.low,start=start(y.for),frequency=frequency(data));
-        y.high <- ts(y.high,start=start(y.for),frequency=frequency(data));
-        plot.range <- range(min(data,y.fit,y.for,y.low),max(data,y.fit,y.for,y.high));
-    }
-    else{
-        plot.range <- range(min(data,y.fit,y.for),max(data,y.fit,y.for));
-    }
-
-    if(estimate.persistence==FALSE & estimate.phi==FALSE & estimate.initial==FALSE & estimate.initial.season==FALSE){
-        C <- c(vec.g,phi,initial,initial.season);
-        CF.objective <- CF(C);
-#        n.param <- n.components + damped + (n.components - seasonal.component) + seas.freq*seasonal.component;
-        n.param <- 0;
-    }
-    else{
-        n.param <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + seas.freq*estimate.initial.season;
-    }
-
+## Function calculates ICs
+IC.calc <- function(CF.objective=CF.objective,n.param=n.param){
 # Information criteria are calculated with the constant part "log(2*pi*exp(1)*h)*obs".
 # And it is based on the mean of the sum squared residuals either than sum.
 # Hyndman likelihood is: llikelihood <- obs*log(obs*CF.objective);
@@ -896,7 +908,224 @@ hin.constrains.a <- function(C){
     ICs <- c(AIC.coef, AICc.coef, BIC.coef);
     names(ICs) <- c("AIC", "AICc", "BIC");
 
+    return(list(llikelihood=llikelihood,ICs=ICs));
+}
+
+ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none",parallel){
+# Script for the automatic model selection based on chosen IC.
+
+# Define the pool of models to select from
+    if(any(y<=0)){
+        message("Only additive models are allowed with the negative data.");
+        errors.pool <- c("A");
+        trends.pool <- c("N","A","Ad");
+        season.pool <- c("N","A");
+    }
+    else{
+        errors.pool <- c("A","M");
+        trends.pool <- c("N","A","Ad","M","Md");
+        season.pool <- c("N","A","M");
+    }
+
+    if(error.type!="Z"){
+        errors.pool <- error.type;
+    }
+
+    if(trend.type!="Z"){
+        if(damped==TRUE){
+            trends.pool <- paste0(trend.type,"d");
+        }
+        else{
+            trends.pool <- trend.type;
+        }
+    }
+
+    if(season.type!="Z"){
+        season.pool <- season.type;
+    }
+
+# Number of observations in the mat.error matrix excluding NAs.
+    errors.mat.obs <- obs - h + 1;
+
+    models.number <- (length(trends.pool)*length(season.pool)*length(errors.pool));
+    models.pool <- array(c(1:models.number),
+                         c(length(trends.pool),length(season.pool),length(errors.pool)),
+                         dimnames=list(trends.pool,season.pool,errors.pool));
+
+    results <- as.list(c(1:models.number));
+# Start cycle of models
+    for(j in 1:models.number){
+
+        trend.type <- dimnames(models.pool)[[1]][which(models.pool==j,arr.ind=TRUE)[1]];
+        if(nchar(trend.type)==2){
+            trend.type <- substring(trend.type,1,1);
+            damped <- TRUE;
+            phi <- NULL;
+        }
+        else{
+            damped <- FALSE;
+            phi <- 1;
+        }
+        season.type <- dimnames(models.pool)[[2]][which(models.pool==j,arr.ind=TRUE)[2]];
+        error.type <- dimnames(models.pool)[[3]][which(models.pool==j,arr.ind=TRUE)[3]];
+
+        error.type <<- error.type;
+        trend.type <<- trend.type;
+        season.type <<- season.type;
+        damped <<- damped;
+        phi <<- phi;
+
+        param.values <- define.param(trend.type,season.type,damped,phi);
+        n.components <<- param.values$n.components;
+        lags <<- param.values$lags;
+        seas.freq <<- param.values$seas.freq;
+        mat.xt <<- param.values$mat.xt;
+        vec.g <<- param.values$vec.g;
+        phi <- param.values$phi;
+        trend.component <<- param.values$trend.component;
+        seasonal.component <<- param.values$seasonal.component;
+        estimate.persistence <<- param.values$estimate.persistence;
+        estimate.phi <<- param.values$estimate.phi;
+        estimate.initial <<- param.values$estimate.initial;
+        estimate.initial.season <<- param.values$estimate.initial.season;
+
+        Cs <- C.values(bounds,trend.type,season.type,vec.g,mat.xt,phi,seas.freq,n.components,seasonal.component)
+        C <- Cs$C;
+        C.upper <- Cs$C.upper;
+        C.lower <- Cs$C.lower;
+
+#library(nloptr);
+        res <- cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper);
+        CF.objective <- res$value;
+
+        n.param <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + seas.freq*estimate.initial.season;
+
+        IC.values <- IC.calc(CF.objective=CF.objective,n.param=n.param);
+        ICs <- IC.values$ICs;
+
+        results[[j]] <- c(ICs,error.type,trend.type,season.type,damped,CF.objective,res$par);
+        }
+
+    IC.selection <- rep(NA,length(models.pool));
+    for(i in 1:length(models.pool)){
+        IC.selection[i] <- as.numeric(eval(parse(text=paste0("results[[",i,"]]['",IC,"']"))));
+    }
+
+    i <- which(IC.selection==min(IC.selection))[1]
+
+    return(results[[i]])
+}
+
+# Fill in the vector of initial values and vector of constrains used in estimation
+    if(estimate.persistence==TRUE | estimate.phi==TRUE | estimate.initial==TRUE | estimate.initial.season==TRUE){
+
+        if(bounds=="u"){
+            hin.constrains <- hin.constrains.u;
+        }
+        else{
+            hin.constrains <- hin.constrains.a;
+        }
+
+        if(error.type=="Z" | trend.type=="Z" | season.type=="Z"){
+            results <- ets2.auto(error.type,trend.type,season.type,IC=IC,CF.type=CF.type,parallel);
+
+            error.type <- results[4];
+            trend.type <- results[5];
+            season.type <- results[6];
+            damped <- as.logical(results[7]);
+            CF.objective <- as.numeric(results[8]);
+            C <- as.numeric(results[-c(1:8)]);
+
+            param.values <- define.param(trend.type=trend.type,season.type=season.type,damped=damped,phi=phi);
+            n.components <- param.values$n.components;
+            lags <- param.values$lags;
+            seas.freq <- param.values$seas.freq;
+            mat.xt <- param.values$mat.xt;
+            vec.g <- param.values$vec.g;
+            phi <- param.values$phi;
+            trend.component <- param.values$trend.component;
+            seasonal.component <- param.values$seasonal.component;
+            estimate.persistence <- param.values$estimate.persistence;
+            estimate.phi <- param.values$estimate.phi;
+            estimate.initial <- param.values$estimate.initial;
+            estimate.initial.season <- param.values$estimate.initial.season;
+
+            init.ets <- estim.values(mat.xt,vec.g,phi,C,n.components,seas.freq,seasonal.component);
+            vec.g <- init.ets$vec.g;
+            phi <- init.ets$phi;
+            mat.xt <- init.ets$mat.xt;
+            
+            if(damped==TRUE){
+                model <- paste0(error.type,trend.type,"d",season.type);
+            }
+            else{
+                model <- paste0(error.type,trend.type,season.type);
+            }
+        }
+        else{
+            Cs <- C.values(bounds,trend.type,season.type,vec.g,mat.xt,phi,seas.freq,n.components,seasonal.component)
+            C <- Cs$C;
+            C.upper <- Cs$C.upper;
+            C.lower <- Cs$C.lower;
+
+# Number of observations in the mat.error matrix excluding NAs.
+            errors.mat.obs <- obs - h + 1;
+
+#library(nloptr);
+            res <- cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper);
+            CF.objective <- res$value;
+            C <- res$par;
+
+            init.ets <- estim.values(mat.xt,vec.g,phi,C,n.components,seas.freq,seasonal.component);
+            vec.g <- init.ets$vec.g;
+            phi <- init.ets$phi;
+            mat.xt <- init.ets$mat.xt;
+        }
+    }
+
+    matrices <- mat.ets(trend.component,seasonal.component,phi);
+    mat.F <- matrices$mat.F;
+    mat.w <- matrices$mat.w;
+
+    fitting <- fit.ets(mat.xt,mat.F,mat.w,vec.g,error.type,trend.type,season.type,seas.freq,n.components,lags);
+    mat.xt <- ts(fitting$mat.xt,start=(time(data)[1] - deltat(data)*seas.freq),frequency=frequency(data));
+    y.fit <- ts(fitting$y.fit,start=start(data),frequency=frequency(data));
+    errors <- ts(fitting$errors,start=start(data),frequency=frequency(data));
+
+    y.for <- ts(forec.ets(xt=mat.xt[((obs+seas.freq)-seas.freq+1):(obs+seas.freq),],mat.F,mat.w,vec.g,h=h,n.components,trend.type,season.type,seas.freq),start=time(data)[obs]+deltat(data),frequency=frequency(data));
+
+    y <- data;
+
+    if(estimate.persistence==FALSE & estimate.phi==FALSE & estimate.initial==FALSE & estimate.initial.season==FALSE){
+        C <- c(vec.g,phi,initial,initial.season);
+        CF.objective <- CF(C);
+#        n.param <- n.components + damped + (n.components - seasonal.component) + seas.freq*seasonal.component;
+        n.param <- 0;
+    }
+    else{
+        n.param <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + seas.freq*estimate.initial.season;
+    }
+
+# Calculate IC values
+    IC.values <- IC.calc(CF.objective=CF.objective,n.param=n.param);
+    llikelihood <- IC.values$llikelihood;
+    ICs <- IC.values$ICs;
+
+# Convert bounds to ts
+    if(intervals==T){
+        y.low <- ts(y.low,start=start(y.for),frequency=frequency(data));
+        y.high <- ts(y.high,start=start(y.for),frequency=frequency(data));
+    }
+
 if(silent==FALSE){
+# Define plot.range for plot
+    if(intervals==T){
+        plot.range <- range(min(data,y.fit,y.for,y.low),max(data,y.fit,y.for,y.high));
+    }
+    else{
+        plot.range <- range(min(data,y.fit,y.for),max(data,y.fit,y.for));
+    }
+    
 # Print time elapsed on the construction
     print(paste0("Time elapsed: ",round(as.numeric(Sys.time() - start.time,units="secs"),2)," seconds"));
     print(paste0("Model constructed: ",model));
@@ -914,7 +1143,7 @@ if(silent==FALSE){
     }
     print(paste0("CF value is: ",round(CF.objective,0)));
     print(paste0("Unbiased log-likelihood: ",round((llikelihood - n.param),0)));
-    print(paste0("AIC: ",round(AIC.coef,3),"; AICc: ", round(AICc.coef,3), "; BIC: ", round(BIC.coef,3)));
+    print(paste0("AIC: ",round(ICs["AIC"],3),"; AICc: ", round(ICs["AICc"],3), "; BIC: ", round(ICs["BIC"],3)));
     if(holdout==T){
         print(paste0("MASE: ",MASE(coredata(data)[(obs+1):obs.all],coredata(y.for),mean(abs(diff(coredata(data)[1:obs]))),round=3)));
         print(paste0("MASE.lvl: ",MASE.lvl(coredata(data)[(obs+1):obs.all],coredata(y.for),round=5)*100,"%"));
