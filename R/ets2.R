@@ -1,7 +1,7 @@
 ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                  bounds=c("usual","admissible"),
                  initial=NULL, initial.season=NULL,
-                 IC=c("AICc","AIC","BIC"), trace=FALSE, CF.type=c("TLV","GV","TV"),
+                 IC=c("AICc","AIC"), trace=FALSE, CF.type=c("TLV","GV","TV"),
                  intervals=FALSE, int.w=0.95, xreg=NULL,
                  holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
                  ...){
@@ -23,8 +23,8 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         if(CF.type!="GV" & CF.type!="TLV" & CF.type!="TV"){
             message(paste0("The strange Cost Function is chosen: ",CF.type));
             sowhat(CF.type);
-            message("Switching to 'GV'");
-            CF.type <- "GV";
+            message("Switching to 'TLV'");
+            CF.type <- "TLV";
         }
     }
 
@@ -62,6 +62,15 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         trend.type <- "Z";
         season.type <- "Z";
         damped <- TRUE;
+    }
+
+    if(any(is.na(data))){
+        message("Data contains NAs. These observations will be excluded.");
+        datanew <- data[!is.na(data)];
+        if(is.ts(data)){
+            datanew <- ts(datanew,start=start(data),frequency=frequency(data));
+        }
+        data <- datanew;
     }
 
 # Define obs.all, the overal number of observations (in-sample + holdout)
@@ -506,6 +515,8 @@ fit.ets <- function(mat.xt,mat.F,mat.w,vec.g,error.type,trend.type,season.type,s
                 y.fit[j-seas.freq] <- exp(mat.w %*% log(mat.xt[cbind((j-lags),c(1:n.components))]));
                 errors[j-seas.freq] <- error(y[j-seas.freq],y.fit[j-seas.freq],error.type);
                 mat.xt[j,] <- exp(mat.F %*% log(mat.xt[cbind((j-lags),c(1:n.components))])) + vec.g * errors[j-seas.freq] * vec.r;
+                mat.xt[j,mat.xt[j,]<0] <- 0;
+                mat.xt[j,is.nan(mat.xt[j,])] <- 0;
             }
         }
     }
@@ -692,7 +703,13 @@ hin.constrains.u <- function(C){
 
 ### Constrains on initial parameters (-Inf, Inf)
     if(estimate.initial){
-        i <- 1;
+        i <- rep(NA,(n.components - seasonal.component + 1));
+        i[1] <- 1;
+        n <- n.components*estimate.persistence + estimate.phi;
+        if(trend.type=="M"){
+            i[2] <- C[n+1];
+            i[3] <- C[n+2];
+        }
     }
 
 ### Constrains on initial seasonal parameters (-Inf, Inf) for additive and (0.1, 1.9) for multiplicative
@@ -781,9 +798,15 @@ hin.constrains.a <- function(C){
         d[2] <- 1 - C[n.components*estimate.persistence + 1];
     }
 
-### Constrains on initial parameters (-Inf, Inf)
+### Constrains on initial parameters: (-Inf, Inf) for additive and (0, Inf) for multiplicative
     if(estimate.initial){
-        i <- 1;
+        i <- rep(NA,(n.components - seasonal.component + 1));
+        i[1] <- 1;
+        n <- n.components*estimate.persistence + estimate.phi;
+        if(trend.type=="M"){
+            i[2] <- C[n+1];
+            i[3] <- C[n+2];
+        }
     }
 
 ### Constrains on initial seasonal parameters (-Inf, Inf) for additive and (0.1, 1.9) for multiplicative
@@ -1143,7 +1166,7 @@ if(silent==FALSE){
     }
     print(paste0("CF value is: ",round(CF.objective,0)));
     print(paste0("Unbiased log-likelihood: ",round((llikelihood - n.param),0)));
-    print(paste0("AIC: ",round(ICs["AIC"],3),"; AICc: ", round(ICs["AICc"],3), "; BIC: ", round(ICs["BIC"],3)));
+    print(paste0("AIC: ",round(ICs["AIC"],3),"; AICc: ", round(ICs["AICc"],3)));
     if(holdout==T){
         print(paste0("MASE: ",MASE(coredata(data)[(obs+1):obs.all],coredata(y.for),mean(abs(diff(coredata(data)[1:obs]))),round=3)));
         print(paste0("MASE.lvl: ",MASE.lvl(coredata(data)[(obs+1):obs.all],coredata(y.for),round=5)*100,"%"));
