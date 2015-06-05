@@ -46,6 +46,10 @@ nemenyi <- function(data, conf.int=0.95, sort=c(TRUE,FALSE),
 #  out <- nemenyi(data,conf.int=0.95,plottype="vline")
 #  
 # Ivan Svetunkov, Nikolaos Kourentzes, 2014. v1.4
+
+  if(length(dim(data))!=2){
+    stop("Data is of the wrong dimension! It should be a table with methods in columns and observations in rows.",call.=FALSE);
+  }
   
 # Defaults
   sort <- sort[1]
@@ -56,7 +60,7 @@ nemenyi <- function(data, conf.int=0.95, sort=c(TRUE,FALSE),
   data <- na.exclude(data)
   rows.number <- nrow(data)
   cols.number <- ncol(data)
-  
+
 # Check select < cols.number
   if (!is.null(select)){
     if (select > cols.number){
