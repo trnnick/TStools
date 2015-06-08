@@ -620,10 +620,20 @@ CF <- function(C){
     if(trace==TRUE){
         if(CF.type=="GV"){
             errors.mat <- errors.mat[!is.na(errors.mat[,h]),];
-            CF.res <- det(t(errors.mat) %*% (errors.mat) / errors.mat.obs);
+            if(logCF==TRUE){
+                CF.res <- log(det(t(errors.mat) %*% (errors.mat) / errors.mat.obs));
+            }
+            else{
+                CF.res <- det(t(errors.mat) %*% (errors.mat) / errors.mat.obs);
+            }
         }
         else if(CF.type=="TLV"){
-            CF.res <- exp(sum(log(colMeans(errors.mat^2,na.rm=TRUE))));
+            if(logCF==TRUE){
+                CF.res <- sum(log(colMeans(errors.mat^2,na.rm=TRUE)));
+            }
+            else{
+                CF.res <- exp(sum(log(colMeans(errors.mat^2,na.rm=TRUE))));
+            }
         }
         else if(CF.type=="TV"){
             CF.res <- sum(colMeans(errors.mat^2,na.rm=TRUE));
@@ -919,11 +929,16 @@ C.values <- function(bounds,trend.type,season.type,vec.g,mat.xt,phi,seas.freq,n.
 }
 
 ## Function calculates ICs
-IC.calc <- function(CF.objective=CF.objective,n.param=n.param){
+IC.calc <- function(CF.objective=CF.objective,n.param=n.param,logCF=logCF){
 # Information criteria are calculated with the constant part "log(2*pi*exp(1)*h)*obs".
 # And it is based on the mean of the sum squared residuals either than sum.
 # Hyndman likelihood is: llikelihood <- obs*log(obs*CF.objective);
-    llikelihood <- -obs/2 *((h^trace)*log(2*pi*exp(1)) + log(CF.objective));
+    if(logCF==TRUE){
+        llikelihood <- -obs/2 *((h^trace)*log(2*pi*exp(1)) + CF.objective);
+    }
+    else{
+        llikelihood <- -obs/2 *((h^trace)*log(2*pi*exp(1)) + log(CF.objective));
+    }
     AIC.coef <- 2*n.param - 2*llikelihood;
     AICc.coef <- AIC.coef + 2 * n.param * (n.param + 1) / (obs - n.param - 1);
     BIC.coef <- log(obs)*n.param - 2*llikelihood;
@@ -934,7 +949,7 @@ IC.calc <- function(CF.objective=CF.objective,n.param=n.param){
     return(list(llikelihood=llikelihood,ICs=ICs));
 }
 
-ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none",parallel){
+ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"){
 # Script for the automatic model selection based on chosen IC.
 
 # Define the pool of models to select from
@@ -1016,6 +1031,13 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
         C <- Cs$C;
         C.upper <- Cs$C.upper;
         C.lower <- Cs$C.lower;
+        
+        if(is.infinite(var(data[1:obs])^h) & CF.type!="none" & CF.type!="TV"){
+            logCF <- TRUE;
+        }
+        else{
+            logCF <- FALSE;
+        }
 
 #library(nloptr);
         res <- cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper);
@@ -1023,7 +1045,7 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
 
         n.param <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + seas.freq*estimate.initial.season;
 
-        IC.values <- IC.calc(CF.objective=CF.objective,n.param=n.param);
+        IC.values <- IC.calc(CF.objective=CF.objective,n.param=n.param,logCF=logCF);
         ICs <- IC.values$ICs;
 
         results[[j]] <- c(ICs,error.type,trend.type,season.type,damped,CF.objective,res$par);
@@ -1050,7 +1072,7 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
         }
 
         if(error.type=="Z" | trend.type=="Z" | season.type=="Z"){
-            results <- ets2.auto(error.type,trend.type,season.type,IC=IC,CF.type=CF.type,parallel);
+            results <- ets2.auto(error.type,trend.type,season.type,IC=IC,CF.type=CF.type);
 
             error.type <- results[4];
             trend.type <- results[5];
@@ -1058,6 +1080,13 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
             damped <- as.logical(results[7]);
             CF.objective <- as.numeric(results[8]);
             C <- as.numeric(results[-c(1:8)]);
+
+            if(is.infinite(var(data[1:obs])^h) & CF.type!="none" & CF.type!="TV"){
+                logCF <- TRUE;
+            }
+            else{
+                logCF <- FALSE;
+            }
 
             param.values <- define.param(trend.type=trend.type,season.type=season.type,damped=damped,phi=phi);
             n.components <- param.values$n.components;
@@ -1091,6 +1120,13 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
             C.upper <- Cs$C.upper;
             C.lower <- Cs$C.lower;
 
+            if(is.infinite(var(data[1:obs])^h) & CF.type!="none" & CF.type!="TV"){
+                logCF <- TRUE;
+            }
+            else{
+                logCF <- FALSE;
+            }
+
 # Number of observations in the mat.error matrix excluding NAs.
             errors.mat.obs <- obs - h + 1;
 
@@ -1121,6 +1157,7 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
 
     if(estimate.persistence==FALSE & estimate.phi==FALSE & estimate.initial==FALSE & estimate.initial.season==FALSE){
         C <- c(vec.g,phi,initial,initial.season);
+        logCF <- FALSE;
         CF.objective <- CF(C);
 #        n.param <- n.components + damped + (n.components - seasonal.component) + seas.freq*seasonal.component;
         n.param <- 0;
@@ -1130,9 +1167,13 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
     }
 
 # Calculate IC values
-    IC.values <- IC.calc(CF.objective=CF.objective,n.param=n.param);
+    IC.values <- IC.calc(CF.objective=CF.objective,n.param=n.param,logCF=logCF);
     llikelihood <- IC.values$llikelihood;
     ICs <- IC.values$ICs;
+
+    if(logCF==TRUE){
+        CF.objective <- exp(CF.objective);
+    }
 
 # Convert bounds to ts
     if(intervals==T){
@@ -1175,51 +1216,96 @@ if(silent==FALSE){
     par(mfrow=c(1,1), mar=c(5,3,2,1))
     plot(data,type="l",xlim=range(time(data)[1],time(y.for)[h]),
          ylim=plot.range,xlab="Time", ylab="")
-    
+    lines(y.fit,col="purple",lwd=2,lty=2);
+
     if(intervals==T){
-        lines(y.low,col="darkgrey",lwd=3,lty=2);
-        lines(y.high,col="darkgrey",lwd=3,lty=2);
+        if(h>1){
+            lines(y.low,col="darkgrey",lwd=3,lty=2);
+            lines(y.high,col="darkgrey",lwd=3,lty=2);
 # Draw the nice areas between the borders
-        polygon(c(seq(deltat(y.high)*(start(y.high)[2]-1)+start(y.high)[1],deltat(y.high)*(end(y.high)[2]-1)+end(y.high)[1],deltat(y.high)),
+            polygon(c(seq(deltat(y.high)*(start(y.high)[2]-1)+start(y.high)[1],deltat(y.high)*(end(y.high)[2]-1)+end(y.high)[1],deltat(y.high)),
                   rev(seq(deltat(y.low)*(start(y.low)[2]-1)+start(y.low)[1],deltat(y.low)*(end(y.low)[2]-1)+end(y.low)[1],deltat(y.low)))),
                 c(coredata(y.high), rev(coredata(y.low))), col = "lightgray", border=NA, density=10);
-        
-        lines(y.fit,col="purple",lwd=2,lty=2);
-        lines(y.for,col="blue",lwd=2);
-        if(legend==TRUE){
-# Define where to position the legend
-            if(mean(c(y.fit,y.for)[1:round(obs.all/3,0)])<(plot.range[2]+plot.range[1])/2){
-                leg.place = "topleft";
-            }
-            else{
-                leg.place = "bottomleft";
-            }
 
-            legend(x=leg.place,
+            lines(y.for,col="blue",lwd=2);
+
+            if(legend==TRUE){
+# Define where to position the legend
+                if(mean(c(y.fit,y.for)[1:round(obs.all/3,0)])<(plot.range[2]+plot.range[1])/2){
+                    leg.place = "topleft";
+                }
+                else{
+                    leg.place = "bottomleft";
+                }
+
+                legend(x=leg.place,
                    legend=c("Series","Fitted values","Point forecast",paste0(int.w*100,"% prediction interval"),"Forecast origin"),
                    col=c("black","purple","blue","darkgrey","red"),
                    lwd=c(1,2,2,3,2),
                    lty=c(1,2,1,2,1))
+            }
+        }
+        else{
+            points(y.low,col="darkgrey",lwd=3,pch=4);
+            points(y.high,col="darkgrey",lwd=3,pch=4);
+            points(y.for,col="blue",lwd=2,pch=4);
+
+            if(legend==TRUE){
+# Define where to position the legend
+                if(mean(c(y.fit,y.for)[1:round(obs.all/3,0)])<(plot.range[2]+plot.range[1])/2){
+                    leg.place = "topleft";
+                }
+                else{
+                    leg.place = "bottomleft";
+                }
+
+                legend(x=leg.place,
+                   legend=c("Series","Fitted values","Point forecast",paste0(int.w*100,"% prediction interval"),"Forecast origin"),
+                   col=c("black","purple","blue","darkgrey","red"),
+                   lwd=c(1,2,2,3,2),
+                   lty=c(1,2,NA,NA,1),
+                   pch=c(NA,NA,4,4,NA))
+            }
         }
     }
     else{
-        lines(y.fit,col="purple",lwd=2,lty=2);
-        lines(y.for,col="blue",lwd=2);
-        
-        if(legend==TRUE){
-# Define where to position the legend
-            if(mean(c(y.fit,y.for)[1:round(obs.all/3,0)])<(plot.range[2]+plot.range[1])/2){
-                leg.place = "topleft";
-            }
-            else{
-                leg.place = "bottomleft";
-            }
+        if(h>1){
+            lines(y.for,col="blue",lwd=2);
 
-            legend(x=leg.place,
+            if(legend==TRUE){
+# Define where to position the legend
+                if(mean(c(y.fit,y.for)[1:round(obs.all/3,0)])<(plot.range[2]+plot.range[1])/2){
+                    leg.place = "topleft";
+                }
+                else{
+                    leg.place = "bottomleft";
+                }
+
+                legend(x=leg.place,
                    legend=c("Series","Fitted values","Point forecast","Forecast origin"),
                    col=c("black","purple","blue","red"),
                    lwd=c(1,2,2,2),
                    lty=c(1,2,1,1))
+            }
+        }
+        else{
+            points(y.for,col="blue",lwd=2,pch=4);
+            if(legend==TRUE){
+# Define where to position the legend
+                if(mean(c(y.fit,y.for)[1:round(obs.all/3,0)])<(plot.range[2]+plot.range[1])/2){
+                    leg.place = "topleft";
+                }
+                else{
+                    leg.place = "bottomleft";
+                }
+
+                legend(x=leg.place,
+                   legend=c("Series","Fitted values","Point forecast","Forecast origin"),
+                   col=c("black","purple","blue","red"),
+                   lwd=c(1,2,2,2),
+                   lty=c(1,2,NA,1),
+                   pch=c(NA,NA,4,NA))
+            }
         }
     }
 
