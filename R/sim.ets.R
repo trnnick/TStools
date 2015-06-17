@@ -128,6 +128,9 @@ ry.value <- function(error.type, trend.type, season.type, xt){
         stop("Wrong trend type! Should be 'N', 'A' or 'M'.",call.=FALSE);
     }
     else if(trend.type!="N"){
+        if(is.na(phi) | is.null(phi)){
+            phi <- 1;
+        }
         persistence.length <- persistence.length + 1;
         n.components <- n.components + 1;
         lags <- c(lags,1);
