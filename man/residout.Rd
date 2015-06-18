@@ -30,5 +30,5 @@ Nikolaos Kourentzes
 }
 \examples{
 resid <- rnorm(50)
-resid.out(resid, outplot=TRUE)
+residout(resid, outplot=TRUE)
 }

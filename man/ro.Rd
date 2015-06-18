@@ -27,15 +27,17 @@ This function makes rolling origin using the \code{data} and \code{call} passed 
   Function uses the defined call to produce Rolling Origin
 }
 \value{Function returns the following variables:
+\itemize{
   \item{\code{forecasts} - the matrix of forecasts produced from each origin}
   \item{\code{actuals} - the matrix of actual values corresponding to the forecasts from each origin}
+  }
 }
 \author{
   Yves Sagaert, Ivan Svetunkov
 }
 
 \seealso{
-\code{\link[TStools]{sowhat}
+\code{\link[TStools]{sowhat}}
 }
 \examples{
 library(forecast)
@@ -48,7 +50,5 @@ ro(x,h=5,origins=5,call,value)
 value <- "$mean"
 ro(x,h=5,origins=5,call,value,all=TRUE)
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
 \keyword{ Rolling origin }
-\keyword{ Forecasting }% __ONLY ONE__ keyword per line
+\keyword{ Forecasting }
