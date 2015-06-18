@@ -9,4 +9,5 @@ Description: This package contains various functions to help in time series mode
 LazyData: yes
 License: GPL (>=2)
 Depends: forecast, tseries, nloptr
+Suggests: Mcomp
 URL: http://kourentzes.com/forecasting/2014/04/19/tstools-for-r/
