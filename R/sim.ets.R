@@ -506,8 +506,8 @@ for(k in 1:nseries){
     else if(season.type=="M"){
         if(trend.type!="M"){
 ### ZNM and ZAM
-            vec.r <- r.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-lags),c(1:persistence.length))])
             while(j<=obs){
+                vec.r <- r.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-lags),c(1:persistence.length))])
                 y[j] <- mat.w[1:n.components] %*% mat.xt[cbind((j-lags[1:n.components]),c(1:n.components))] * mat.xt[j-seas.freq,n.components+1] + errors[j] * ry.value(error.type=error.type, trend.type=trend.type, season.type=season.type, xt=mat.xt[cbind((j-lags),c(1:persistence.length))]);
                 mat.xt[j,1:n.components] <- mat.F[1:n.components,1:n.components] %*% mat.xt[cbind((j-lags[1:n.components]),c(1:n.components))] + vec.g[1:n.components] * errors[j] * vec.r[1:n.components];
                 mat.xt[j,(n.components+1)] <- mat.xt[j-seas.freq,(n.components+1)] + vec.g[n.components+1] * errors[j] * vec.r[n.components+1];
