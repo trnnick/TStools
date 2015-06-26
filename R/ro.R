@@ -96,10 +96,12 @@ ro <- function(data,h=1,origins=1,call,value=NULL,
 
 # Create several matrices from the list
   for(i in 1:l.value){
-    stuff <- matrix(NA,nrow=length(forecasts[[i]]),ncol=origins)
+    stuff.max.length <- max(length(forecasts[[i]]),length(forecasts[[l.value*(origins-1)+i]]))
+    stuff <- matrix(NA,nrow=stuff.max.length,ncol=origins)
     colnames(stuff) <- colnames(actuals)
     for(j in 1:origins){
-      stuff[1:length(forecasts[[(j-1)*l.value+i]]),j] <- forecasts[[(j-1)*l.value+i]]
+      stuff.length <- length(forecasts[[(j-1)*l.value+i]])
+      stuff[1:stuff.length,j] <- forecasts[[(j-1)*l.value+i]]
     }
     returned.list[[i+1]] <- stuff
   }
