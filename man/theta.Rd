@@ -57,7 +57,7 @@ theta(y,m=NULL,h=10,outplot=0,sign.level=0.05,
 \item{season}{Forecasted values of seasonal element.}
 \item{a}{SES parameters of theta2.}
 \item{b}{Regression parameters of theta0.}
-\item{c}{Coefficients of outliers from theta0 estimation.}
+\item{p}{Coefficients of outliers from theta0, theta2 and seasonality estimation.}
 \item{g}{Pure seasonal exponential smoothing parameters of season.}
 \item{fit}{In-sample fit.}
 }
