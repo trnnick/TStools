@@ -88,7 +88,7 @@ decomp <- function(y,m=NULL,s=NULL,trend=NULL,outplot=c(FALSE,TRUE),
   # Fill with NA start and end of season
   k <- m - (n %% m)
   ks <- s-1
-  ke <- m - ((n+ks) %% m)
+  ke <- k-ks
   ynt <- c(rep(NA,times=ks),as.vector(ynt),rep(NA,times=ke))
   ns <- length(ynt)/m
   ynt <- matrix(ynt,nrow=ns,ncol=m,byrow=TRUE)
@@ -129,7 +129,7 @@ decomp <- function(y,m=NULL,s=NULL,trend=NULL,outplot=c(FALSE,TRUE),
   }
   if (type=="pure.seasonal"){
     # Seasonality is modelled with a pure seasonal smoothing
-    sout <- decomp.opt.sfit(ynt=ynt,costs="MSE",n=n,m=m)
+    sout <- opt.sfit(ynt=ynt,costs="MSE",n=n,m=m)
     g <- sout$g
     if (h>0){
       season <- sout$season
@@ -141,7 +141,7 @@ decomp <- function(y,m=NULL,s=NULL,trend=NULL,outplot=c(FALSE,TRUE),
     }
     season.sample <- matrix(t(ynt),ncol=1)        
     season.sample <- season.sample[!is.na(season.sample)]
-    i.season <- as.vector(decomp.fun.sfit(season.sample,g,n,m)$ins) + y*0
+    i.season <- as.vector(fun.sfit(season.sample,g,n,m)$ins) + y*0
   }
   
   # Convert f.season to ts object
@@ -221,19 +221,19 @@ decomp <- function(y,m=NULL,s=NULL,trend=NULL,outplot=c(FALSE,TRUE),
 }
 
 
-decomp.opt.sfit <- function(ynt,costs,n,m){
+opt.sfit <- function(ynt,costs,n,m){
   # Optimise pure seasonal model and predict out-of-sample seasonality
   g0 <- c(0.001,colMeans(ynt,na.rm=TRUE))       # Initialise seasonal model
   season.sample <- matrix(t(ynt),ncol=1)        # Transform back to vector
   season.sample <- season.sample[!is.na(season.sample)]
-  opt <- optim(par=g0, decomp.cost.sfit, method = "Nelder-Mead", season.sample=season.sample, 
+  opt <- optim(par=g0, cost.sfit, method = "Nelder-Mead", season.sample=season.sample, 
                cost=costs, n=n, m=m, control = list(maxit = 2000))
   g <- opt$par
-  season <- decomp.fun.sfit(season.sample,g,n,m)$outs
+  season <- fun.sfit(season.sample,g,n,m)$outs
   return(list("season"=season,"g"=g))
 }
 
-decomp.fun.sfit <- function(season.sample,g,n,m){
+fun.sfit <- function(season.sample,g,n,m){
   # Fit pure seasonal model
   s.init <- g[2:(m+1)]
   season.fit <- c(s.init,rep(NA,n))
@@ -243,17 +243,17 @@ decomp.fun.sfit <- function(season.sample,g,n,m){
   return(list("ins"=season.fit[1:n],"outs"=season.fit[(n+1):(n+m)]))  
 }
 
-decomp.cost.sfit <- function(g,season.sample,cost,n,m){
+cost.sfit <- function(g,season.sample,cost,n,m){
   # Cost function of pure seasonal model
-  err <- season.sample-decomp.fun.sfit(season.sample,g,n,m)$ins
-  err <- decomp.cost.err(err,cost)
+  err <- season.sample-fun.sfit(season.sample,g,n,m)$ins
+  err <- cost.err(err,cost)
   if (g[1]<0 | g[1]>1){
     err <- 9*10^99
   }
   return(err)   
 }
 
-decomp.cost.err <- function(err,cost){
+cost.err <- function(err,cost){
   # Cost calculation
   if (cost == "MAE"){
     err <- mean(abs(err))
