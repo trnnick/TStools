@@ -10,7 +10,7 @@ stlboot  <- function(ts,k=1,test.season=c(TRUE,FALSE),outplot=c(FALSE,TRUE)){
 #   outplot     If TRUE provide a plot of the bootstrapped series.
 #
 # Output:
-#   ts.recon    Array of bootstrapped series. Each row is a time series.
+#   ts.recon    Array of bootstrapped series. Each column is a time series.
 #
 # Example:
 #   stlboot(referrals,k=20,outplot=TRUE)
