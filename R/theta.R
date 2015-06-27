@@ -41,7 +41,7 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
 #   season      Forecasted values of seasonal element.
 #   a           SES parameters of theta2.
 #   b           Regression parameters of theta0.
-#   c           Coefficients of outliers from theta0 estimation.
+#   p           Coefficients of outliers from theta0 and theta2 estimation.
 #   g           Pure seasonal exponential smoothing parameters of season.
 #
 # Example:
@@ -112,8 +112,14 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
     n.out <- 0
   } else {
     n.out <- length(outliers)
+#     X.out <- array(0,c(n,n.out))
+#     X.out[outliers+n*(0:(n.out-1))] <- 1
+    # Through the MA the outlier is spread across m observations, create dummies to account for that
+    m.half <- floor((m + (m+1) %% 2)/2)
     X.out <- array(0,c(n,n.out))
-    X.out[outliers+n*(0:(n.out-1))] <- 1
+    for (i in 1:n.out){
+      X.out[max(1,outliers[i]-m.half):min(n,outliers[i]+m.half),i] <- 1
+    }
   }
   # Include trend component in theta0
   if (trend.exist == TRUE){
@@ -132,31 +138,48 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
     b <- mean(y.des)
   }
 
-  theta0 <- X%*%b + 0*y.des           # 0*y.des To take ts object properties
-  a0 <- rbind(0.1,y.des[1])           # Initialise theta2 parameters
-  theta2 <- 2*y.des - theta0          # Construct theta2 
-  a <- opt.ses(theta2,cost2,a0,2)     # Optimise theta2 
+  # Create theta0 line without outliers
+  # 0*y.des To take ts object properties
+  theta0 <- X[,1:(1+trend.exist)]%*%matrix(b[1:(1+trend.exist)],ncol=1) + 0*y.des               
+  
+  # Estimate SES
+  theta2 <- 2*y.des - theta0              # Construct theta2 
+  a0 <- rbind(0.1,theta2[1],rep(0,n.out)) # Initialise theta2 parameters
+  a <- opt.ses(theta2,cost2,a0,2,X.out)   # Optimise theta2 
   
   # In-sample fit
   in.theta0 <- theta0
-  in.theta2 <- fun.ses(theta2,a)$ins
+  in.theta2 <- fun.ses(theta2,a,X.out)$ins
+  if (!is.null(X.out)){
+    # Remove outlier from fit - the complete outlier will be modelled afterwards
+    in.theta2 <- in.theta2 - X.out %*% matrix(a[3:(2+n.out)])
+  }
   in.fit <- (in.theta0 + in.theta2)/2
   
-  # Separate theta0 parameters into b and outliers (c){
+  # Separate theta0 and theta2 parameters into a, b and outliers (p[,1:2])
   if (n.out > 0){
-    c <- matrix(b[(2+trend.exist):(1+trend.exist+n.out)],nrow=n.out)
+    p <- matrix(b[(2+trend.exist):(1+trend.exist+n.out)],nrow=n.out)
+    p <- cbind(p,a[3:(2+n.out)])
+    colnames(p) <- c('Theta0','Theta2')
   } else {
-    c <- NULL
+    p <- NULL
   }
-  b <- b[1:(1+trend.exist)]
   if (trend.exist == FALSE){
-    b <- rbind(b, 0)
+    b <- rbind(b[1], 0)
+  } else {
+    b <- b[1:2]
   } 
-  b <- matrix(b,nrow=2)
+  b <- matrix(b,ncol=1)
+  a <- matrix(a[1:2],ncol=1)
 
   # Prediction
   frc.theta0 <- b[1] + b[2]*((n+1):(n+h))
-  frc.theta2 <- fun.ses(theta2,a)$outs * rep(1,h)
+  if (!is.null(X.out)){
+    a.frc <- rbind(a,array(p[,2],c(n.out,1)))
+  } else {
+    a.frc <- a
+  }
+  frc.theta2 <- fun.ses(theta2,a.frc,X.out)$outs * rep(1,h)
   frc <- (frc.theta0 + frc.theta2)/2
   
   # Convert to ts object
@@ -170,15 +193,19 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
     }
     frc <- ts(frc,start=s,frequency=m)  
   } 
-  
+
   # Reseasonalise
   if (season.exist == TRUE){
     # Seasonality is modelled with a pure seasonal smoothing
-    sout <- opt.sfit(ynt,costs,n,m)
+    sout <- opt.sfit(ynt,costs,n,m,y,in.fit,multiplicative,outliers)
     season <- sout$season
     # sstd <- sd(season)
     season <- rep(season, h %/% m + 1)[1:h]
     g <- sout$g
+    if (n.out > 0){
+      p <- cbind(p,matrix(sout$p,ncol=1,dimnames=list(NULL,'Season')))
+    }
+    # sout$in.season includes the outlier
     if (multiplicative == TRUE){
       frc <- frc * season
       in.fit <- in.fit * sout$in.season
@@ -191,7 +218,7 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
     season <- NULL
     # sstd <- NULL
   }
-  
+
   if (outplot==1){
     # Simple in-sample and forecast
     if (class(y) == "ts"){
@@ -217,7 +244,7 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
       }
       frc.theta0 <- ts(frc.theta0,start=s,frequency=m)  
       frc.theta2 <- ts(frc.theta2,start=s,frequency=m)  
-      ts.plot(y,theta0,frc.theta0,theta2,frc.theta2,frc,in.fit,
+      ts.plot(y,in.theta0+y*0,frc.theta0,in.theta2+y*0,frc.theta2,frc,in.fit,
               gpars=list(col=c("black","forestgreen","forestgreen","red","red","blue","blue"),
                          lwd=c(1,1,1,1,1,2,1),lty=c(1,1,2,1,2,1,1)))
     } else {
@@ -225,8 +252,8 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
     ymax <- max(min(y),max(theta0),max(theta2),max(frc),max(frc.theta0),max(frc.theta2))
     yminmax <- c(ymin-0.1*(ymax-ymin),ymax+0.1*(ymax-ymin))
     plot(1:n,y,type="l",xlim=c(1,(n+h)),ylab="",xlab="Time",ylim=yminmax)
-    lines(1:n,theta0,col="forestgreen",type="l")
-    lines(1:n,theta2,col="red",type="l")
+    lines(1:n,in.theta0,col="forestgreen",type="l")
+    lines(1:n,in.theta2,col="red",type="l")
     lines((n+1):(n+h),frc.theta0,col="forestgreen",type="l",lty=2)
     lines((n+1):(n+h),frc.theta2,col="red",type="l",lty=2)
     lines((n+1):(n+h),frc,col="blue",type="l",lwd=2)
@@ -246,37 +273,63 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
   costf <- rbind(cost0,cost2,costs)
   rownames(costf) <- c("Theta0","Theta2","Seasonal")
   return(list("frc"=frc,"exist"=exist,"theta0"=frc.theta0,"theta2"=frc.theta2,
-              "season"=season,"cost"=costf,"a"=a,"b"=b,"c"=c,"g"=g, "fit"=in.fit)) # ,"std.season"=sstd))
+              "season"=season,"cost"=costf,"a"=a,"b"=b,"p"=p,"g"=g, "fit"=in.fit)) # ,"std.season"=sstd))
   
 }
 
-opt.sfit <- function(ynt,costs,n,m){
+opt.sfit <- function(ynt,costs,n,m,y,in.fit,multiplicative,outliers){
   # Optimise pure seasonal model and predict out-of-sample seasonality
-  g0 <- c(0.001,colMeans(ynt,na.rm=TRUE))       # Initialise seasonal model
-  season.sample <- matrix(t(ynt),ncol=1)        # Transform back to vector
-  season.sample <- season.sample[!is.na(season.sample)]
+  if (is.null(outliers)){
+    g0 <- c(0.001,colMeans(ynt,na.rm=TRUE))       # Initialise seasonal model
+    season.sample <- matrix(t(ynt),ncol=1)        # Transform back to vector
+    season.sample <- season.sample[!is.na(season.sample)]
+    X.out <- NULL
+    n.out <- 0
+  } else {
+    n.out <- length(outliers)
+    g0 <- c(0.001,colMeans(ynt,na.rm=TRUE),rep(0,n.out))       # Initialise seasonal model
+    if (multiplicative == TRUE){
+      season.sample <- as.numeric(y / in.fit)
+    } else {
+      season.sample <- as.numeric(y - in.fit)
+    }
+    X.out <- array(0,c(n,n.out))
+    X.out[outliers+n*(0:(n.out-1))] <- 1
+  }
   opt <- optim(par=g0, cost.sfit, method = "Nelder-Mead", season.sample=season.sample, 
-               cost=costs, n=n, m=m, control = list(maxit = 2000))
+               cost=costs, n=n, m=m, X.out = X.out, control = list(maxit = 2000))
   g <- opt$par
-  sfit <- fun.sfit(season.sample,g,n,m)
+  sfit <- fun.sfit(season.sample,g,n,m,X.out)
   out.season <- sfit$outs
   in.season <- sfit$ins
-  return(list("season"=out.season,"in.season"=in.season,"g"=g))
+  # Size of outliers
+  if (n.out > 0){
+    p <- g[(m+2):(m+1+n.out)]
+  } else {
+    p <- NULL
+  }
+  return(list("season"=out.season,"in.season"=in.season,"g"=g[1:(1+m)],"p"=p))
 }
 
-fun.sfit <- function(season.sample,g,n,m){
+fun.sfit <- function(season.sample,g,n,m,X.out){
   # Fit pure seasonal model
   s.init <- g[2:(m+1)]
   season.fit <- c(s.init,rep(NA,n))
   for (i in 1:n){
     season.fit[i+m] <- season.fit[i] + g[1]*(season.sample[i] - season.fit[i])
   }
+  if (!is.null(X.out)){
+    n.out <- length(X.out[1,])
+    g.out <- matrix(g[(m+2):(m+1+n.out)],ncol=1)
+    X.out <- rbind(X.out, array(0,c(m,n.out)))
+    season.fit <- season.fit + X.out %*% g.out
+  }
   return(list("ins"=season.fit[1:n],"outs"=season.fit[(n+1):(n+m)]))  
 }
 
-cost.sfit <- function(g,season.sample,cost,n,m){
+cost.sfit <- function(g,season.sample,cost,n,m,X.out){
   # Cost function of pure seasonal model
-  err <- season.sample-fun.sfit(season.sample,g,n,m)$ins
+  err <- season.sample-fun.sfit(season.sample,g,n,m,X.out)$ins
   err <- cost.err(err,cost,NULL)
   if (g[1]<0 | g[1]>1){
     err <- 9*10^99
@@ -284,7 +337,7 @@ cost.sfit <- function(g,season.sample,cost,n,m){
   return(err)   
 }
 
-fun.ses <- function(line,a){
+fun.ses <- function(line,a,X.out=NULL){
   # Fit SES model on theta line
   n <- length(line)
   ses <- matrix(NA,nrow=n+1,ncol=1)
@@ -292,20 +345,27 @@ fun.ses <- function(line,a){
   for (i in 2:(n+1)){
     ses[i] <- a[1]*line[i-1] + (1-a[1])*ses[i-1]
   }
+  # If X.out is !null then model outliers
+  if (!is.null(X.out)){
+    n.out <- length(X.out[1,])
+    a.out <- matrix(a[3:(n.out+2)],ncol=1)
+    X.out <- rbind(X.out, array(0,c(1,n.out)))
+    ses <- ses + X.out %*% a.out
+  }
   return(list("ins"=ses[1:n],"outs"=ses[n+1]))
 }
 
-opt.ses <- function(line,cost,a0,theta){
+opt.ses <- function(line,cost,a0,theta,X.out=NULL){
   # Optimise SES on theta
   opt <- optim(par=a0, cost.ses, method = "Nelder-Mead", line=line, cost=cost, 
-               theta=theta, control = list(maxit = 2000))
+               theta=theta, X.out=X.out, control = list(maxit = 2000))
   a <- opt$par
   return(a)
 }
 
-cost.ses <- function(a,line,cost,theta=2){
+cost.ses <- function(a,line,cost,theta=2,X.out=NULL){
   # Cost function for SES optimisation
-  err <- line-fun.ses(line,a)$ins
+  err <- line-fun.ses(line,a,X.out)$ins
   err <- cost.err(err,cost,theta)
   if (!a[1]<0.99 | !a[1]>0.01){
     err <- 9*10^99

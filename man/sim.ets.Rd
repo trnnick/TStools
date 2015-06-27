@@ -12,7 +12,7 @@ sim.ets(model="ANN",seas.freq=1,
     persistence=NULL, phi=1,
     initial=NULL, initial.season=NULL,
     bounds=c("usual","admissible","restricted"),
-    obs=10, nseries=1,
+    obs=10, nseries=1, silent=FALSE,
     randomizer=c("rnorm","runif","rbeta","rt"),
     ...)
 }
@@ -45,6 +45,9 @@ sim.ets(model="ANN",seas.freq=1,
   \item{nseries}{
   the number of series to generate.
 }
+  \item{silent}{
+  if TRUE then no command line output is printed.
+  }
   \item{randomizer}{
   the type of the random number generator function. The defaults are: \code{rnorm}, \code{rt}, \code{runif}, \code{rbeta}. But any function from \link[stats]{Distributions} will do the trick if the appropriate parameters are passed. For example \code{rpois} with \code{lambda=2} can be used.
 }

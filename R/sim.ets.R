@@ -2,7 +2,7 @@ sim.ets <- function(model="ANN",seas.freq=1,
              persistence=NULL, phi=1,
              initial=NULL, initial.season=NULL,
              bounds=c("usual","admissible","restricted"),
-             obs=10, nseries=1,
+             obs=10, nseries=1,silent=FALSE,
              randomizer=c("rnorm","runif","rbeta","rt"),
              ...){
 # Function generates data using ETS with Single Source of Error as a data generating process.
@@ -225,7 +225,9 @@ ry.value <- function(error.type, trend.type, season.type, xt){
         mat.g <- matrix(NA,nseries,persistence.length)
         colnames(mat.g) <- c(component.names);
 
-    cat("Series simulated:  ");
+        if (silent == FALSE){
+          cat("Series simulated:  ");
+        }
     }
 
 # If the chosen randomizer is not rnorm, rt and runif and no parameters are provided, change to rnorm.
@@ -484,40 +486,42 @@ for(k in 1:nseries){
         mat.g[k,] <- vec.g;
 
 # Print the number of processed series
-        if(k<=10){
-            cat("\b");
+        if (silent == FALSE){
+          if(k<=10){
+              cat("\b");
+          }
+          else if(k>10 & k<=100){
+              cat("\b");
+              cat("\b");
+          }
+          else if(k>100 & k<=1000){
+              cat("\b");
+              cat("\b");
+              cat("\b");
+          }
+          else if(k>1000 & k<=10000){
+              cat("\b");
+              cat("\b");
+              cat("\b");
+              cat("\b");
+          }
+          else if(k>10000 & k<=100000){
+              cat("\b");
+              cat("\b");
+              cat("\b");
+              cat("\b");
+              cat("\b");
+          }
+          else{
+              cat("\b");
+              cat("\b");
+              cat("\b");
+              cat("\b");
+              cat("\b");
+              cat("\b");            
+          }
+          cat(k);
         }
-        else if(k>10 & k<=100){
-            cat("\b");
-            cat("\b");
-        }
-        else if(k>100 & k<=1000){
-            cat("\b");
-            cat("\b");
-            cat("\b");
-        }
-        else if(k>1000 & k<=10000){
-            cat("\b");
-            cat("\b");
-            cat("\b");
-            cat("\b");
-        }
-        else if(k>10000 & k<=100000){
-            cat("\b");
-            cat("\b");
-            cat("\b");
-            cat("\b");
-            cat("\b");
-        }
-        else{
-            cat("\b");
-            cat("\b");
-            cat("\b");
-            cat("\b");
-            cat("\b");
-            cat("\b");            
-        }
-        cat(k);
     }
 }
 
