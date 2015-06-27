@@ -484,7 +484,7 @@ for(k in 1:nseries){
         }
     }
 
-    likelihood <- -obs/2 *(log(2*pi*exp(1)) + log(errors^2))
+    likelihood <- -obs/2 *(log(2*pi*exp(1)) + log(mean(errors^2)))
 
     if(nseries > 1){
         mat.yt[,k] <- y
