@@ -66,7 +66,7 @@ The list of the following values is returned:
   \item{residuals}{The error terms used in the simulation.}
   \item{persistence}{The vector of smoothing parameters used in the simulation.}
   \item{model}{The name of the used ETS model.}
-  \item{llikelihood}{Log-likelihood of the constructed model.}
+  \item{likelihood}{Log-likelihood of the constructed model.}
 }
 \references{
 Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008) Forecasting with exponential smoothing: the state space approach, Springer-Verlag. \url{http://www.exponentialsmoothing.net}.

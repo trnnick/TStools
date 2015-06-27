@@ -484,7 +484,7 @@ for(k in 1:nseries){
         }
     }
 
-    llikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(errors^2))
+    likelihood <- -obs/2 *(log(2*pi*exp(1)) + log(errors^2))
 
     if(nseries > 1){
         mat.yt[,k] <- y
@@ -541,10 +541,10 @@ for(k in 1:nseries){
 #        colnames(mat.xt) <- c(component.names,"error")
         mat.xt <- ts(mat.xt,frequency=seas.freq)
 
-        return(list(data=y,states=mat.xt,persistence=vec.g,residuals=errors,model=model,llikelihood=llikelihood))
+        return(list(data=y,states=mat.xt,persistence=vec.g,residuals=errors,model=model,likelihood=likelihood))
     }
     else{
         mat.yt <- ts(mat.yt,frequency=seas.freq)
-        return(list(data=mat.yt,states=arr.xt,persistence=mat.g,residuals=mat.errors,model=model,llikelihood=vec.likelihood))
+        return(list(data=mat.yt,states=arr.xt,persistence=mat.g,residuals=mat.errors,model=model,likelihood=vec.likelihood))
     }
 }
