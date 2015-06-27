@@ -82,6 +82,10 @@ stlboot  <- function(ts,k=1,test.season=c(TRUE,FALSE),outplot=c(FALSE,TRUE)){
     lines(1:n,ts,col="black",lwd=2)
   }
   
+  # Convert output to ts object
+  ts.recon <- t(ts.recon)
+  ts.recon <- ts(ts.recon, frequency=m, start=start(ts))
+  
   return(ts.recon)
   
 }

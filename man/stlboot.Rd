@@ -24,7 +24,7 @@ stlboot(ts,k=1,test.season=c(TRUE,FALSE),outplot=c(FALSE,TRUE))
 }
 }
 \value{
-\item{ts.recon}{Array of bootstrapped series. Each row is a time series.}
+\item{ts.recon}{Array of bootstrapped series. Each column is a time series.}
 }
 \references{
 Bergmeir C.,  Hyndman R. J., Benitez J. M., Bagging Exponential Smoothing Methods using STL Decomposition and Box-Cox Transformation. 2014, Working Paper.
