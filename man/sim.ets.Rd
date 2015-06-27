@@ -62,7 +62,8 @@ sim.ets(model="ANN",seas.freq=1,
 \value{
 The list of the following values is returned:
   \item{data}{The ts vector of the generated series.}
-  \item{states}{The states matrix. States are in columns, time is in rows. Also includes error term in the last column.}
+  \item{states}{The states matrix. States are in columns, time is in rows.}
+  \item{residuals}{The error terms used in the simulation.}
   \item{persistence}{The vector of smoothing parameters used in the simulation.}
   \item{model}{The name of the used ETS model.}
   \item{llikelihood}{Log-likelihood of the constructed model.}
