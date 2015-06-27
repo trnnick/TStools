@@ -528,7 +528,6 @@ for(k in 1:nseries){
     if(nseries==1){
         y <- ts(y,frequency=seas.freq);
         errors <- ts(errors,frequency=seas.freq);
-        mat.xt <- 
         mat.xt <- cbind(mat.xt,c(rep(NA,model.freq),errors));
         mat.xt <- ts(mat.xt,frequency=seas.freq);
         colnames(mat.xt) <- c(component.names,"error");
