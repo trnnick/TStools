@@ -123,11 +123,6 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     }
 
 ### Check the seasonaity type
-    if(season.type!="N" & seas.freq==1){
-        message("Cannot build the seasonal model on the data with the frequency 1.");
-        message(paste0("Switching to non-seasonal model: ETS(",substring(model,1,nchar(model)-1),"N)"));
-        season.type <- "N";
-    }
     if(season.type!="Z" & season.type!="N" & season.type!="A" & season.type!="M"){
         message("Wrong seasonality type! Should be 'Z', 'N', 'A' or 'M'.");
         if(seas.freq==1){
@@ -139,6 +134,12 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             season.type <- "Z";
         }
     }
+    if(season.type!="N" & seas.freq==1){
+        message("Cannot build the seasonal model on the data with the frequency 1.");
+        message(paste0("Switching to non-seasonal model: ETS(",substring(model,1,nchar(model)-1),"N)"));
+        season.type <- "N";
+    }
+
 
     if(any(y<=0)){
         if(error.type=="M"){
@@ -287,69 +288,6 @@ define.param <- function(trend.type,season.type,damped,phi){
                 estimate.initial=estimate.initial,
                 estimate.initial.season=estimate.initial.season));
 }
-
-#########################################
-
-    param.values <- define.param(trend.type=trend.type,season.type=season.type,damped=damped,phi=phi);
-    n.components <- param.values$n.components;
-    lags <- param.values$lags;
-    seas.freq <- param.values$seas.freq;
-    mat.xt <- param.values$mat.xt;
-    vec.g <- param.values$vec.g;
-    phi <- param.values$phi;
-    trend.component <- param.values$trend.component;
-    seasonal.component <- param.values$seasonal.component;
-    estimate.persistence <- param.values$estimate.persistence;
-    estimate.phi <- param.values$estimate.phi;
-    estimate.initial <- param.values$estimate.initial;
-    estimate.initial.season <- param.values$estimate.initial.season;
-
-#########################################
-
-### Check the length of initials and persistence vectors
-# Check the persistence vector length
-    if(!is.null(persistence)){
-        if(n.components != length(persistence)){
-            message("The length of persistence vector does not correspond to the chosen model!");
-            message("Values will be estimated");
-            persistence <- NULL;
-        }
-    }
-
-# Check the inital vector length
-    if(!is.null(initial)){
-        if(length(initial)>2){
-            message("The length of the initial value is wrong! It should not be greater than 2.");
-            message("Values of initial vector will be estimated.");
-            initial <- NULL;
-        }
-        if((n.components - seasonal.component)!=length(initial)){
-            message("The length of initial state vector does not correspond to the chosen model!");
-            message("Values of initial vector will be estimated.");
-            initial <- NULL;
-        }
-    }
-
-# Check the seasonal inital vector length
-    if(!is.null(initial.season)){
-        if(frequency(data)!=length(initial.season)){
-            message("The length of seasonal initial states does not correspond to the frequency of the data!");
-            message("Values of initial seasonals will be estimated.");
-            initial.season <- NULL;
-        }
-    }
-
-# Vectors of fitted data and errors
-    y.fit <- rep(NA,obs);
-    errors <- rep(NA,obs);
-
-# If we use trace, define matrix of errors.
-    if(trace==TRUE){
-        mat.error <- matrix(NA,nrow=obs,ncol=h);
-    }
-    else{
-        mat.error <- matrix(NA,nrow=obs,ncol=1);
-    }
 
 # Function calculates the power of matrix
 matrix.power <- function(A, n) {
@@ -547,7 +485,7 @@ forec.ets <- function(xt,mat.F,mat.w,vec.g,h=1,n.components,trend.type,season.ty
 
 ## Form vector of non-seasonal and vector of seasonal components
     if(season.type!="N"){
-	    season.xt <- rep(xt[,n.components],times=ceiling(h/seas.freq));
+      season.xt <- rep(xt[,n.components],times=ceiling(h/seas.freq));
 	    xt <- matrix(xt[nrow(xt),1:(n.components-1)],(n.components-1),1);
 	    mat.w <- matrix(mat.w[1:(n.components-1)],1,(n.components-1));
 	    mat.F <- matrix(mat.F[1:(n.components-1),1:(n.components-1)],(n.components-1),(n.components-1));
@@ -928,17 +866,25 @@ C.values <- function(bounds,trend.type,season.type,vec.g,mat.xt,phi,seas.freq,n.
     return(list(C=C,C.lower=C.lower,C.upper=C.upper));
 }
 
+## Function returns the log-likelihood value
+Likelihood.value <- function(C){
+    if(logCF==TRUE){
+        llikelihood <- -obs/2 *((h^trace)*log(2*pi*exp(1)) + CF(C));
+    }
+    else{
+        llikelihood <- -obs/2 *((h^trace)*log(2*pi*exp(1)) + log(CF(C)));
+    }
+
+    return(llikelihood)
+}
+
 ## Function calculates ICs
 IC.calc <- function(CF.objective=CF.objective,n.param=n.param,logCF=logCF){
 # Information criteria are calculated with the constant part "log(2*pi*exp(1)*h)*obs".
 # And it is based on the mean of the sum squared residuals either than sum.
 # Hyndman likelihood is: llikelihood <- obs*log(obs*CF.objective);
-    if(logCF==TRUE){
-        llikelihood <- -obs/2 *((h^trace)*log(2*pi*exp(1)) + CF.objective);
-    }
-    else{
-        llikelihood <- -obs/2 *((h^trace)*log(2*pi*exp(1)) + log(CF.objective));
-    }
+    llikelihood <- Likelihood.value(C)
+
     AIC.coef <- 2*n.param - 2*llikelihood;
     AICc.coef <- AIC.coef + 2 * n.param * (n.param + 1) / (obs - n.param - 1);
     BIC.coef <- log(obs)*n.param - 2*llikelihood;
@@ -1040,7 +986,7 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
         }
 
 #library(nloptr);
-        res <- cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper);
+        res <- nloptr::cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper);
         CF.objective <- res$value;
 
         n.param <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + seas.freq*estimate.initial.season;
@@ -1060,6 +1006,69 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
 
     return(results[[i]])
 }
+
+#########################################
+
+    param.values <- define.param(trend.type=trend.type,season.type=season.type,damped=damped,phi=phi);
+    n.components <- param.values$n.components;
+    lags <- param.values$lags;
+    seas.freq <- param.values$seas.freq;
+    mat.xt <- param.values$mat.xt;
+    vec.g <- param.values$vec.g;
+    phi <- param.values$phi;
+    trend.component <- param.values$trend.component;
+    seasonal.component <- param.values$seasonal.component;
+    estimate.persistence <- param.values$estimate.persistence;
+    estimate.phi <- param.values$estimate.phi;
+    estimate.initial <- param.values$estimate.initial;
+    estimate.initial.season <- param.values$estimate.initial.season;
+
+#########################################
+
+### Check the length of initials and persistence vectors
+# Check the persistence vector length
+    if(!is.null(persistence)){
+        if(n.components != length(persistence)){
+            message("The length of persistence vector does not correspond to the chosen model!");
+            message("Values will be estimated");
+            persistence <- NULL;
+        }
+    }
+
+# Check the inital vector length
+    if(!is.null(initial)){
+        if(length(initial)>2){
+            message("The length of the initial value is wrong! It should not be greater than 2.");
+            message("Values of initial vector will be estimated.");
+            initial <- NULL;
+        }
+        if((n.components - seasonal.component)!=length(initial)){
+            message("The length of initial state vector does not correspond to the chosen model!");
+            message("Values of initial vector will be estimated.");
+            initial <- NULL;
+        }
+    }
+
+# Check the seasonal inital vector length
+    if(!is.null(initial.season)){
+        if(frequency(data)!=length(initial.season)){
+            message("The length of seasonal initial states does not correspond to the frequency of the data!");
+            message("Values of initial seasonals will be estimated.");
+            initial.season <- NULL;
+        }
+    }
+
+# Vectors of fitted data and errors
+    y.fit <- rep(NA,obs);
+    errors <- rep(NA,obs);
+
+# If we use trace, define matrix of errors.
+    if(trace==TRUE){
+        mat.error <- matrix(NA,nrow=obs,ncol=h);
+    }
+    else{
+        mat.error <- matrix(NA,nrow=obs,ncol=1);
+    }
 
 # Fill in the vector of initial values and vector of constrains used in estimation
     if(estimate.persistence==TRUE | estimate.phi==TRUE | estimate.initial==TRUE | estimate.initial.season==TRUE){
@@ -1130,8 +1139,8 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
 # Number of observations in the mat.error matrix excluding NAs.
             errors.mat.obs <- obs - h + 1;
 
-#library(nloptr);
-            res <- cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper);
+            res <- nloptr::cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper);
+#            res <- alabama::auglag(C, CF, hin=hin.constrains,control.outer=list(trace=FALSE));
             CF.objective <- res$value;
             C <- res$par;
 
@@ -1151,7 +1160,7 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
     y.fit <- ts(fitting$y.fit,start=start(data),frequency=frequency(data));
     errors <- ts(fitting$errors,start=start(data),frequency=frequency(data));
 
-    y.for <- ts(forec.ets(xt=mat.xt[((obs+seas.freq)-seas.freq+1):(obs+seas.freq),],mat.F,mat.w,vec.g,h=h,n.components,trend.type,season.type,seas.freq),start=time(data)[obs]+deltat(data),frequency=frequency(data));
+    y.for <- ts(forec.ets(xt=mat.xt[(obs+1):(obs+seas.freq),],mat.F,mat.w,vec.g,h=h,n.components,trend.type,season.type,seas.freq),start=time(data)[obs]+deltat(data),frequency=frequency(data));
 
     y <- data;
 
@@ -1165,6 +1174,8 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
     else{
         n.param <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + seas.freq*estimate.initial.season;
     }
+
+    FI <- hessian(Likelihood.value,C)
 
 # Calculate IC values
     IC.values <- IC.calc(CF.objective=CF.objective,n.param=n.param,logCF=logCF);
@@ -1316,5 +1327,5 @@ if(silent==FALSE){
     par(mfrow=c(1,1), mar=c(5,4,4,2))
 }
 
-return(list(persistence=vec.g,phi=phi,states=mat.xt,fitted=y.fit,forecast=y.for,residuals=errors,x=data,ICs=ICs,CF=CF.objective));
+return(list(persistence=vec.g,phi=phi,states=mat.xt,fitted=y.fit,forecast=y.for,residuals=errors,x=data,ICs=ICs,CF=CF.objective,FI=FI));
 }

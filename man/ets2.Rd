@@ -71,6 +71,7 @@ The details will be here soon.
     \item \code{x} - the original data.
     \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc and BIC.
     \item \code{CF} - Cost function value.
+    \item \code{FI} - Fisher Information estimated in the optimal point.
     \item \code{lower} - the lower bound of prediction interval. When \code{intervals=FALSE} then NA is returned. NOT YET IMPLEMENTED
     \item \code{upper} - the higher bound of prediction interval. When \code{intervals=FALSE} then NA is returned. NOT YET IMPLEMENTED
   }
