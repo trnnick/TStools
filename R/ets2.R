@@ -485,7 +485,7 @@ forec.ets <- function(xt,mat.F,mat.w,vec.g,h=1,n.components,trend.type,season.ty
 
 ## Form vector of non-seasonal and vector of seasonal components
     if(season.type!="N"){
-      season.xt <- rep(xt[,n.components],times=ceiling(h/seas.freq));
+	    season.xt <- rep(xt[,n.components],times=ceiling(h/seas.freq));
 	    xt <- matrix(xt[nrow(xt),1:(n.components-1)],(n.components-1),1);
 	    mat.w <- matrix(mat.w[1:(n.components-1)],1,(n.components-1));
 	    mat.F <- matrix(mat.F[1:(n.components-1),1:(n.components-1)],(n.components-1),(n.components-1));
@@ -785,13 +785,13 @@ C.values <- function(bounds,trend.type,season.type,vec.g,mat.xt,phi,seas.freq,n.
 
         if(estimate.persistence==TRUE){
             C <- c(C,vec.g);
-            C.lower <- c(C.lower,rep(0,length(vec.g)));
+            C.lower <- c(C.lower,rep(-0.0001,length(vec.g)));
             C.upper <- c(C.upper,rep(1,length(vec.g)));
         }
         if(estimate.phi==TRUE){
             C <- c(C,phi);
             C.lower <- c(C.lower,0);
-            C.upper <- c(C.upper,1.2);
+            C.upper <- c(C.upper,1.5);
         }
         if(estimate.initial==TRUE){
             C <- c(C,mat.xt[seas.freq,1:(n.components - seasonal.component)]);
@@ -812,8 +812,8 @@ C.values <- function(bounds,trend.type,season.type,vec.g,mat.xt,phi,seas.freq,n.
                     C.upper <- c(C.upper,rep(Inf,seas.freq));
                 }
                 else{
-                    C.lower <- c(C.lower,rep(0,seas.freq));
-                    C.upper <- c(C.upper,rep(2,seas.freq));
+                    C.lower <- c(C.lower,rep(-0.0001,seas.freq));
+                    C.upper <- c(C.upper,rep(2.0001,seas.freq));
                 }
             }
         }
@@ -1167,6 +1167,7 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
     if(estimate.persistence==FALSE & estimate.phi==FALSE & estimate.initial==FALSE & estimate.initial.season==FALSE){
         C <- c(vec.g,phi,initial,initial.season);
         logCF <- FALSE;
+        errors.mat.obs <- obs - h + 1;
         CF.objective <- CF(C);
 #        n.param <- n.components + damped + (n.components - seasonal.component) + seas.freq*seasonal.component;
         n.param <- 0;
@@ -1175,7 +1176,7 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
         n.param <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + seas.freq*estimate.initial.season;
     }
 
-    FI <- hessian(Likelihood.value,C)
+    FI <- numDeriv::hessian(Likelihood.value,C)
 
 # Calculate IC values
     IC.values <- IC.calc(CF.objective=CF.objective,n.param=n.param,logCF=logCF);

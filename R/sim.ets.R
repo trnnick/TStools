@@ -539,7 +539,7 @@ for(k in 1:nseries){
         errors <- ts(errors,frequency=seas.freq)
 #        mat.xt <- cbind(mat.xt,c(rep(NA,model.freq),errors))
 #        colnames(mat.xt) <- c(component.names,"error")
-        mat.xt <- ts(mat.xt,frequency=seas.freq)
+        mat.xt <- ts(mat.xt,frequency=seas.freq,start=c(0,seas.freq-model.freq+1))
 
         return(list(data=y,states=mat.xt,persistence=vec.g,residuals=errors,model=model,likelihood=likelihood))
     }
