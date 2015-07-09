@@ -485,7 +485,7 @@ forec.ets <- function(xt,mat.F,mat.w,vec.g,h=1,n.components,trend.type,season.ty
 
 ## Form vector of non-seasonal and vector of seasonal components
     if(season.type!="N"){
-	    season.xt <- rep(xt[,n.components],times=ceiling(h/seas.freq));
+      season.xt <- rep(xt[,n.components],times=ceiling(h/seas.freq));
 	    xt <- matrix(xt[nrow(xt),1:(n.components-1)],(n.components-1),1);
 	    mat.w <- matrix(mat.w[1:(n.components-1)],1,(n.components-1));
 	    mat.F <- matrix(mat.F[1:(n.components-1),1:(n.components-1)],(n.components-1),(n.components-1));
@@ -558,20 +558,11 @@ CF <- function(C){
     if(trace==TRUE){
         if(CF.type=="GV"){
             errors.mat <- errors.mat[!is.na(errors.mat[,h]),];
-            if(logCF==TRUE){
-                CF.res <- log(det(t(errors.mat) %*% (errors.mat) / errors.mat.obs));
-            }
-            else{
-                CF.res <- det(t(errors.mat) %*% (errors.mat) / errors.mat.obs);
-            }
+            errors.mat <- errors.mat / normalizer
+            CF.res <- log(normalizer^2) + log(det(t(errors.mat) %*% (errors.mat) / errors.mat.obs));
         }
         else if(CF.type=="TLV"){
-            if(logCF==TRUE){
-                CF.res <- sum(log(colMeans(errors.mat^2,na.rm=TRUE)));
-            }
-            else{
-                CF.res <- exp(sum(log(colMeans(errors.mat^2,na.rm=TRUE))));
-            }
+            CF.res <- sum(log(colMeans(errors.mat^2,na.rm=TRUE)));
         }
         else if(CF.type=="TV"){
             CF.res <- sum(colMeans(errors.mat^2,na.rm=TRUE));
@@ -868,18 +859,11 @@ C.values <- function(bounds,trend.type,season.type,vec.g,mat.xt,phi,seas.freq,n.
 
 ## Function returns the log-likelihood value
 Likelihood.value <- function(C){
-    if(logCF==TRUE){
-        llikelihood <- -obs/2 *((h^trace)*log(2*pi*exp(1)) + CF(C));
-    }
-    else{
-        llikelihood <- -obs/2 *((h^trace)*log(2*pi*exp(1)) + log(CF(C)));
-    }
-
-    return(llikelihood)
+    return(-obs/2 *((h^trace)*log(2*pi*exp(1)) + CF(C)))
 }
 
 ## Function calculates ICs
-IC.calc <- function(CF.objective=CF.objective,n.param=n.param,logCF=logCF){
+IC.calc <- function(CF.objective=CF.objective,n.param=n.param,C){
 # Information criteria are calculated with the constant part "log(2*pi*exp(1)*h)*obs".
 # And it is based on the mean of the sum squared residuals either than sum.
 # Hyndman likelihood is: llikelihood <- obs*log(obs*CF.objective);
@@ -937,6 +921,7 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
                          dimnames=list(trends.pool,season.pool,errors.pool));
 
     results <- as.list(c(1:models.number));
+    cat("Building model: ")
 # Start cycle of models
     for(j in 1:models.number){
 
@@ -950,6 +935,7 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
             damped <- FALSE;
             phi <- 1;
         }
+        
         season.type <- dimnames(models.pool)[[2]][which(models.pool==j,arr.ind=TRUE)[2]];
         error.type <- dimnames(models.pool)[[3]][which(models.pool==j,arr.ind=TRUE)[3]];
 
@@ -959,6 +945,15 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
         damped <<- damped;
         phi <<- phi;
 
+        if(damped==TRUE){
+            current.model <- paste0(error.type,trend.type,"d",season.type)
+        }
+        else{
+            current.model <- paste0(error.type,trend.type,season.type)
+        }
+
+        cat(paste0(current.model,"; "))
+        
         param.values <- define.param(trend.type,season.type,damped,phi);
         n.components <<- param.values$n.components;
         lags <<- param.values$lags;
@@ -977,26 +972,18 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
         C <- Cs$C;
         C.upper <- Cs$C.upper;
         C.lower <- Cs$C.lower;
-        
-        if(is.infinite(var(data[1:obs])^h) & CF.type!="none" & CF.type!="TV"){
-            logCF <- TRUE;
-        }
-        else{
-            logCF <- FALSE;
-        }
 
-#library(nloptr);
         res <- nloptr::cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper);
         CF.objective <- res$value;
 
         n.param <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + seas.freq*estimate.initial.season;
 
-        IC.values <- IC.calc(CF.objective=CF.objective,n.param=n.param,logCF=logCF);
+        IC.values <- IC.calc(CF.objective=CF.objective,n.param=n.param,C=res$par);
         ICs <- IC.values$ICs;
 
         results[[j]] <- c(ICs,error.type,trend.type,season.type,damped,CF.objective,res$par);
-        }
-
+    }
+    cat("Done! \n")
     IC.selection <- rep(NA,length(models.pool));
     for(i in 1:length(models.pool)){
         IC.selection[i] <- as.numeric(eval(parse(text=paste0("results[[",i,"]]['",IC,"']"))));
@@ -1022,6 +1009,10 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
     estimate.phi <- param.values$estimate.phi;
     estimate.initial <- param.values$estimate.initial;
     estimate.initial.season <- param.values$estimate.initial.season;
+
+    if(trace==TRUE & CF.type=="GV"){
+        normalizer <- mean(abs(diff(y[1:obs])))
+    }
 
 #########################################
 
@@ -1073,6 +1064,9 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
 # Fill in the vector of initial values and vector of constrains used in estimation
     if(estimate.persistence==TRUE | estimate.phi==TRUE | estimate.initial==TRUE | estimate.initial.season==TRUE){
 
+# Number of observations in the mat.error matrix excluding NAs.
+        errors.mat.obs <- obs - h + 1;
+        
         if(bounds=="u"){
             hin.constrains <- hin.constrains.u;
         }
@@ -1089,13 +1083,6 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
             damped <- as.logical(results[7]);
             CF.objective <- as.numeric(results[8]);
             C <- as.numeric(results[-c(1:8)]);
-
-            if(is.infinite(var(data[1:obs])^h) & CF.type!="none" & CF.type!="TV"){
-                logCF <- TRUE;
-            }
-            else{
-                logCF <- FALSE;
-            }
 
             param.values <- define.param(trend.type=trend.type,season.type=season.type,damped=damped,phi=phi);
             n.components <- param.values$n.components;
@@ -1129,16 +1116,6 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
             C.upper <- Cs$C.upper;
             C.lower <- Cs$C.lower;
 
-            if(is.infinite(var(data[1:obs])^h) & CF.type!="none" & CF.type!="TV"){
-                logCF <- TRUE;
-            }
-            else{
-                logCF <- FALSE;
-            }
-
-# Number of observations in the mat.error matrix excluding NAs.
-            errors.mat.obs <- obs - h + 1;
-
             res <- nloptr::cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper);
 #            res <- alabama::auglag(C, CF, hin=hin.constrains,control.outer=list(trace=FALSE));
             CF.objective <- res$value;
@@ -1166,7 +1143,6 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
 
     if(estimate.persistence==FALSE & estimate.phi==FALSE & estimate.initial==FALSE & estimate.initial.season==FALSE){
         C <- c(vec.g,phi,initial,initial.season);
-        logCF <- FALSE;
         errors.mat.obs <- obs - h + 1;
         CF.objective <- CF(C);
 #        n.param <- n.components + damped + (n.components - seasonal.component) + seas.freq*seasonal.component;
@@ -1179,13 +1155,9 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
     FI <- numDeriv::hessian(Likelihood.value,C)
 
 # Calculate IC values
-    IC.values <- IC.calc(CF.objective=CF.objective,n.param=n.param,logCF=logCF);
+    IC.values <- IC.calc(CF.objective=CF.objective,n.param=n.param,C=C);
     llikelihood <- IC.values$llikelihood;
     ICs <- IC.values$ICs;
-
-    if(logCF==TRUE){
-        CF.objective <- exp(CF.objective);
-    }
 
 # Convert bounds to ts
     if(intervals==T){
