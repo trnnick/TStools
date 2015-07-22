@@ -20,7 +20,7 @@ ets2(data, model="ZZZ", persistence=NULL, phi=NULL,
 \arguments{
   \item{data}{ the vector or ts object, containing the data needed to be forecasted.
   }
-  \item{model}{ the type of ETS model. Can consist of 3 or 4 chars: ANN, AAN, AAdN, AAA, AAdA, MAdM etc.
+  \item{model}{ the type of ETS model. Can consist of 3 or 4 chars: ANN, AAN, AAdN, AAA, AAdA, MAdM etc. ZZZ means that the model will be selected based on the chosen IC type.
   }
   \item{persistence}{ The vector of smoothing parameters. If NULL, the parameters are estimated.
   }
@@ -32,11 +32,11 @@ ets2(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{initial.season}{ The vector of initial values for seasonal components. If NULL, they are estimated in the optimization.
   }
-  \item{IC}{ The information criterion to use in the model selection. Can be AICc or AIC.
+  \item{IC}{ The information criterion to use in the model selection.
   }
   \item{trace}{ If TRUE, the trace likelihood is used in the estimation with trace of the length h.
   }
-  \item{CF.type}{ Type of Cost Function used in trace optimization. Can be "TLV" - Total Logarythmic Variation, "GV" - Generalized Variance and "TV" - Total Variation.
+  \item{CF.type}{ Type of Cost Function used in trace optimization. Can be "GV" - Generalized Variance, "TLV" - Total Logarythmic Variation and "TV" - Total Variation.
   }
   \item{intervals}{ If TRUE, the prediction interval is constructed. NOT IMPLEMENTED YET
   }
@@ -52,7 +52,7 @@ ets2(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{legend}{ If TRUE, the legend is drawn in the outplot.
   }
-  \item{...}{ Other parameters that are passed to DON'T KNOW YET WHAT.
+  \item{...}{ Other parameters that are passed to DON'T KNOW WHAT YET.
   }
 }
 \details{
@@ -68,8 +68,9 @@ The details will be here soon.
     \item \code{fitted} - the fitted values of ETS.
     \item \code{forecast} - the point forecast of ETS.
     \item \code{residuals} - the residuals of the estimated model.
+    \item \code{errors} - trace forecast in-sample errors used in the cost function. Matrix is returned in the case of \code{trace=T} and vector equal to \code{residuals} is return in the other case.
     \item \code{x} - the original data.
-    \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc and BIC.
+    \item \code{ICs} - values of information criteria of the model. Includes AIC and AICc.
     \item \code{CF} - Cost function value.
     \item \code{FI} - Fisher Information estimated in the optimal point.
     \item \code{lower} - the lower bound of prediction interval. When \code{intervals=FALSE} then NA is returned. NOT YET IMPLEMENTED
@@ -88,18 +89,18 @@ To do:
 1. Solve optimization issues.
 2. Derive the prediction intervals.
 3. Implement xreg.
-4. Implement model selection procedure.
 }
 
 \seealso{
-\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[stats]{Distributions} \link[prognosis]{sim.ets}}
+\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[stats]{Distributions} \link[TStools]{sim.ets}}
 }
 \examples{
 library(Mcomp)
 
-ets2(M3$N1245$x,model="AAdN",h=12,holdout=FALSE,trace=FALSE) -> test
-ets2(M3$N1245$x,model="AAdN",h=12,holdout=FALSE,trace=TRUE) -> test
-ets2(M3$N2568$x,model="AMA",h=12,holdout=TRUE,trace=TRUE) -> test
+ets2(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,trace=FALSE) -> test
+ets2(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,trace=TRUE) -> test
+ets2(M3$N2568$x,model="AMA",h=18,holdout=TRUE,trace=TRUE) -> test
+ets2(M3$N1245$x,model="ZZN",IC="AIC",h=8,holdout=FALSE,trace=FALSE) -> test
 
 }
 \keyword{ exponential smoothing }
