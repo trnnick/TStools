@@ -1,7 +1,7 @@
 ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                  bounds=c("usual","admissible"),
                  initial=NULL, initial.season=NULL,
-                 IC=c("AICc","AIC"), trace=FALSE, CF.type=c("TLV","GV","TV"),
+                 IC=c("AICc","AIC"), trace=FALSE, CF.type=c("TLV","GV","TV","hsteps"),
                  intervals=FALSE, int.w=0.95, xreg=NULL,
                  holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
                  ...){
@@ -20,7 +20,7 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
 # Check if CF.type is appropriate in the case of trace==TRUE
     if(trace==TRUE){
-        if(CF.type!="GV" & CF.type!="TLV" & CF.type!="TV"){
+        if(CF.type!="GV" & CF.type!="TLV" & CF.type!="TV" & CF.type!="hsteps"){
             message(paste0("The strange Cost Function is chosen: ",CF.type))
             sowhat(CF.type)
             message("Switching to 'TLV'")
@@ -90,7 +90,7 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     seas.freq <- frequency(data)
 
 # Check the length of the provided data
-    if((obs/seas.freq)<2){
+    if(season.type!="N" & (obs/seas.freq)<2){
         message("Not enough observations for the seasonal model. Only non-seasonal models are available.")
         season.type <- "N"
     }
@@ -491,7 +491,7 @@ forec.ets <- function(xt,mat.F,mat.w,vec.g,h=1,n.components,trend.type,season.ty
 
 ## Form vector of non-seasonal and vector of seasonal components
     if(season.type!="N"){
-	    season.xt <- rep(xt[,n.components],times=ceiling(h/seas.freq))
+      season.xt <- rep(xt[,n.components],times=ceiling(h/seas.freq))
 	    xt <- matrix(xt[nrow(xt),1:(n.components-1)],(n.components-1),1)
 	    mat.w <- matrix(mat.w[1:(n.components-1)],1,(n.components-1))
 	    mat.F <- matrix(mat.F[1:(n.components-1),1:(n.components-1)],(n.components-1),(n.components-1))
@@ -572,6 +572,9 @@ CF <- function(C){
         }
         else if(CF.type=="TV"){
             CF.res <- sum(colMeans(errors.mat^2,na.rm=TRUE))
+        }
+        else if(CF.type=="hsteps"){
+            CF.res <- mean(errors.mat[,h]^2,na.rm=TRUE)
         }
     }
     else{

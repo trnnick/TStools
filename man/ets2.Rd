@@ -36,7 +36,7 @@ ets2(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{trace}{ If TRUE, the trace likelihood is used in the estimation with trace of the length h.
   }
-  \item{CF.type}{ Type of Cost Function used in trace optimization. Can be "GV" - Generalized Variance, "TLV" - Total Logarythmic Variation and "TV" - Total Variation.
+  \item{CF.type}{ Type of Cost Function used in trace optimization. Can be "GV" - Generalized Variance, "TLV" - Total Logarythmic Variation and "TV" - Total Variation, "hsteps" - optimisation using only h-steps ahead error.
   }
   \item{intervals}{ If TRUE, the prediction interval is constructed. NOT IMPLEMENTED YET
   }
