@@ -9,6 +9,8 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # Start measuring the time of calculations
     start.time <- Sys.time()
 
+#    dyn.load('src/ets2funcs.cpp')
+    
     bounds <- substring(bounds[1],1,1)
     IC <- IC[1]
     CF.type <- CF.type[1]
@@ -80,7 +82,7 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     obs <- length(data) - holdout*h
 
 # Define the actual values
-    y <- coredata(data)
+    y <- zoo::coredata(data)
 
 # Check if the data is ts-object
     if(!is.ts(data) & season.type!="N"){
@@ -556,10 +558,15 @@ CF <- function(C){
     mat.F <- matrices$mat.F
     mat.w <- matrices$mat.w
 
-    fitting <- fit.ets(mat.xt,mat.F,mat.w,vec.g,error.type,trend.type,season.type,seas.freq,n.components,lags)
-    mat.xt <- fitting$mat.xt
+#    fitting <- fit.ets(mat.xt,mat.F,mat.w,vec.g,error.type,trend.type,season.type,seas.freq,n.components,lags)
+#    mat.xt <- fitting$mat.xt
 
-    errors.mat <- errors.ets(mat.xt,mat.F,mat.w,vec.g,trace,seas.freq,n.components,trend.type,season.type)
+#    errors.mat <- errors.ets(mat.xt,mat.F,mat.w,vec.g,trace,seas.freq,n.components,trend.type,season.type)
+
+    fitting <- fitets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),matrix(vec.g,length(vec.g),1),error.type,trend.type,season.type,seas.freq)
+    mat.xt[,] <- fitting$xt
+#    errors.single <- fitting$errors
+    errors.mat <- errorets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),h,error.type,trend.type,season.type,seas.freq,trace)
 
     if(trace==TRUE){
         if(CF.type=="GV"){
@@ -1147,22 +1154,34 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
     mat.F <- matrices$mat.F
     mat.w <- matrices$mat.w
 
-    fitting <- fit.ets(mat.xt,mat.F,mat.w,vec.g,error.type,trend.type,season.type,seas.freq,n.components,lags)
-    mat.xt <- ts(fitting$mat.xt,start=(time(data)[1] - deltat(data)*seas.freq),frequency=frequency(data))
-    y.fit <- ts(fitting$y.fit,start=start(data),frequency=frequency(data))
-    errors <- ts(fitting$errors,start=start(data),frequency=frequency(data))
+    fitting <- fitets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),matrix(vec.g,length(vec.g),1),error.type,trend.type,season.type,seas.freq)
+    mat.xt[,] <- ts(fitting$xt,start=(time(data)[1] - deltat(data)*seas.freq),frequency=frequency(data))
+    y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data))
+
+#    fitting <- fit.ets(mat.xt,mat.F,mat.w,vec.g,error.type,trend.type,season.type,seas.freq,n.components,lags)
+#    mat.xt <- ts(fitting$mat.xt,start=(time(data)[1] - deltat(data)*seas.freq),frequency=frequency(data))
+#    y.fit <- ts(fitting$y.fit,start=start(data),frequency=frequency(data))
+#    errors <- ts(fitting$errors,start=start(data),frequency=frequency(data))
 
 # If trace was used, prepare the matrix of multi-step ahead errors
+#    if(trace==TRUE){
+#        errors.mat <- errors.ets(mat.xt,mat.F,mat.w,vec.g,trace,seas.freq,n.components,trend.type,season.type)
+#    }
+#    else{
+#        errors.mat <- errors
+#    }
+#    y.for <- ts(forec.ets(xt=mat.xt[(obs+1):(obs+seas.freq),],mat.F,mat.w,vec.g,h=h,n.components,trend.type,season.type,seas.freq),start=time(data)[obs]+deltat(data),frequency=frequency(data))
+
+    errors.mat <- ts(errorets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),h,error.type,trend.type,season.type,seas.freq,trace),start=start(data),frequency=frequency(data))
     if(trace==TRUE){
-        errors.mat <- errors.ets(mat.xt,mat.F,mat.w,vec.g,trace,seas.freq,n.components,trend.type,season.type)
         colnames(errors.mat) <- paste0("Error",c(1:h))
-        errors.mat <- ts(errors.mat,start=start(data),frequency=frequency(data))
+        errors <- ts(errors.mat[,1],start=start(data),frequency=frequency(data))
     }
     else{
-        errors.mat <- errors
+        errors <- ts(errors.mat,start=start(data),frequency=frequency(data))
     }
 
-    y.for <- ts(forec.ets(xt=mat.xt[(obs+1):(obs+seas.freq),],mat.F,mat.w,vec.g,h=h,n.components,trend.type,season.type,seas.freq),start=time(data)[obs]+deltat(data),frequency=frequency(data))
+    y.for <- ts(forets2(matrix(mat.xt[(obs+1):(obs+seas.freq),],nrow=seas.freq),mat.F,matrix(mat.w,nrow=1),h,trend.type,season.type,seas.freq),start=time(data)[obs]+deltat(data),frequency=frequency(data))
 
     y <- data
 
