@@ -82,7 +82,7 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     obs <- length(data) - holdout*h
 
 # Define the actual values
-    y <- zoo::coredata(data)
+    y <- coredata(data)
 
 # Check if the data is ts-object
     if(!is.ts(data) & season.type!="N"){
@@ -364,189 +364,6 @@ estim.values <- function(mat.xt,vec.g,phi,C,n.components,seas.freq,seasonal.comp
     return(list(vec.g=vec.g,phi=phi,mat.xt=mat.xt))
 }
 
-# Function returns the value of r based on the type of the model
-r.value <- function(xt,mat.w,error.type,trend.type,season.type,n.components){
-
-    if(error.type=="A"){
-        if(trend.type=="N"){
-            if(season.type!="M"){
-                r <- rep(1,n.components)
-            }
-            else{
-                r <- c(1/xt[2], 1/xt[1])
-            }
-        }
-        else if(trend.type=="A"){
-            if(season.type!="M"){
-                r <- rep(1,n.components)
-            }
-            else{
-                r <- c(1/xt[3], 1/xt[3], 1/(xt[1] + mat.w[2] * xt[2]))
-            }
-        }
-        else if(trend.type=="M"){
-            if(season.type=="N"){
-                r <- c(1, 1/xt[1])
-            }
-            else if(season.type=="A"){
-                r <- c(1, 1/xt[1], 1)
-            }
-            else if(season.type=="M"){
-                r <- c(1/xt[3], 1/(xt[1]*xt[3]), 1/(xt[1]*xt[2]^mat.w[2]))
-            }
-        }
-    }
-    else{
-        if(trend.type=="N"){
-            if(season.type=="N"){
-                r <- xt[1]
-            }
-            else if(season.type=="A"){
-                r <- rep(xt[1] + xt[2],n.components)
-            }
-            else if(season.type=="M"){
-                r <- c(xt[1], xt[2])
-            }
-        }
-        else if(trend.type=="A"){
-            if(season.type!="M"){
-                r <- rep(mat.w %*% xt,n.components)
-            }
-            else if(season.type=="M"){
-                r <- c(xt[1] + xt[2]*mat.w[2], xt[1] + xt[2]*mat.w[2], xt[3])
-            }
-        }
-        else if(trend.type=="M"){
-            if(season.type=="N"){
-                r <- c(xt[1]*xt[2]^mat.w[2],xt[2]^mat.w[2])
-            }
-            else if(season.type=="A"){
-                r <- c(xt[1]*xt[2]^mat.w[2] + xt[3], (xt[1]*xt[2]^mat.w[2] + xt[3])/xt[1], xt[1]*xt[2]^mat.w[2] + xt[3])
-            }
-            else if(season.type=="M"){
-                r <- c(xt[1]*xt[2]^mat.w[2], xt[2]^mat.w[2], xt[3])
-            }
-        }
-    }
-    return(r)
-}
-
-# Function returns error depending on error type
-error <- function(y.act,y.est,error.type){
-    if(error.type=="A"){
-        error <- y.act - y.est
-    }
-    else{
-        error <- (y.act - y.est) / y.est
-    }
-    return(error)
-}
-
-# Function constructs ETS with given values
-fit.ets <- function(mat.xt,mat.F,mat.w,vec.g,error.type,trend.type,season.type,seas.freq,n.components,lags){
-## Cases of ZNN, ZAN, ZNA, ZAA
-    if(trend.type!="M" & season.type!="M"){
-        for(j in (seas.freq+1):(obs+seas.freq)){
-            vec.r <- r.value(mat.xt[cbind((j-lags),c(1:n.components))],mat.w,error.type,trend.type,season.type,n.components)
-            y.fit[j-seas.freq] <- mat.w %*% mat.xt[cbind((j-lags),c(1:n.components))]
-            errors[j-seas.freq] <- error(y[j-seas.freq],y.fit[j-seas.freq],error.type)
-            mat.xt[j,] <- mat.F %*% mat.xt[cbind((j-lags),c(1:n.components))] + vec.g * errors[j-seas.freq] * vec.r
-        }
-    }
-## Cases of ZMN, ZNM, ZMM
-    else if(trend.type!="A" & season.type!="A"){
-        if(trend.type=="M" | season.type=="M"){
-            for(j in (seas.freq+1):(obs+seas.freq)){
-                vec.r <- r.value(mat.xt[cbind((j-lags),c(1:n.components))],mat.w,error.type,trend.type,season.type,n.components)
-                y.fit[j-seas.freq] <- exp(mat.w %*% log(mat.xt[cbind((j-lags),c(1:n.components))]))
-                errors[j-seas.freq] <- error(y[j-seas.freq],y.fit[j-seas.freq],error.type)
-                mat.xt[j,] <- exp(mat.F %*% log(mat.xt[cbind((j-lags),c(1:n.components))])) + vec.g * errors[j-seas.freq] * vec.r
-                mat.xt[j,mat.xt[j,]<0] <- 0
-                mat.xt[j,is.nan(mat.xt[j,])] <- 0
-            }
-        }
-    }
-## Case of ZAM
-    else if(trend.type=="A" & season.type=="M"){
-        for(j in (seas.freq+1):(obs+seas.freq)){
-            vec.r <- r.value(mat.xt[cbind((j-lags),c(1:n.components))],mat.w,error.type,trend.type,season.type,n.components)
-            y.fit[j-seas.freq] <- mat.w[1:(n.components-1)] %*% mat.xt[cbind((j-lags[1:(n.components-1)]),c(1:(n.components-1)))] * mat.xt[j-lags[n.components],n.components]
-            errors[j-seas.freq] <- error(y[j-seas.freq],y.fit[j-seas.freq],error.type)
-            mat.xt[j,] <- mat.F %*% mat.xt[cbind((j-lags),c(1:n.components))] + vec.g * errors[j-seas.freq] * vec.r
-        }
-    }
-## Case of ZMA
-    else if(trend.type=="M" & season.type=="A"){
-        for(j in (seas.freq+1):(obs+seas.freq)){
-            vec.r <- r.value(mat.xt[cbind((j-lags),c(1:n.components))],mat.w,error.type,trend.type,season.type,n.components)
-            y.fit[j-seas.freq] <- exp(mat.w[1:(n.components-1)] %*% log(mat.xt[cbind((j-lags[1:(n.components-1)]),c(1:(n.components-1)))])) + mat.xt[j-lags[n.components],n.components]
-            errors[j-seas.freq] <- error(y[j-seas.freq],y.fit[j-seas.freq],error.type)
-            mat.xt[j,] <- Re(exp(mat.F %*% log(as.complex(mat.xt[cbind((j-lags),c(1:n.components))])))) + vec.g * errors[j-seas.freq] * vec.r
-        }
-    }
-    return(list(mat.xt=mat.xt, errors=errors, y.fit=y.fit))
-}
-
-# Function makes forecast from the specified point to the specified horizon
-forec.ets <- function(xt,mat.F,mat.w,vec.g,h=1,n.components,trend.type,season.type,seas.freq){
-    y.for <- rep(NA,h)
-
-## Form vector of non-seasonal and vector of seasonal components
-    if(season.type!="N"){
-      season.xt <- rep(xt[,n.components],times=ceiling(h/seas.freq))
-	    xt <- matrix(xt[nrow(xt),1:(n.components-1)],(n.components-1),1)
-	    mat.w <- matrix(mat.w[1:(n.components-1)],1,(n.components-1))
-	    mat.F <- matrix(mat.F[1:(n.components-1),1:(n.components-1)],(n.components-1),(n.components-1))
-    }
-    else{
-	    xt <- matrix(xt,n.components,1)
-	    mat.w <- matrix(mat.w,1,n.components)
-	    mat.F <- matrix(mat.F,n.components,n.components)
-    }
-
-## Cases of ZNN, ZAN
-    if(trend.type!="M"){
-        for(i in 1:h){
-            y.for[i] <- mat.w %*% matrix.power(mat.F,(i-1)) %*% xt
-        }
-    }
-## Cases of ZMN
-    else if(trend.type=="M"){
-        for(i in 1:h){
-            y.for[i] <- exp(mat.w %*% matrix.power(mat.F,(i-1)) %*% log(xt))
-        }
-    }
-## Case of ZZA
-    if(season.type=="A"){
-        y.for <- y.for + season.xt[1:h]
-    }
-## Case of ZZM
-    else if(season.type=="M"){
-        y.for <- y.for * season.xt[1:h]
-    }
-
-    return(y.for)
-}
-
-# The function constructs the forecasts from each point and
-# estimates errors. Needed for trace. SHOULD CALL forec.ets
-errors.ets <- function(mat.xt,mat.F,mat.w,vec.g,trace,seas.freq,n.components,trend.type,season.type){
-    if(trace==TRUE){
-	    residuals <- matrix(NA,obs,h)
-	    for(j in (1+seas.freq):(obs+seas.freq)){
-		hh <- min(h,(obs+seas.freq)-j+1)
-	        residuals[(j-seas.freq),1:hh] <- y[(j-seas.freq):(j-seas.freq+hh-1)] - forec.ets(xt=mat.xt[(j-seas.freq):(j-1),],mat.F,mat.w,vec.g,h=hh,n.components,trend.type,season.type,seas.freq)
-	    }
-    }
-    else{
-	    residuals <- matrix(NA,obs,1)
-	    for(j in (1+seas.freq):(obs+seas.freq)){
-	        residuals[(j-seas.freq),1] <- y[j-seas.freq] - forec.ets(xt=mat.xt[(j-seas.freq):(j-1),],mat.F,mat.w,vec.g,h=1,n.components,trend.type,season.type,seas.freq)
-	    }
-    }
-    return(residuals)
-}
-
 # Cost function for ETS
 CF <- function(C){
     init.ets <- estim.values(mat.xt,vec.g,phi,C,n.components,seas.freq,seasonal.component)
@@ -558,36 +375,56 @@ CF <- function(C){
     mat.F <- matrices$mat.F
     mat.w <- matrices$mat.w
 
-#    fitting <- fit.ets(mat.xt,mat.F,mat.w,vec.g,error.type,trend.type,season.type,seas.freq,n.components,lags)
-#    mat.xt <- fitting$mat.xt
-
-#    errors.mat <- errors.ets(mat.xt,mat.F,mat.w,vec.g,trace,seas.freq,n.components,trend.type,season.type)
-
     fitting <- fitets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),matrix(vec.g,length(vec.g),1),error.type,trend.type,season.type,seas.freq)
     mat.xt[,] <- fitting$xt
-#    errors.single <- fitting$errors
-    errors.mat <- errorets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),h,error.type,trend.type,season.type,seas.freq,trace)
 
-    if(trace==TRUE){
-        if(CF.type=="GV"){
-            errors.mat <- errors.mat[!is.na(errors.mat[,h]),]
-            errors.mat <- errors.mat / normalizer
-            CF.res <- log(normalizer^2) + log(det(t(errors.mat) %*% (errors.mat) / errors.mat.obs))
+    if(error.type=="M"){
+        if(trace==TRUE){
+            errors.mat.var <- errorets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),h,error.type,trend.type,season.type,seas.freq,trace)
+            errors.mat <- errors.mat.var$errors
+            yfit.mat <- errors.mat.var$yfit
+            if(CF.type=="GV"){
+                errors.mat <- errors.mat[!is.na(errors.mat[,h]),]
+                errors.mat <- errors.mat / normalizer
+                yfit.mat <- yfit.mat[!is.na(yfit.mat[,h]),]
+                CF.res <- log(normalizer^2) + log(det(t(errors.mat) %*% (errors.mat) / errors.mat.obs)) + (2/obs)*sum(log(abs(yfit.mat)))
+            }
+            else if(CF.type=="TLV"){
+                CF.res <- sum(log(colMeans(errors.mat^2,na.rm=TRUE))) + (2/obs)*sum(log(abs(yfit.mat)),na.rm=TRUE)
+            }
+            else if(CF.type=="TV"){
+                CF.res <- exp(log(sum(colMeans(errors.mat^2,na.rm=TRUE))) + (2/obs)*sum(log(abs(yfit.mat)),na.rm=TRUE))
+            }
+            else if(CF.type=="hsteps"){
+                CF.res <- exp(log(mean(errors.mat[,h]^2,na.rm=TRUE)) + (2/obs)*sum(log(abs(yfit.mat[,h])),na.rm=TRUE))
+            }
         }
-        else if(CF.type=="TLV"){
-            CF.res <- sum(log(colMeans(errors.mat^2,na.rm=TRUE)))
-        }
-        else if(CF.type=="TV"){
-            CF.res <- sum(colMeans(errors.mat^2,na.rm=TRUE))
-        }
-        else if(CF.type=="hsteps"){
-            CF.res <- mean(errors.mat[,h]^2,na.rm=TRUE)
+        else{
+            CF.res <- exp(log(mean(fitting$errors^2,na.rm=TRUE)) + (2/obs)*sum(log(abs(fitting$yfit)),na.rm=TRUE))
         }
     }
     else{
-        CF.res <- mean(errors.mat^2,na.rm=TRUE)
+        if(trace==TRUE){
+            errors.mat <- errorets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),h,error.type,trend.type,season.type,seas.freq,trace)$errors
+            if(CF.type=="GV"){
+                errors.mat <- errors.mat[!is.na(errors.mat[,h]),]
+                errors.mat <- errors.mat / normalizer
+                CF.res <- log(normalizer^2) + log(det(t(errors.mat) %*% (errors.mat) / errors.mat.obs))
+            }
+            else if(CF.type=="TLV"){
+                CF.res <- sum(log(colMeans(errors.mat^2,na.rm=TRUE)))
+            }
+            else if(CF.type=="TV"){
+                CF.res <- sum(colMeans(errors.mat^2,na.rm=TRUE))
+            }
+            else if(CF.type=="hsteps"){
+                CF.res <- mean(errors.mat[,h]^2,na.rm=TRUE)
+            }
+        }
+        else{
+            CF.res <- mean(fitting$errors^2,na.rm=TRUE)
+        }
     }
-
     return(CF.res)
 }
 
@@ -873,7 +710,6 @@ C.values <- function(bounds,trend.type,season.type,vec.g,mat.xt,phi,seas.freq,n.
     return(list(C=C,C.lower=C.lower,C.upper=C.upper))
 }
 
-## Function returns the log-likelihood value
 Likelihood.value <- function(C){
     if(trace==TRUE & (CF.type=="TLV" | CF.type=="GV")){
         return(-obs/2 *((h^trace)*log(2*pi*exp(1)) + CF(C)))
@@ -884,11 +720,12 @@ Likelihood.value <- function(C){
 }
 
 ## Function calculates ICs
-IC.calc <- function(CF.objective=CF.objective,n.param=n.param,C){
+IC.calc <- function(CF.objective=CF.objective,n.param=n.param,C,error.type=error.type){
 # Information criteria are calculated with the constant part "log(2*pi*exp(1)*h)*obs".
 # And it is based on the mean of the sum squared residuals either than sum.
 # Hyndman likelihood is: llikelihood <- obs*log(obs*CF.objective)
     llikelihood <- Likelihood.value(C)
+
 
     AIC.coef <- 2*n.param*h^trace - 2*llikelihood
     AICc.coef <- AIC.coef + 2 * n.param * (n.param + 1) / (obs - n.param - 1)
@@ -997,9 +834,28 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
         res <- nloptr::cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper)
         CF.objective <- res$value
 
+        init.ets <- estim.values(mat.xt,vec.g,phi,res$par,n.components,seas.freq,seasonal.component)
+        vec.g <<- init.ets$vec.g
+        phi <- init.ets$phi
+        mat.xt <<- init.ets$mat.xt
+
+        matrices <- mat.ets(trend.component,seasonal.component,phi)
+        mat.F <- matrices$mat.F
+        mat.w <- matrices$mat.w
+
+        fitting <- fitets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),matrix(vec.g,length(vec.g),1),error.type,trend.type,season.type,seas.freq);
+        mat.xt[,] <<- fitting$xt
+
+        if(trace==TRUE){
+            yfit.mat <<- errorets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),h,error.type,trend.type,season.type,seas.freq,trace)$yfit
+        }
+        else{
+            yfit.mat <<- fitting$yfit;
+        }
+
         n.param <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + seas.freq*estimate.initial.season
 
-        IC.values <- IC.calc(CF.objective=CF.objective,n.param=n.param,C=res$par)
+        IC.values <- IC.calc(CF.objective=CF.objective,n.param=n.param,C=res$par,error.type=error.type)
         ICs <- IC.values$ICs
 
         results[[j]] <- c(ICs,error.type,trend.type,season.type,damped,CF.objective,res$par)
@@ -1030,6 +886,8 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
     estimate.phi <- param.values$estimate.phi
     estimate.initial <- param.values$estimate.initial
     estimate.initial.season <- param.values$estimate.initial.season
+
+    yfit.mat <- NA;
 
     if(trace==TRUE & CF.type=="GV"){
         normalizer <- mean(abs(diff(y[1:obs])))
@@ -1096,6 +954,7 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
         }
 
         if(error.type=="Z" | trend.type=="Z" | season.type=="Z"){
+############ ETS2.auto should be rewritten in C++!!! ############
             results <- ets2.auto(error.type,trend.type,season.type,IC=IC,CF.type=CF.type)
 
             error.type <- results[4]
@@ -1130,9 +989,8 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
             C <- Cs$C
             C.upper <- Cs$C.upper
             C.lower <- Cs$C.lower
-
+############ Cobyla should be transfered into C++ code ############
             res <- nloptr::cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper)
-#            res <- alabama::auglag(C, CF, hin=hin.constrains,control.outer=list(trace=FALSE))
             CF.objective <- res$value
             C <- res$par
 
@@ -1155,30 +1013,20 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
     mat.w <- matrices$mat.w
 
     fitting <- fitets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),matrix(vec.g,length(vec.g),1),error.type,trend.type,season.type,seas.freq)
-    mat.xt[,] <- ts(fitting$xt,start=(time(data)[1] - deltat(data)*seas.freq),frequency=frequency(data))
+    mat.xt <- ts(fitting$xt,start=(time(data)[1] - deltat(data)*seas.freq),frequency=frequency(data))
     y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data))
 
-#    fitting <- fit.ets(mat.xt,mat.F,mat.w,vec.g,error.type,trend.type,season.type,seas.freq,n.components,lags)
-#    mat.xt <- ts(fitting$mat.xt,start=(time(data)[1] - deltat(data)*seas.freq),frequency=frequency(data))
-#    y.fit <- ts(fitting$y.fit,start=start(data),frequency=frequency(data))
-#    errors <- ts(fitting$errors,start=start(data),frequency=frequency(data))
-
-# If trace was used, prepare the matrix of multi-step ahead errors
-#    if(trace==TRUE){
-#        errors.mat <- errors.ets(mat.xt,mat.F,mat.w,vec.g,trace,seas.freq,n.components,trend.type,season.type)
-#    }
-#    else{
-#        errors.mat <- errors
-#    }
-#    y.for <- ts(forec.ets(xt=mat.xt[(obs+1):(obs+seas.freq),],mat.F,mat.w,vec.g,h=h,n.components,trend.type,season.type,seas.freq),start=time(data)[obs]+deltat(data),frequency=frequency(data))
-
-    errors.mat <- ts(errorets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),h,error.type,trend.type,season.type,seas.freq,trace),start=start(data),frequency=frequency(data))
     if(trace==TRUE){
+        errors.data <- errorets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),h,error.type,trend.type,season.type,seas.freq,trace)
+        errors.mat <- ts(errors.data$errors,start=start(data),frequency=frequency(data))
         colnames(errors.mat) <- paste0("Error",c(1:h))
+        yfit.mat <- errors.data$yfit
         errors <- ts(errors.mat[,1],start=start(data),frequency=frequency(data))
     }
     else{
-        errors <- ts(errors.mat,start=start(data),frequency=frequency(data))
+        errors <- ts(fitting$errors,start=start(data),frequency=frequency(data))
+        errors.mat <- errors
+        yfit.mat <- y.fit;
     }
 
     y.for <- ts(forets2(matrix(mat.xt[(obs+1):(obs+seas.freq),],nrow=seas.freq),mat.F,matrix(mat.w,nrow=1),h,trend.type,season.type,seas.freq),start=time(data)[obs]+deltat(data),frequency=frequency(data))
@@ -1189,7 +1037,6 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
         C <- c(vec.g,phi,initial,initial.season)
         errors.mat.obs <- obs - h + 1
         CF.objective <- CF(C)
-#        n.param <- n.components + damped + (n.components - seasonal.component) + seas.freq*seasonal.component
         n.param <- 0
     }
     else{
@@ -1199,7 +1046,7 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
     FI <- numDeriv::hessian(Likelihood.value,C)
 
 # Calculate IC values
-    IC.values <- IC.calc(CF.objective=CF.objective,n.param=n.param,C=C)
+    IC.values <- IC.calc(CF.objective=CF.objective,n.param=n.param,C=C,error.type=error.type)
     llikelihood <- IC.values$llikelihood
     ICs <- IC.values$ICs
 

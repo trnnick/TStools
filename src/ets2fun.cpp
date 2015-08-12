@@ -28,7 +28,7 @@ double errorf(double yact, double yfit, char Etype){
     }
 }
 
-/* Function will be needed to estimate the correct error for ETS when trace model selection with r(xt) is sorted out. */
+/* Function is needed to estimate the correct error for ETS when trace model selection with r(xt) is sorted out. */
 arma::mat errorvf(arma::mat yact, arma::mat yfit, char Etype){
     if(Etype=='A'){
         return yact - yfit;
@@ -343,7 +343,7 @@ RcppExport arma::mat forets2(SEXP xt, SEXP F, SEXP w, SEXP h, SEXP Ttype, SEXP S
 }
 
 // [[Rcpp::export]]
-RcppExport arma::mat errorets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP sf, SEXP trace) {
+RcppExport SEXP errorets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP sf, SEXP trace) {
     NumericMatrix mxt(xt);
     NumericMatrix mF(F);
     NumericMatrix vw(w);
@@ -361,28 +361,33 @@ RcppExport arma::mat errorets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP h, SEXP Et
     int obs = vyt.nrow();
     int hh;
     arma::mat materrors;
+    arma::mat matyfit;
 
-    if(tr){
+    if(tr==true){
         materrors.set_size(obs, hor);
         materrors.fill(NA_REAL);
+
+        matyfit.set_size(obs, hor);
+        matyfit.fill(NA_REAL);
     }
     else{
         materrors.set_size(obs, 1);
+        matyfit.set_size(obs, 1);
     }
 
     if(tr==true){
         for(int i = 0; i < obs; i=i+1){
             hh = std::min(hor, obs-i);
-/*            materrors.submat(i, 0, i, hh-1) = trans(errorvf(matyt.rows(i, i+hh-1),forets2(wrap(matxt.rows(i,i+freq-1)),F,w,wrap(hh),Ttype,Stype,sf),E)); */
-            materrors.submat(i, 0, i, hh-1) = trans(matyt.rows(i, i+hh-1) - forets2(wrap(matxt.rows(i,i+freq-1)),F,w,wrap(hh),Ttype,Stype,sf));
+            matyfit.submat(i, 0, i, hh-1) = trans(forets2(wrap(matxt.rows(i,i+freq-1)),F,w,wrap(hh),Ttype,Stype,sf));
+            materrors.submat(i, 0, i, hh-1) = trans(errorvf(matyt.rows(i, i+hh-1),trans(matyfit.submat(i, 0, i, hh-1)),E));
         }
     }
     else{
 	    for(int i = 0; i < obs; i=i+1){
-/*	        materrors.row(i) = errorvf(matyt.row(i),forets2(wrap(matxt.rows(i,i+freq-1)),F,w,wrap(1),Ttype,Stype,sf),E); */
-            materrors.row(i) = matyt.row(i) - forets2(wrap(matxt.rows(i,i+freq-1)),F,w,wrap(1),Ttype,Stype,sf);
+            matyfit.row(i) = forets2(wrap(matxt.rows(i,i+freq-1)),F,w,wrap(1),Ttype,Stype,sf);
+	        materrors.row(i) = errorvf(matyt.row(i),matyfit.row(i),E);
 	    }
     }
 
-    return materrors;
+    return List::create(Named("yfit") = matyfit, Named("errors") = materrors);
 }
