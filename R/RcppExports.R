@@ -13,3 +13,7 @@ errorets2 <- function(xt, F, w, yt, h, Etype, Ttype, Stype, sf, trace) {
     .Call('TStools_errorets2', PACKAGE = 'TStools', xt, F, w, yt, h, Etype, Ttype, Stype, sf, trace)
 }
 
+optimizeets2 <- function(xt, F, w, yt, g, h, Etype, Ttype, Stype, sf, trace, CFt, normalizer) {
+    .Call('TStools_optimizeets2', PACKAGE = 'TStools', xt, F, w, yt, g, h, Etype, Ttype, Stype, sf, trace, CFt, normalizer)
+}
+

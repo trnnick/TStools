@@ -8,8 +8,6 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
 # Start measuring the time of calculations
     start.time <- Sys.time()
-
-#    dyn.load('src/ets2funcs.cpp')
     
     bounds <- substring(bounds[1],1,1)
     IC <- IC[1]
@@ -375,56 +373,8 @@ CF <- function(C){
     mat.F <- matrices$mat.F
     mat.w <- matrices$mat.w
 
-    fitting <- fitets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),matrix(vec.g,length(vec.g),1),error.type,trend.type,season.type,seas.freq)
-    mat.xt[,] <- fitting$xt
-
-    if(error.type=="M"){
-        if(trace==TRUE){
-            errorsmatvar <- errorets2(as.matrix(mat.xt),mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),h,error.type,trend.type,season.type,seas.freq,trace)
-            errors.mat <- errorsmatvar$errors
-            yfit.mat <- errorsmatvar$yfit
-            if(CF.type=="GV"){
-                errors.mat <- errors.mat[!is.na(errors.mat[,h]),]
-                errors.mat <- errors.mat / normalizer
-                yfit.mat <- yfit.mat[!is.na(yfit.mat[,h]),]
-                CF.res <- log(normalizer^2) + log(det(t(errors.mat) %*% (errors.mat) / errors.mat.obs)) + (2/obs)*sum(log(abs(yfit.mat)))
-            }
-            else if(CF.type=="TLV"){
-                CF.res <- sum(log(colMeans(errors.mat^2,na.rm=TRUE))) + (2/obs)*sum(log(abs(yfit.mat)),na.rm=TRUE)
-            }
-            else if(CF.type=="TV"){
-                CF.res <- exp(log(sum(colMeans(errors.mat^2,na.rm=TRUE))) + (2/obs)*sum(log(abs(yfit.mat)),na.rm=TRUE))
-            }
-            else if(CF.type=="hsteps"){
-                CF.res <- exp(log(mean(errors.mat[,h]^2,na.rm=TRUE)) + (2/obs)*sum(log(abs(yfit.mat[,h])),na.rm=TRUE))
-            }
-        }
-        else{
-            CF.res <- exp(log(mean(fitting$errors^2,na.rm=TRUE)) + (2/obs)*sum(log(abs(fitting$yfit)),na.rm=TRUE))
-        }
-    }
-    else{
-        if(trace==TRUE){
-            errors.mat <- errorets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),h,error.type,trend.type,season.type,seas.freq,trace)$errors
-            if(CF.type=="GV"){
-                errors.mat <- errors.mat[!is.na(errors.mat[,h]),]
-                errors.mat <- errors.mat / normalizer
-                CF.res <- log(normalizer^2) + log(det(t(errors.mat) %*% (errors.mat) / errors.mat.obs))
-            }
-            else if(CF.type=="TLV"){
-                CF.res <- sum(log(colMeans(errors.mat^2,na.rm=TRUE)))
-            }
-            else if(CF.type=="TV"){
-                CF.res <- sum(colMeans(errors.mat^2,na.rm=TRUE))
-            }
-            else if(CF.type=="hsteps"){
-                CF.res <- mean(errors.mat[,h]^2,na.rm=TRUE)
-            }
-        }
-        else{
-            CF.res <- mean(fitting$errors^2,na.rm=TRUE)
-        }
-    }
+    CF.res <- optimizeets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),matrix(vec.g,length(vec.g),1),h,error.type,trend.type,season.type,seas.freq,trace,CF.type,normalizer)
+    
     return(CF.res)
 }
 
@@ -635,7 +585,7 @@ C.values <- function(bounds,trend.type,season.type,vec.g,mat.xt,phi,seas.freq,n.
         if(estimate.phi==TRUE){
             C <- c(C,phi)
             C.lower <- c(C.lower,0)
-            C.upper <- c(C.upper,1.5)
+            C.upper <- c(C.upper,1.2)
         }
         if(estimate.initial==TRUE){
             C <- c(C,mat.xt[seas.freq,1:(n.components - seasonal.component)])
@@ -830,8 +780,9 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
         C <- Cs$C
         C.upper <- Cs$C.upper
         C.lower <- Cs$C.lower
-
+########## Make use of nlminb or auglag for cases of smaller parameters! ##########
         res <- nloptr::cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper)
+#        res <- alabama::auglag(C, CF, hin=hin.constrains, control.outer=list(trace=FALSE,method="nlminb"))
         CF.objective <- res$value
 
         init.ets <- estim.values(mat.xt,vec.g,phi,res$par,n.components,seas.freq,seasonal.component)
@@ -845,13 +796,6 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
 
         fitting <- fitets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),matrix(vec.g,length(vec.g),1),error.type,trend.type,season.type,seas.freq);
         mat.xt[,] <<- fitting$xt
-
-        if(trace==TRUE){
-            yfit.mat <<- errorets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),h,error.type,trend.type,season.type,seas.freq,trace)$yfit
-        }
-        else{
-            yfit.mat <<- fitting$yfit;
-        }
 
         n.param <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + seas.freq*estimate.initial.season
 
@@ -887,10 +831,11 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
     estimate.initial <- param.values$estimate.initial
     estimate.initial.season <- param.values$estimate.initial.season
 
-    yfit.mat <- NA;
-
     if(trace==TRUE & CF.type=="GV"){
         normalizer <- mean(abs(diff(y[1:obs])))
+    }
+    else{
+        normalizer <- 0;
     }
 
 #########################################
@@ -991,6 +936,7 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
             C.lower <- Cs$C.lower
 ############ Cobyla should be transfered into C++ code ############
             res <- nloptr::cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper)
+#            res <- alabama::auglag(C, CF, hin=hin.constrains, control.outer=list(trace=FALSE,method="BFGS"))
             CF.objective <- res$value
             C <- res$par
 
@@ -1017,16 +963,13 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
     y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data))
 
     if(trace==TRUE){
-        errors.data <- errorets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),h,error.type,trend.type,season.type,seas.freq,trace)
-        errors.mat <- ts(errors.data$errors,start=start(data),frequency=frequency(data))
+        errors.mat <- ts(errorets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),h,error.type,trend.type,season.type,seas.freq,trace),start=start(data),frequency=frequency(data))
         colnames(errors.mat) <- paste0("Error",c(1:h))
-        yfit.mat <- errors.data$yfit
         errors <- ts(errors.mat[,1],start=start(data),frequency=frequency(data))
     }
     else{
         errors <- ts(fitting$errors,start=start(data),frequency=frequency(data))
         errors.mat <- errors
-        yfit.mat <- y.fit;
     }
 
     y.for <- ts(forets2(matrix(mat.xt[(obs+1):(obs+seas.freq),],nrow=seas.freq),mat.F,matrix(mat.w,nrow=1),h,trend.type,season.type,seas.freq),start=time(data)[obs]+deltat(data),frequency=frequency(data))

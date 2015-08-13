@@ -43,7 +43,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // errorets2
-RcppExport SEXP errorets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP sf, SEXP trace);
+RcppExport arma::mat errorets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP sf, SEXP trace);
 RcppExport SEXP TStools_errorets2(SEXP xtSEXP, SEXP FSEXP, SEXP wSEXP, SEXP ytSEXP, SEXP hSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP sfSEXP, SEXP traceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
@@ -59,6 +59,29 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< SEXP >::type sf(sfSEXP);
     Rcpp::traits::input_parameter< SEXP >::type trace(traceSEXP);
     __result = Rcpp::wrap(errorets2(xt, F, w, yt, h, Etype, Ttype, Stype, sf, trace));
+    return __result;
+END_RCPP
+}
+// optimizeets2
+RcppExport double optimizeets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP sf, SEXP trace, SEXP CFt, SEXP normalizer);
+RcppExport SEXP TStools_optimizeets2(SEXP xtSEXP, SEXP FSEXP, SEXP wSEXP, SEXP ytSEXP, SEXP gSEXP, SEXP hSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP sfSEXP, SEXP traceSEXP, SEXP CFtSEXP, SEXP normalizerSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< SEXP >::type xt(xtSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type F(FSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type w(wSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type yt(ytSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type g(gSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type h(hSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Etype(EtypeSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Ttype(TtypeSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Stype(StypeSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type sf(sfSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type trace(traceSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type CFt(CFtSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type normalizer(normalizerSEXP);
+    __result = Rcpp::wrap(optimizeets2(xt, F, w, yt, g, h, Etype, Ttype, Stype, sf, trace, CFt, normalizer));
     return __result;
 END_RCPP
 }

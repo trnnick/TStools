@@ -23,7 +23,7 @@ double errorf(double yact, double yfit, char Etype){
         return yact - yfit;
     }
     else{
-        return (yact - yfit)/yfit;
+        return (yact - yfit) / yfit;
     }
 }
 
@@ -251,7 +251,10 @@ RcppExport SEXP fitets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP Etype, SE
             matyfit.row(i) = exp(matwnew.row(i).cols(0,1) * log(trans(matxtnew.row(i).cols(0,1)))) + sum(matwnew.row(i).cols(2,ncomponentsall-1) % matxtnew.row(i).cols(2,ncomponentsall-1));
             materrors(i,0) = errorf(matyt(i,0), matyfit(i,0), E);
             matxtnew.row(i+1).cols(0,1) = exp(log(matxtnew.row(i).cols(0,1)) * trans(matFnew.submat(0,0,1,1))) + trans(materrors.row(i)) * matgnew.row(i).cols(0,1) % rvalue(matxtnew.row(i), matwnew.row(i), E, T, S, ncomponentsall).cols(0,1);
-            if(arma::sum(matxtnew(i+1,1))<0){
+            if(double(matxtnew(i+1,0))<0){
+                matxtnew(i+1,0) = matxtnew(i,0);
+            }
+            if(double(matxtnew(i+1,1))<0){
                 matxtnew(i+1,1) = matxtnew(i,1);
             }
             matxtnew.row(i+1).cols(2,ncomponentsall-1) = matxtnew.row(i).cols(2,ncomponentsall-1) * trans(matFnew.submat(2,2,ncomponentsall-1,ncomponentsall-1)) + trans(materrors.row(i)) * matgnew.row(i).cols(2,ncomponentsall-1) % rvalue(matxtnew.row(i), matwnew.row(i), E, T, S, ncomponentsall).cols(2,ncomponentsall-1);
@@ -342,7 +345,7 @@ RcppExport arma::mat forets2(SEXP xt, SEXP F, SEXP w, SEXP h, SEXP Ttype, SEXP S
 }
 
 // [[Rcpp::export]]
-RcppExport SEXP errorets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP sf, SEXP trace) {
+RcppExport arma::mat errorets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP sf, SEXP trace) {
     NumericMatrix mxt(xt);
     NumericMatrix mF(F);
     NumericMatrix vw(w);
@@ -358,33 +361,111 @@ RcppExport SEXP errorets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP h, SEXP Etype, 
     int obs = vyt.nrow();
     int hh;
     arma::mat materrors;
-    arma::mat matyfit;
 
     if(tr==true){
         materrors.set_size(obs, hor);
         materrors.fill(NA_REAL);
-
-        matyfit.set_size(obs, hor);
-        matyfit.fill(NA_REAL);
     }
     else{
         materrors.set_size(obs, 1);
-        matyfit.set_size(obs, 1);
     }
 
     if(tr==true){
         for(int i = 0; i < obs; i=i+1){
             hh = std::min(hor, obs-i);
-            matyfit.submat(i, 0, i, hh-1) = trans(forets2(wrap(matxt.rows(i,i+freq-1)),F,w,wrap(hh),Ttype,Stype,sf));
-            materrors.submat(i, 0, i, hh-1) = trans(errorvf(matyt.rows(i, i+hh-1),trans(matyfit.submat(i, 0, i, hh-1)),E));
+            materrors.submat(i, 0, i, hh-1) = trans(errorvf(matyt.rows(i, i+hh-1),forets2(wrap(matxt.rows(i,i+freq-1)),F,w,wrap(hh),Ttype,Stype,sf),E));
         }
     }
     else{
       for(int i = 0; i < obs; i=i+1){
-            matyfit.row(i) = forets2(wrap(matxt.rows(i,i+freq-1)),F,w,wrap(1),Ttype,Stype,sf);
-	    materrors.row(i) = errorvf(matyt.row(i),matyfit.row(i),E);
+	    materrors.row(i) = trans(errorvf(matyt.row(i),forets2(wrap(matxt.rows(i,i+freq-1)),F,w,wrap(1),Ttype,Stype,sf),E));
 	    }
     }
 
-    return List::create(Named("yfit") = matyfit, Named("errors") = materrors);
+    return materrors;
+}
+
+// [[Rcpp::export]]
+RcppExport double optimizeets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP sf, SEXP trace, SEXP CFt, SEXP normalizer) {
+    NumericMatrix mF(F);
+    NumericMatrix vw(w);
+    NumericMatrix vyt(yt);
+    arma::mat matyt(vyt.begin(), vyt.nrow(), vyt.ncol(), false);
+    int hor = as<int>(h);
+    int freq = as<int>(sf);
+    char E = as<char>(Etype);
+    bool tr = as<bool>(trace);
+    std::string CFtype = as<std::string>(CFt);
+    int obs = vyt.nrow();
+    int hh;
+    double CFres;
+    int matobs = obs - hor + 1;
+    double normalize = as<double>(normalizer);
+    double yactsum = as<double>(wrap(arma::sum(log(matyt))));
+
+    List fitting = fitets2(xt,F,w,yt,g,Etype,Ttype,Stype,sf);
+    NumericMatrix mxtfromfit = as<NumericMatrix>(fitting["xt"]);
+    NumericMatrix errorsfromfit = as<NumericMatrix>(fitting["errors"]);
+
+    arma::mat materrors;
+
+    if(E=='M'){
+        if(tr==true){
+            materrors = log(abs(1 + errorets2(wrap(mxtfromfit),F,w,yt,h,Etype,Ttype,Stype,sf,trace)));
+            if(CFtype=="GV"){
+                materrors.resize(matobs,hor);
+                CFres = double(log(arma::det(arma::trans(materrors) * materrors / double(matobs))));
+                CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
+            }
+            else if(CFtype=="TLV"){
+                for(int i=0; i<hor; i=i+1){
+                    CFres = CFres + as<double>(wrap(log(mean(pow(materrors.submat(0,i,obs-i-1,i),2)))));
+                }
+                CFres = CFres + (2 / double(obs)) * double(hor) * yactsum;
+            }
+            else if(CFtype=="TV"){
+                for(int i=0; i<hor; i=i+1){
+                    CFres = CFres + as<double>(wrap(mean(pow(materrors.submat(0,i,obs-i-1,i),2))));
+                }
+                CFres = exp(log(CFres) + (2 / double(obs)) * double(hor) * yactsum);
+            }
+            else if(CFtype=="hsteps"){
+                CFres = as<double>(wrap(exp(log(mean(pow(materrors.submat(0,hor-1,obs-hor,hor-1),2))) + (2 / double(obs)) * yactsum)));
+            }
+        }
+        else{
+            arma::mat materrors(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
+            materrors = log(abs(1+materrors));
+            CFres = as<double>(wrap(exp(log(mean(pow(materrors,2))) + (2 / double(obs)) * yactsum)));
+        }
+    }
+    else{
+        if(tr==true){
+            materrors = errorets2(wrap(mxtfromfit),F,w,yt,h,Etype,Ttype,Stype,sf,trace);
+            if(CFtype=="GV"){
+                materrors.resize(matobs,hor);
+                materrors = materrors / normalize ;
+                CFres = double(log(det(trans(materrors) * (materrors) / matobs)) + hor * log(matobs * pow(normalize,2)));
+            }
+            else if(CFtype=="TLV"){
+                for(int i=0; i<hor; i=i+1){
+                    CFres = CFres + as<double>(wrap(log(mean(pow(materrors.submat(0,i,obs-i-1,i),2)))));
+                }
+            }
+            else if(CFtype=="TV"){
+                for(int i=0; i<hor; i=i+1){
+                    CFres = CFres + as<double>(wrap(mean(pow(materrors.submat(0,i,obs-i-1,i),2))));
+                }
+            }
+            else if(CFtype=="hsteps"){
+                CFres = as<double>(wrap(mean(pow(materrors.submat(0,hor-1,obs-hor,hor-1),2))));
+            }
+        }
+        else{
+            arma::mat materrors(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
+            CFres = as<double>(wrap(mean(pow(materrors,2))));
+        }
+    }
+
+    return CFres;
 }
