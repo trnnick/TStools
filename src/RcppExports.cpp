@@ -43,7 +43,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // errorets2
-RcppExport arma::mat errorets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP sf, SEXP trace);
+RcppExport SEXP errorets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP sf, SEXP trace);
 RcppExport SEXP TStools_errorets2(SEXP xtSEXP, SEXP FSEXP, SEXP wSEXP, SEXP ytSEXP, SEXP hSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP sfSEXP, SEXP traceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;

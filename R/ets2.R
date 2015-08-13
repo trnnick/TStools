@@ -380,9 +380,9 @@ CF <- function(C){
 
     if(error.type=="M"){
         if(trace==TRUE){
-            errors.mat.var <- errorets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),h,error.type,trend.type,season.type,seas.freq,trace)
-            errors.mat <- errors.mat.var$errors
-            yfit.mat <- errors.mat.var$yfit
+            errorsmatvar <- errorets2(as.matrix(mat.xt),mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),h,error.type,trend.type,season.type,seas.freq,trace)
+            errors.mat <- errorsmatvar$errors
+            yfit.mat <- errorsmatvar$yfit
             if(CF.type=="GV"){
                 errors.mat <- errors.mat[!is.na(errors.mat[,h]),]
                 errors.mat <- errors.mat / normalizer

@@ -4,7 +4,6 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 
 using namespace Rcpp;
-//using namespace arma;
  
 arma::mat matrixpower(arma::mat A, int power){
     arma::mat B = A;
@@ -28,7 +27,7 @@ double errorf(double yact, double yfit, char Etype){
     }
 }
 
-/* Function is needed to estimate the correct error for ETS when trace model selection with r(xt) is sorted out. */
+/* # Function is needed to estimate the correct error for ETS when trace model selection with r(xt) is sorted out. */
 arma::mat errorvf(arma::mat yact, arma::mat yfit, char Etype){
     if(Etype=='A'){
         return yact - yfit;
@@ -156,11 +155,11 @@ RcppExport SEXP fitets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP Etype, SE
     arma::mat matgnew;
     arma::mat dummy(freq,freq, arma::fill::eye);
 
-/* xt is transformed into obs by n.components+freq matrix, where last freq are seasonal coefficients,
-w is matrix obs by n.components+freq with dummies in freq parts,
-F is a matrix as in Hyndman et al.
-g is the vector of 
-dummy contains dummy variables for seasonal coefficients
+/* # xt is transformed into obs by n.components+freq matrix, where last freq are seasonal coefficients,
+# w is matrix obs by n.components+freq with dummies in freq parts,
+# F is a matrix as in Hyndman et al.
+# g is the vector of 
+# dummy contains dummy variables for seasonal coefficients
 */
     if(S!='N'){
         ncomponents = mxt.ncol()-1;
@@ -169,7 +168,7 @@ dummy contains dummy variables for seasonal coefficients
         matgnew.set_size(obs,ncomponentsall);
         matgnew.cols(0,ncomponents-1).each_row() = trans(matg.rows(0,ncomponents-1));
 
-/* Fill in xt with provided initial level and trend and then - with the provided initial seasonals */
+/* # Fill in xt with provided initial level and trend and then - with the provided initial seasonals */
         matxtnew.set_size(obs+1,ncomponentsall);
         matxtnew.zeros();
         matxtnew.submat(0, 0, 0, ncomponents-1) = matxt.submat(0, 0, 0, ncomponents-1);
@@ -177,7 +176,7 @@ dummy contains dummy variables for seasonal coefficients
 
         matwnew.set_size(obs,ncomponentsall);
         matFnew.eye(ncomponentsall,ncomponentsall);
-/* Fill in the matrix w and cube F with the provided values of w and F */
+/* # Fill in the matrix w and cube F with the provided values of w and F */
         for(int i=0; i<ncomponents; i=i+1){
             matwnew.col(i).each_row() = matw.col(i);
             matFnew(i,0) = matF(i,0);
@@ -186,7 +185,7 @@ dummy contains dummy variables for seasonal coefficients
             }
         }
 
-/* Fill in dummies for the seasonal components */
+/* # Fill in dummies for the seasonal components */
         for(int i=0; i < std::floor(obs/freq); i=i+1){
             matwnew.submat(i*freq, ncomponents, (i+1)*freq-1, ncomponentsall-1) = dummy;
             matgnew.submat(i*freq, ncomponents, (i+1)*freq-1, ncomponentsall-1) = dummy * matg(ncomponents,0);
@@ -212,7 +211,7 @@ dummy contains dummy variables for seasonal coefficients
         matwnew.set_size(obs,ncomponents);
         matFnew.eye(ncomponents,ncomponents);
 
-/* Fill in the matrix w and cube F with the provided values of w and F */
+/* # Fill in the matrix w and cube F with the provided values of w and F */
         for(int i=0; i<ncomponents; i=i+1){
             matwnew.col(i).each_row() = matw.col(i);
             matFnew(i,0) = matF(i,0);
@@ -259,7 +258,7 @@ dummy contains dummy variables for seasonal coefficients
         }
     }
 
-// Fill in xt for the seasonal models
+// # Fill in xt for the seasonal models
     if(S!='N'){
         matxt.submat(freq-1,0,mxt.nrow()-1,ncomponents-1) = matxtnew.cols(0,ncomponents-1);
 
@@ -355,8 +354,6 @@ RcppExport SEXP errorets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP h, SEXP Etype, 
     int hor = as<int>(h);
     int freq = as<int>(sf);
     char E = as<char>(Etype);
-    char T = as<char>(Ttype);
-    char S = as<char>(Stype);
     bool tr = as<bool>(trace);
     int obs = vyt.nrow();
     int hh;
@@ -383,9 +380,9 @@ RcppExport SEXP errorets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP h, SEXP Etype, 
         }
     }
     else{
-	    for(int i = 0; i < obs; i=i+1){
+      for(int i = 0; i < obs; i=i+1){
             matyfit.row(i) = forets2(wrap(matxt.rows(i,i+freq-1)),F,w,wrap(1),Ttype,Stype,sf);
-	        materrors.row(i) = errorvf(matyt.row(i),matyfit.row(i),E);
+	    materrors.row(i) = errorvf(matyt.row(i),matyfit.row(i),E);
 	    }
     }
 
