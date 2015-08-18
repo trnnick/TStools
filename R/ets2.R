@@ -132,7 +132,9 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     if(season.type!="Z" & season.type!="N" & season.type!="A" & season.type!="M"){
         message("Wrong seasonality type! Should be 'Z', 'N', 'A' or 'M'.")
         if(seas.freq==1){
-            message("Data is non-seasonal. Changing seasonal component to 'N'")
+            if(silent==FALSE){
+                message("Data is non-seasonal. Changing seasonal component to 'N'")
+            }
             season.type <- "N"
         }
         else{
@@ -141,8 +143,10 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         }
     }
     if(season.type!="N" & seas.freq==1){
-        message("Cannot build the seasonal model on the data with the frequency 1.")
-        message(paste0("Switching to non-seasonal model: ETS(",substring(model,1,nchar(model)-1),"N)"))
+        if(silent==FALSE){
+            message("Cannot build the seasonal model on the data with the frequency 1.")
+            message(paste0("Switching to non-seasonal model: ETS(",substring(model,1,nchar(model)-1),"N)"))
+        }
         season.type <- "N"
     }
 
@@ -235,7 +239,7 @@ define.param <- function(trend.type,season.type,damped,phi){
         estimate.persistence <- FALSE
     }
     else{
-        vec.g <- rep(0.3,n.components)
+        vec.g <- c(0.3,0.2,0.1)[1:n.components]
         estimate.persistence <- TRUE
     }
 
@@ -335,7 +339,7 @@ mat.ets <- function(trend.component,seasonal.component,phi){
 }
 
 # Function fills in the initial values of mat.xt using values of C
-estim.values <- function(mat.xt,vec.g,phi,C,n.components,seas.freq,seasonal.component){
+estim.values <- function(mat.xt,vec.g,phi,C,n.components,seas.freq,seasonal.component,season.type){
 
 # If the persistence vector is provided, use it
     if(estimate.persistence==TRUE){
@@ -356,6 +360,12 @@ estim.values <- function(mat.xt,vec.g,phi,C,n.components,seas.freq,seasonal.comp
     if(seasonal.component==TRUE){
         if(estimate.initial.season==TRUE){
             mat.xt[1:seas.freq,n.components] <- C[(n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + 1):(n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + seas.freq)]
+            if(season.type=="A"){
+                mat.xt[1:seas.freq,n.components] <- mat.xt[1:seas.freq,n.components]-mean(mat.xt[1:seas.freq,n.components])
+            }
+            else if(season.type=="M"){
+                mat.xt[1:seas.freq,n.components] <- exp(log(mat.xt[1:seas.freq,n.components])-mean(log(mat.xt[1:seas.freq,n.components])))
+            }
         }
     }
 
@@ -364,7 +374,8 @@ estim.values <- function(mat.xt,vec.g,phi,C,n.components,seas.freq,seasonal.comp
 
 # Cost function for ETS
 CF <- function(C){
-    init.ets <- estim.values(mat.xt,vec.g,phi,C,n.components,seas.freq,seasonal.component)
+
+    init.ets <- estim.values(mat.xt,vec.g,phi,C,n.components,seas.freq,seasonal.component,season.type)
     vec.g <- init.ets$vec.g
     phi <- init.ets$phi
     mat.xt <- init.ets$mat.xt
@@ -374,7 +385,11 @@ CF <- function(C){
     mat.w <- matrices$mat.w
 
     CF.res <- optimizeets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),matrix(vec.g,length(vec.g),1),h,error.type,trend.type,season.type,seas.freq,trace,CF.type,normalizer)
-    
+
+    if(is.nan(CF.res) | is.na(CF.res)){
+        CF.res <- 1e100
+    }
+
     return(CF.res)
 }
 
@@ -585,7 +600,7 @@ C.values <- function(bounds,trend.type,season.type,vec.g,mat.xt,phi,seas.freq,n.
         if(estimate.phi==TRUE){
             C <- c(C,phi)
             C.lower <- c(C.lower,0)
-            C.upper <- c(C.upper,1.2)
+            C.upper <- c(C.upper,1.1)
         }
         if(estimate.initial==TRUE){
             C <- c(C,mat.xt[seas.freq,1:(n.components - seasonal.component)])
@@ -595,7 +610,7 @@ C.values <- function(bounds,trend.type,season.type,vec.g,mat.xt,phi,seas.freq,n.
             }
             else{
                 C.lower <- c(C.lower,1,0.01)
-                C.upper <- c(C.upper,Inf,2)
+                C.upper <- c(C.upper,Inf,3)
             }
         }
         if(season.type!="N"){
@@ -607,7 +622,7 @@ C.values <- function(bounds,trend.type,season.type,vec.g,mat.xt,phi,seas.freq,n.
                 }
                 else{
                     C.lower <- c(C.lower,rep(-0.0001,seas.freq))
-                    C.upper <- c(C.upper,rep(2.0001,seas.freq))
+                    C.upper <- c(C.upper,rep(10,seas.freq))
                 }
             }
         }
@@ -625,7 +640,7 @@ C.values <- function(bounds,trend.type,season.type,vec.g,mat.xt,phi,seas.freq,n.
         if(estimate.phi==TRUE){
             C <- c(C,phi)
             C.lower <- c(C.lower,0)
-            C.upper <- c(C.upper,1.2)
+            C.upper <- c(C.upper,1.1)
         }
         if(estimate.initial==TRUE){
             C <- c(C,mat.xt[seas.freq,1:(n.components - seasonal.component)])
@@ -635,7 +650,7 @@ C.values <- function(bounds,trend.type,season.type,vec.g,mat.xt,phi,seas.freq,n.
             }
             else{
                 C.lower <- c(C.lower,1,0.01)
-                C.upper <- c(C.upper,Inf,2)
+                C.upper <- c(C.upper,Inf,3)
             }
         }
         if(season.type!="N"){
@@ -646,8 +661,8 @@ C.values <- function(bounds,trend.type,season.type,vec.g,mat.xt,phi,seas.freq,n.
                     C.upper <- c(C.upper,rep(Inf,seas.freq))
                 }
                 else{
-                    C.lower <- c(C.lower,rep(0,seas.freq))
-                    C.upper <- c(C.upper,rep(2,seas.freq))
+                    C.lower <- c(C.lower,rep(-0.0001,seas.freq))
+                    C.upper <- c(C.upper,rep(20,seas.freq))
                 }
             }
         }
@@ -692,7 +707,9 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
 
 # Define the pool of models to select from
     if(any(y<=0)){
-        message("Only additive models are allowed with the negative data.")
+        if(silent==FALSE){
+            message("Only additive models are allowed with the negative data.")
+        }
         errors.pool <- c("A")
         trends.pool <- c("N","A","Ad")
         season.pool <- c("N","A")
@@ -729,7 +746,10 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
                          dimnames=list(trends.pool,season.pool,errors.pool))
 
     results <- as.list(c(1:models.number))
-    cat("Building model: ")
+
+    if(silent==FALSE){
+        cat("Building model: ")
+    }    
 # Start cycle of models
     for(j in 1:models.number){
 
@@ -759,8 +779,9 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
         else{
             current.model <- paste0(error.type,trend.type,season.type)
         }
-
-        cat(paste0(current.model," "))
+        if(silent==FALSE){
+            cat(paste0(current.model," "))
+        }        
         
         param.values <- define.param(trend.type,season.type,damped,phi)
         n.components <<- param.values$n.components
@@ -784,8 +805,10 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
         res <- nloptr::cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper)
 #        res <- alabama::auglag(C, CF, hin=hin.constrains, control.outer=list(trace=FALSE,method="nlminb"))
         CF.objective <- res$value
+#        res <- Rsolnp::solnp(C, CF, LB=C.lower, UB=C.upper, control=list(trace=FALSE))
+#        CF.objective <- res$values[length(res$values)]
 
-        init.ets <- estim.values(mat.xt,vec.g,phi,res$par,n.components,seas.freq,seasonal.component)
+        init.ets <- estim.values(mat.xt,vec.g,phi,res$par,n.components,seas.freq,seasonal.component,season.type)
         vec.g <<- init.ets$vec.g
         phi <- init.ets$phi
         mat.xt <<- init.ets$mat.xt
@@ -794,8 +817,8 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
         mat.F <- matrices$mat.F
         mat.w <- matrices$mat.w
 
-        fitting <- fitets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),matrix(vec.g,length(vec.g),1),error.type,trend.type,season.type,seas.freq);
-        mat.xt[,] <<- fitting$xt
+#        fitting <- fitets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),matrix(vec.g,length(vec.g),1),error.type,trend.type,season.type,seas.freq);
+#        mat.xt[,] <<- fitting$xt
 
         n.param <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + seas.freq*estimate.initial.season
 
@@ -804,7 +827,9 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
 
         results[[j]] <- c(ICs,error.type,trend.type,season.type,damped,CF.objective,res$par)
     }
-    cat("... Done! \n")
+    if(silent==FALSE){
+        cat("... Done! \n")
+    }
     IC.selection <- rep(NA,length(models.pool))
     for(i in 1:length(models.pool)){
         IC.selection[i] <- as.numeric(eval(parse(text=paste0("results[[",i,"]]['",IC,"']"))))
@@ -923,7 +948,7 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
             estimate.initial <- param.values$estimate.initial
             estimate.initial.season <- param.values$estimate.initial.season
 
-            init.ets <- estim.values(mat.xt,vec.g,phi,C,n.components,seas.freq,seasonal.component)
+            init.ets <- estim.values(mat.xt,vec.g,phi,C,n.components,seas.freq,seasonal.component,season.type)
             vec.g <- init.ets$vec.g
             phi <- init.ets$phi
             mat.xt <- init.ets$mat.xt
@@ -936,11 +961,15 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
             C.lower <- Cs$C.lower
 ############ Cobyla should be transfered into C++ code ############
             res <- nloptr::cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper)
-#            res <- alabama::auglag(C, CF, hin=hin.constrains, control.outer=list(trace=FALSE,method="BFGS"))
+#            res <- alabama::auglag(C, CF, hin=hin.constrains, control.outer=list(trace=FALSE,method="nlminb"))
             CF.objective <- res$value
             C <- res$par
+# ineqfun=hin.constrains,
+#            res <- Rsolnp::solnp(C, CF, LB=C.lower, UB=C.upper, ineqfun=hin.constrains, ineqLB=hin.constrains.lower, ineqUB=hin.constrains.upper, control=list(trace=FALSE))
+#            CF.objective <- res$values[length(res$values)]
+#            C <- res$pars
 
-            init.ets <- estim.values(mat.xt,vec.g,phi,C,n.components,seas.freq,seasonal.component)
+            init.ets <- estim.values(mat.xt,vec.g,phi,C,n.components,seas.freq,seasonal.component,season.type)
             vec.g <- init.ets$vec.g
             phi <- init.ets$phi
             mat.xt <- init.ets$mat.xt
@@ -962,15 +991,9 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
     mat.xt <- ts(fitting$xt,start=(time(data)[1] - deltat(data)*seas.freq),frequency=frequency(data))
     y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data))
 
-    if(trace==TRUE){
-        errors.mat <- ts(errorets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),h,error.type,trend.type,season.type,seas.freq,trace),start=start(data),frequency=frequency(data))
-        colnames(errors.mat) <- paste0("Error",c(1:h))
-        errors <- ts(errors.mat[,1],start=start(data),frequency=frequency(data))
-    }
-    else{
-        errors <- ts(fitting$errors,start=start(data),frequency=frequency(data))
-        errors.mat <- errors
-    }
+    errors.mat <- ts(errorets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),h,error.type,trend.type,season.type,seas.freq,TRUE),start=start(data),frequency=frequency(data))
+    colnames(errors.mat) <- paste0("Error",c(1:h))
+    errors <- ts(errors.mat[,1],start=start(data),frequency=frequency(data))
 
     y.for <- ts(forets2(matrix(mat.xt[(obs+1):(obs+seas.freq),],nrow=seas.freq),mat.F,matrix(mat.w,nrow=1),h,trend.type,season.type,seas.freq),start=time(data)[obs]+deltat(data),frequency=frequency(data))
 

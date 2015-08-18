@@ -63,7 +63,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // optimizeets2
-RcppExport double optimizeets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP sf, SEXP trace, SEXP CFt, SEXP normalizer);
+RcppExport SEXP optimizeets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP sf, SEXP trace, SEXP CFt, SEXP normalizer);
 RcppExport SEXP TStools_optimizeets2(SEXP xtSEXP, SEXP FSEXP, SEXP wSEXP, SEXP ytSEXP, SEXP gSEXP, SEXP hSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP sfSEXP, SEXP traceSEXP, SEXP CFtSEXP, SEXP normalizerSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;

@@ -56,9 +56,6 @@ sim.ets(model="ANN",seas.freq=1,
   ATTENTION! When generating the multiplicative errors some tuning might be needed to obtain the meaningful data.
 }
 }
-\details{
-%%  ~~ If necessary, more details than the description above ~~
-}
 \value{
 The list of the following values is returned:
   \item{data}{The ts vector of the generated series.}
