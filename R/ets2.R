@@ -239,8 +239,14 @@ define.param <- function(trend.type,season.type,damped,phi){
         estimate.persistence <- FALSE
     }
     else{
-        vec.g <- c(0.3,0.2,0.1)[1:n.components]
-        estimate.persistence <- TRUE
+        if(trend.type=="M" | season.type=="M"){
+            vec.g <- rep(0.1,n.components)
+            estimate.persistence <- TRUE
+        }
+        else{
+            vec.g <- c(0.3,0.2,0.1)[1:n.components]
+            estimate.persistence <- TRUE
+        }
     }
 
 # If phi is not provided, mark that
@@ -386,7 +392,7 @@ CF <- function(C){
 
     CF.res <- optimizeets2(mat.xt,mat.F,matrix(mat.w,1,length(mat.w)),as.matrix(y[1:obs]),matrix(vec.g,length(vec.g),1),h,error.type,trend.type,season.type,seas.freq,trace,CF.type,normalizer)
 
-    if(is.nan(CF.res) | is.na(CF.res)){
+    if(is.nan(CF.res) | is.na(CF.res) | is.infinite(CF.res)){
         CF.res <- 1e100
     }
 
@@ -600,7 +606,7 @@ C.values <- function(bounds,trend.type,season.type,vec.g,mat.xt,phi,seas.freq,n.
         if(estimate.phi==TRUE){
             C <- c(C,phi)
             C.lower <- c(C.lower,0)
-            C.upper <- c(C.upper,1.1)
+            C.upper <- c(C.upper,1)
         }
         if(estimate.initial==TRUE){
             C <- c(C,mat.xt[seas.freq,1:(n.components - seasonal.component)])
@@ -634,13 +640,13 @@ C.values <- function(bounds,trend.type,season.type,vec.g,mat.xt,phi,seas.freq,n.
 
         if(estimate.persistence==TRUE){
             C <- c(C,vec.g)
-            C.lower <- c(C.lower,rep(-1,length(vec.g)))
+            C.lower <- c(C.lower,rep(0,length(vec.g)))
             C.upper <- c(C.upper,rep(5,length(vec.g)))
         }
         if(estimate.phi==TRUE){
             C <- c(C,phi)
             C.lower <- c(C.lower,0)
-            C.upper <- c(C.upper,1.1)
+            C.upper <- c(C.upper,1)
         }
         if(estimate.initial==TRUE){
             C <- c(C,mat.xt[seas.freq,1:(n.components - seasonal.component)])
@@ -801,7 +807,6 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
         C <- Cs$C
         C.upper <- Cs$C.upper
         C.lower <- Cs$C.lower
-########## Make use of nlminb or auglag for cases of smaller parameters! ##########
         res <- nloptr::cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper)
 #        res <- alabama::auglag(C, CF, hin=hin.constrains, control.outer=list(trace=FALSE,method="nlminb"))
         CF.objective <- res$value
@@ -959,13 +964,13 @@ ets2.auto <- function(error.type,trend.type,season.type,IC="AICc",CF.type="none"
             C <- Cs$C
             C.upper <- Cs$C.upper
             C.lower <- Cs$C.lower
-############ Cobyla should be transfered into C++ code ############
-            res <- nloptr::cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper)
+############ Cobyla should be transfered into C++ code ############ , lower=C.lower, upper=C.upper
 #            res <- alabama::auglag(C, CF, hin=hin.constrains, control.outer=list(trace=FALSE,method="nlminb"))
+            res <- nloptr::cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper)
             CF.objective <- res$value
             C <- res$par
 # ineqfun=hin.constrains,
-#            res <- Rsolnp::solnp(C, CF, LB=C.lower, UB=C.upper, ineqfun=hin.constrains, ineqLB=hin.constrains.lower, ineqUB=hin.constrains.upper, control=list(trace=FALSE))
+#            res <- Rsolnp::solnp(C, CF, LB=C.lower, UB=C.upper, control=list(trace=TRUE))
 #            CF.objective <- res$values[length(res$values)]
 #            C <- res$pars
 

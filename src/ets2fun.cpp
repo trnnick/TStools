@@ -40,8 +40,7 @@ arma::mat errorvf(arma::mat yact, arma::mat yfit, char Etype){
 arma::rowvec rvalue(arma::rowvec xt, arma::rowvec matw, char Etype, char Ttype, char Stype, int ncomponents){
     arma::rowvec r(ncomponents);
     arma::rowvec xtnew;
-    arma::vec matwnew = arma::vec(matw.memptr(),ncomponents,false,true);
-    
+
     xtnew = xt % matw;
 
     if(Etype=='A'){
@@ -86,7 +85,7 @@ arma::rowvec rvalue(arma::rowvec xt, arma::rowvec matw, char Etype, char Ttype, 
                 r(0) = xtnew(0);
             }
             else if(Stype=='A'){
-                r.fill(sum(xt * matwnew));
+                r.fill(sum(xt * trans(matw)));
             }
             else if(Stype=='M'){
                 r(0) = xt(0);
@@ -95,26 +94,26 @@ arma::rowvec rvalue(arma::rowvec xt, arma::rowvec matw, char Etype, char Ttype, 
         }
         else if(Ttype=='A'){
             if(Stype!='M'){
-                r.fill(sum(xt * matwnew));
+                r.fill(sum(xt * trans(matw)));
             }
             else if(Stype=='M'){
-                r(0) = sum(xt(arma::span(0,1)) * matwnew(arma::span(0,1)));
+                r(0) = sum(xt(arma::span(0,1)) * trans(matw(arma::span(0,1))));
                 r(1) = r(0);
                 r(arma::span(2, ncomponents-1)) = xt(arma::span(2, ncomponents-1));
             }
         }
         else if(Ttype=='M'){
             if(Stype=='N'){
-                r(0) = exp(sum(log(xt(arma::span(0,1))) * matwnew(arma::span(0,1))));
+                r(0) = exp(sum(log(xt(arma::span(0,1))) * trans(matw(arma::span(0,1)))));
                 r(1) = exp(matw(1) * log(xt(1)));
             }
             else if(Stype=='A'){
-                r(0) = exp(sum(log(xt(arma::span(0,1))) * matwnew(arma::span(0,1)))) + sum(xtnew(arma::span(2, ncomponents-1)));
+                r(0) = exp(sum(log(xt(arma::span(0,1))) * trans(matw(arma::span(0,1))))) + sum(xtnew(arma::span(2, ncomponents-1)));
                 r(1) = r(0) / xt(0);
                 r(arma::span(2, ncomponents-1)).fill(r(0));
             }
             else if(Stype=='M'){
-                r(0) = exp(sum(log(xt(arma::span(0,1))) * matwnew(arma::span(0,1))));
+                r(0) = exp(sum(log(xt(arma::span(0,1))) * trans(matw(arma::span(0,1)))));
                 r(1) = exp(matw(1) * log(xt(1)));
                 r(arma::span(2, ncomponents-1)).fill(sum(xtnew(arma::span(2, ncomponents-1))));
             }
@@ -236,7 +235,7 @@ RcppExport SEXP fitets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP Etype, SE
         matwnew.set_size(obs,ncomponents);
         matFnew.eye(ncomponents,ncomponents);
 
-/* # Fill in the matrix w and cube F with the provided values of w and F */
+/* # Fill in the matrices w and F with the provided values of w and F. Transform F into the one used in Hyndman et al. */
         for(int i=0; i<ncomponents; i=i+1){
             matwnew.col(i).each_row() = matw.col(i);
             matFnew(i,0) = matF(i,0);
@@ -294,18 +293,30 @@ RcppExport SEXP fitets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP Etype, SE
     }
     else if(T=='M' & S=='A'){
         for (int i=0; i<obs; i=i+1) {
-            matyfit.row(i) = exp(matwnew.row(i).cols(0,1) * log(trans(matxtnew.row(i).cols(0,1)))) + sum(matwnew.row(i).cols(2,ncomponentsall-1) % matxtnew.row(i).cols(2,ncomponentsall-1));
+            if(arma::as_scalar(matxtnew(i,1))<0){
+                matxtnew(i+1,0) = matxtnew(i,0) * matxtnew(i,1);
+                matxtnew(i+1,1) = matxtnew(i,1);
+                matyfit.row(i) = matxtnew(i,0) * matxtnew(i,1) + sum(matwnew.row(i).cols(2,ncomponentsall-1) % matxtnew.row(i).cols(2,ncomponentsall-1));
+            }
+            else{
+                matxtnew(i+1,0) = matxtnew(i,0) * pow(matxtnew(i,1),matFnew(0,1));
+                matxtnew(i+1,1) = pow(matxtnew(i,1),matFnew(1,1));
+                matyfit.row(i) = exp(matwnew.row(i).cols(0,1) * log(trans(matxtnew.row(i).cols(0,1)))) + sum(matwnew.row(i).cols(2,ncomponentsall-1) % matxtnew.row(i).cols(2,ncomponentsall-1));
+            }
+            if(arma::as_scalar(matyfit.row(i))<0){
+                matyfit.row(i) = 0;
+            }
             materrors(i,0) = errorf(matyt(i,0), matyfit(i,0), E);
-            matxtnew.row(i+1).cols(0,1) = exp(log(matxtnew.row(i).cols(0,1)) * trans(matFnew.submat(0,0,1,1))) + trans(materrors.row(i)) * matgnew.row(i).cols(0,1) % rvalue(matxtnew.row(i), matwnew.row(i), E, T, S, ncomponentsall).cols(0,1);
-            if(arma::as_scalar(matxtnew(i+1,0))<0){
+            matxtnew.row(i+1).cols(0,1) = matxtnew.row(i+1).cols(0,1) + trans(materrors.row(i)) * matgnew.row(i).cols(0,1) % rvalue(matxtnew.row(i), matwnew.row(i), E, T, S, ncomponentsall).cols(0,1);
+            matxtnew.row(i+1).cols(2,ncomponentsall-1) = matxtnew.row(i).cols(2,ncomponentsall-1) * trans(matFnew.submat(2,2,ncomponentsall-1,ncomponentsall-1)) + trans(materrors.row(i)) * matgnew.row(i).cols(2,ncomponentsall-1) % rvalue(matxtnew.row(i), matwnew.row(i), E, T, S, ncomponentsall).cols(2,ncomponentsall-1);
+            if(arma::as_scalar(matxtnew(i+1,0))<0 || isnan(arma::as_scalar(matxtnew(i+1,0)))){
                 matxtnew(i+1,0) = 0.0001;
             }
-            if(arma::as_scalar(matxtnew(i+1,1))<0){
+            if(arma::as_scalar(matxtnew(i+1,1))<0 || isnan(arma::as_scalar(matxtnew(i+1,1)))){
                 matxtnew(i+1,1) = 0.0001;
             }
-            matxtnew.row(i+1).cols(2,ncomponentsall-1) = matxtnew.row(i).cols(2,ncomponentsall-1) * trans(matFnew.submat(2,2,ncomponentsall-1,ncomponentsall-1)) + trans(materrors.row(i)) * matgnew.row(i).cols(2,ncomponentsall-1) % rvalue(matxtnew.row(i), matwnew.row(i), E, T, S, ncomponentsall).cols(2,ncomponentsall-1);
 /*            avec.fill(as_scalar(mean(matxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1),1)));
-            matxtnew(i+1,0) = matxtnew(i+1,0) + avec(0,0);
+            matxtnew(i+1,0) = (matxtnew(i+1,0) + avec(0,0));
             matxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) = matxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) - avec; */
         }
     }
@@ -460,7 +471,7 @@ RcppExport SEXP optimizeets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP h, S
 
     if(E=='M'){
         if(tr==true){
-            materrors = log(abs(1 + errorets2(wrap(mxtfromfit),F,w,yt,h,Etype,Ttype,Stype,sf,trace)));
+            materrors = log(1 + errorets2(wrap(mxtfromfit),F,w,yt,h,Etype,Ttype,Stype,sf,trace));
             if(CFtype=="GV"){
                 materrors.resize(matobs,hor);
                 CFres = double(log(arma::det(arma::trans(materrors) * materrors / double(matobs))));
@@ -484,7 +495,7 @@ RcppExport SEXP optimizeets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP h, S
         }
         else{
             arma::mat materrors(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
-            materrors = log(abs(1+materrors));
+            materrors = log(1+materrors);
             CFres = arma::as_scalar(exp(log(mean(pow(materrors,2))) + (2 / double(obs)) * yactsum));
         }
     }
