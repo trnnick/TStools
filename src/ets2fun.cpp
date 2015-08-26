@@ -245,7 +245,7 @@ RcppExport SEXP fitets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP Etype, SE
         }
     }
 
-    if(T!='M' & S!='M'){
+    if((T!='M') & (S!='M')){
         for (int i=0; i<obs; i=i+1) {
             matyfit.row(i) = matwnew.row(i) * trans(matxtnew.row(i));
             materrors(i,0) = errorf(matyt(i,0), matyfit(i,0), E);
@@ -257,8 +257,8 @@ RcppExport SEXP fitets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP Etype, SE
             } */
         }
     }
-    else if(T!='A' & S!='A'){
-        if(T=='M' | S=='M'){
+    else if((T!='A') & (S!='A')){
+        if((T=='M') | (S=='M')){
             for (int i=0; i<obs; i=i+1) {
                 matyfit.row(i) = exp(matwnew.row(i) * log(trans(matxtnew.row(i))));
                 materrors(i,0) = errorf(matyt(i,0), matyfit(i,0), E);
@@ -280,7 +280,7 @@ RcppExport SEXP fitets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP Etype, SE
             }
         }
     }
-    else if(T=='A' & S=='M'){
+    else if((T=='A') & (S=='M')){
         for (int i=0; i<obs; i=i+1) {
             matyfit.row(i) = matwnew.row(i).cols(0,1) * trans(matxtnew.row(i).cols(0,1)) * sum(matwnew.row(i).cols(2,ncomponentsall-1) % matxtnew.row(i).cols(2,ncomponentsall-1));
             materrors(i,0) = errorf(matyt(i,0), matyfit(i,0), E);
@@ -291,7 +291,7 @@ RcppExport SEXP fitets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP Etype, SE
             matxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) = matxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) / avec; */
         }
     }
-    else if(T=='M' & S=='A'){
+    else if((T=='M') & (S=='A')){
         for (int i=0; i<obs; i=i+1) {
             if(arma::as_scalar(matxtnew(i,1))<0){
                 matxtnew(i+1,0) = matxtnew(i,0) * matxtnew(i,1);
@@ -309,10 +309,10 @@ RcppExport SEXP fitets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP Etype, SE
             materrors(i,0) = errorf(matyt(i,0), matyfit(i,0), E);
             matxtnew.row(i+1).cols(0,1) = matxtnew.row(i+1).cols(0,1) + trans(materrors.row(i)) * matgnew.row(i).cols(0,1) % rvalue(matxtnew.row(i), matwnew.row(i), E, T, S, ncomponentsall).cols(0,1);
             matxtnew.row(i+1).cols(2,ncomponentsall-1) = matxtnew.row(i).cols(2,ncomponentsall-1) * trans(matFnew.submat(2,2,ncomponentsall-1,ncomponentsall-1)) + trans(materrors.row(i)) * matgnew.row(i).cols(2,ncomponentsall-1) % rvalue(matxtnew.row(i), matwnew.row(i), E, T, S, ncomponentsall).cols(2,ncomponentsall-1);
-            if(arma::as_scalar(matxtnew(i+1,0))<0 || isnan(arma::as_scalar(matxtnew(i+1,0)))){
+            if((arma::as_scalar(matxtnew(i+1,0))<0) || (std::isnan(arma::as_scalar(matxtnew(i+1,0))))){
                 matxtnew(i+1,0) = 0.0001;
             }
-            if(arma::as_scalar(matxtnew(i+1,1))<0 || isnan(arma::as_scalar(matxtnew(i+1,1)))){
+            if((arma::as_scalar(matxtnew(i+1,1))<0) || (std::isnan(arma::as_scalar(matxtnew(i+1,1))))){
                 matxtnew(i+1,1) = 0.0001;
             }
 /*            avec.fill(as_scalar(mean(matxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1),1)));
@@ -452,12 +452,10 @@ RcppExport SEXP optimizeets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP h, S
     NumericMatrix vyt(yt);
     arma::mat matyt(vyt.begin(), vyt.nrow(), vyt.ncol(), false);
     int hor = as<int>(h);
-    int freq = as<int>(sf);
     char E = as<char>(Etype);
     bool tr = as<bool>(trace);
     std::string CFtype = as<std::string>(CFt);
     int obs = vyt.nrow();
-    int hh;
     double CFres;
     int matobs = obs - hor + 1;
     double normalize = as<double>(normalizer);
