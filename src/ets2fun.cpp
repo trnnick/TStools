@@ -164,7 +164,7 @@ RcppExport SEXP fitets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP Etype, SE
     char T = as<char>(Ttype);
     char S = as<char>(Stype);
     int obs = matyt.n_rows;
-    int freqtail;
+    int freqtail = 0;
     int j;
     int ncomponents;
     int ncomponentsall;
@@ -331,7 +331,7 @@ RcppExport SEXP fitets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP Etype, SE
 
         if(freqtail!=0){
             j = 0;
-            for(int i=matxtnew.n_rows-freqtail; i<matxtnew.n_rows; i=i+1){
+            for(unsigned int i=matxtnew.n_rows-freqtail; i<matxtnew.n_rows; i=i+1){
                 matxt(i+freq-1, ncomponents) = matxtnew(i, ncomponents+j);
                 j=j+1;
             }
@@ -456,7 +456,7 @@ RcppExport SEXP optimizeets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP h, S
     bool tr = as<bool>(trace);
     std::string CFtype = as<std::string>(CFt);
     int obs = vyt.nrow();
-    double CFres;
+    double CFres = 0;
     int matobs = obs - hor + 1;
     double normalize = as<double>(normalizer);
     double yactsum = arma::as_scalar(arma::sum(log(matyt)));
