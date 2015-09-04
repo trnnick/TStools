@@ -7,81 +7,81 @@
 using namespace Rcpp;
 
 // fitets2
-RcppExport SEXP fitets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP sf);
-RcppExport SEXP TStools_fitets2(SEXP xtSEXP, SEXP FSEXP, SEXP wSEXP, SEXP ytSEXP, SEXP gSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP sfSEXP) {
+RcppExport SEXP fitets2(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq);
+RcppExport SEXP TStools_fitets2(SEXP matxtSEXP, SEXP matFSEXP, SEXP matwSEXP, SEXP ytSEXP, SEXP vecgSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP seasfreqSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< SEXP >::type xt(xtSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type F(FSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type w(wSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type matxt(matxtSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type matF(matFSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type matw(matwSEXP);
     Rcpp::traits::input_parameter< SEXP >::type yt(ytSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type g(gSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type vecg(vecgSEXP);
     Rcpp::traits::input_parameter< SEXP >::type Etype(EtypeSEXP);
     Rcpp::traits::input_parameter< SEXP >::type Ttype(TtypeSEXP);
     Rcpp::traits::input_parameter< SEXP >::type Stype(StypeSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type sf(sfSEXP);
-    __result = Rcpp::wrap(fitets2(xt, F, w, yt, g, Etype, Ttype, Stype, sf));
+    Rcpp::traits::input_parameter< SEXP >::type seasfreq(seasfreqSEXP);
+    __result = Rcpp::wrap(fitets2(matxt, matF, matw, yt, vecg, Etype, Ttype, Stype, seasfreq));
     return __result;
 END_RCPP
 }
-// forets2
-RcppExport arma::mat forets2(SEXP xt, SEXP F, SEXP w, SEXP h, SEXP Ttype, SEXP Stype, SEXP sf);
-RcppExport SEXP TStools_forets2(SEXP xtSEXP, SEXP FSEXP, SEXP wSEXP, SEXP hSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP sfSEXP) {
+// forets2wrap
+RcppExport arma::mat forets2wrap(SEXP matxt, SEXP matF, SEXP matw, SEXP h, SEXP Ttype, SEXP Stype, SEXP seasfreq);
+RcppExport SEXP TStools_forets2wrap(SEXP matxtSEXP, SEXP matFSEXP, SEXP matwSEXP, SEXP hSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP seasfreqSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< SEXP >::type xt(xtSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type F(FSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type w(wSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type matxt(matxtSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type matF(matFSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type matw(matwSEXP);
     Rcpp::traits::input_parameter< SEXP >::type h(hSEXP);
     Rcpp::traits::input_parameter< SEXP >::type Ttype(TtypeSEXP);
     Rcpp::traits::input_parameter< SEXP >::type Stype(StypeSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type sf(sfSEXP);
-    __result = Rcpp::wrap(forets2(xt, F, w, h, Ttype, Stype, sf));
+    Rcpp::traits::input_parameter< SEXP >::type seasfreq(seasfreqSEXP);
+    __result = Rcpp::wrap(forets2wrap(matxt, matF, matw, h, Ttype, Stype, seasfreq));
     return __result;
 END_RCPP
 }
-// errorets2
-RcppExport arma::mat errorets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP sf, SEXP trace);
-RcppExport SEXP TStools_errorets2(SEXP xtSEXP, SEXP FSEXP, SEXP wSEXP, SEXP ytSEXP, SEXP hSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP sfSEXP, SEXP traceSEXP) {
+// errorets2wrap
+RcppExport arma::mat errorets2wrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP trace);
+RcppExport SEXP TStools_errorets2wrap(SEXP matxtSEXP, SEXP matFSEXP, SEXP matwSEXP, SEXP ytSEXP, SEXP hSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP seasfreqSEXP, SEXP traceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< SEXP >::type xt(xtSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type F(FSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type w(wSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type matxt(matxtSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type matF(matFSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type matw(matwSEXP);
     Rcpp::traits::input_parameter< SEXP >::type yt(ytSEXP);
     Rcpp::traits::input_parameter< SEXP >::type h(hSEXP);
     Rcpp::traits::input_parameter< SEXP >::type Etype(EtypeSEXP);
     Rcpp::traits::input_parameter< SEXP >::type Ttype(TtypeSEXP);
     Rcpp::traits::input_parameter< SEXP >::type Stype(StypeSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type sf(sfSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type seasfreq(seasfreqSEXP);
     Rcpp::traits::input_parameter< SEXP >::type trace(traceSEXP);
-    __result = Rcpp::wrap(errorets2(xt, F, w, yt, h, Etype, Ttype, Stype, sf, trace));
+    __result = Rcpp::wrap(errorets2wrap(matxt, matF, matw, yt, h, Etype, Ttype, Stype, seasfreq, trace));
     return __result;
 END_RCPP
 }
 // optimizeets2
-RcppExport SEXP optimizeets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP sf, SEXP trace, SEXP CFt, SEXP normalizer);
-RcppExport SEXP TStools_optimizeets2(SEXP xtSEXP, SEXP FSEXP, SEXP wSEXP, SEXP ytSEXP, SEXP gSEXP, SEXP hSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP sfSEXP, SEXP traceSEXP, SEXP CFtSEXP, SEXP normalizerSEXP) {
+RcppExport SEXP optimizeets2(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP trace, SEXP CFt, SEXP normalizer);
+RcppExport SEXP TStools_optimizeets2(SEXP matxtSEXP, SEXP matFSEXP, SEXP matwSEXP, SEXP ytSEXP, SEXP vecgSEXP, SEXP hSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP seasfreqSEXP, SEXP traceSEXP, SEXP CFtSEXP, SEXP normalizerSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< SEXP >::type xt(xtSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type F(FSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type w(wSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type matxt(matxtSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type matF(matFSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type matw(matwSEXP);
     Rcpp::traits::input_parameter< SEXP >::type yt(ytSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type g(gSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type vecg(vecgSEXP);
     Rcpp::traits::input_parameter< SEXP >::type h(hSEXP);
     Rcpp::traits::input_parameter< SEXP >::type Etype(EtypeSEXP);
     Rcpp::traits::input_parameter< SEXP >::type Ttype(TtypeSEXP);
     Rcpp::traits::input_parameter< SEXP >::type Stype(StypeSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type sf(sfSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type seasfreq(seasfreqSEXP);
     Rcpp::traits::input_parameter< SEXP >::type trace(traceSEXP);
     Rcpp::traits::input_parameter< SEXP >::type CFt(CFtSEXP);
     Rcpp::traits::input_parameter< SEXP >::type normalizer(normalizerSEXP);
-    __result = Rcpp::wrap(optimizeets2(xt, F, w, yt, g, h, Etype, Ttype, Stype, sf, trace, CFt, normalizer));
+    __result = Rcpp::wrap(optimizeets2(matxt, matF, matw, yt, vecg, h, Etype, Ttype, Stype, seasfreq, trace, CFt, normalizer));
     return __result;
 END_RCPP
 }
