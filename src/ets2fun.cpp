@@ -27,7 +27,7 @@ double errorf(double yact, double yfit, char Etype){
     }
 }
 
-/* # Function is needed to estimate the correct error for ETS when trace model selection with r(xt) is sorted out. */
+/* # Function is needed to estimate the correct error for ETS when trace model selection with r(matxt) is sorted out. */
 arma::mat errorvf(arma::mat yact, arma::mat yfit, char Etype){
     if(Etype=='A'){
         return yact - yfit;
@@ -37,11 +37,11 @@ arma::mat errorvf(arma::mat yact, arma::mat yfit, char Etype){
     }
 }
 
-arma::rowvec rvalue(arma::rowvec xt, arma::rowvec matw, char Etype, char Ttype, char Stype, int ncomponents){
+arma::rowvec rvalue(arma::rowvec matxt, arma::rowvec matrixw, char Etype, char Ttype, char Stype, int ncomponents){
     arma::rowvec r(ncomponents);
     arma::rowvec xtnew;
 
-    xtnew = xt % matw;
+    xtnew = matxt % matrixw;
 
     if(Etype=='A'){
         if(Ttype=='N'){
@@ -75,7 +75,7 @@ arma::rowvec rvalue(arma::rowvec xt, arma::rowvec matw, char Etype, char Ttype, 
             else if(Stype=='M'){
                 r(0) = 1 / sum(xtnew(arma::span(2, ncomponents-1)));
                 r(1) = 1 / (xtnew(0) * sum(xtnew(arma::span(2, ncomponents-1))));
-                r(arma::span(2, ncomponents-1)).fill(1 / (xt(0) * pow(xt(1),matw(2))));
+                r(arma::span(2, ncomponents-1)).fill(1 / (matxt(0) * pow(matxt(1),matrixw(2))));
             }
         }
     }
@@ -85,36 +85,36 @@ arma::rowvec rvalue(arma::rowvec xt, arma::rowvec matw, char Etype, char Ttype, 
                 r(0) = xtnew(0);
             }
             else if(Stype=='A'){
-                r.fill(sum(xt * trans(matw)));
+                r.fill(sum(matxt * trans(matrixw)));
             }
             else if(Stype=='M'){
-                r(0) = xt(0);
-                r(arma::span(1, ncomponents-1)) = xt(arma::span(1, ncomponents-1));
+                r(0) = matxt(0);
+                r(arma::span(1, ncomponents-1)) = matxt(arma::span(1, ncomponents-1));
             }
         }
         else if(Ttype=='A'){
             if(Stype!='M'){
-                r.fill(sum(xt * trans(matw)));
+                r.fill(sum(matxt * trans(matrixw)));
             }
             else if(Stype=='M'){
-                r(0) = sum(xt(arma::span(0,1)) * trans(matw(arma::span(0,1))));
+                r(0) = sum(matxt(arma::span(0,1)) * trans(matrixw(arma::span(0,1))));
                 r(1) = r(0);
-                r(arma::span(2, ncomponents-1)) = xt(arma::span(2, ncomponents-1));
+                r(arma::span(2, ncomponents-1)) = matxt(arma::span(2, ncomponents-1));
             }
         }
         else if(Ttype=='M'){
             if(Stype=='N'){
-                r(0) = exp(sum(log(xt(arma::span(0,1))) * trans(matw(arma::span(0,1)))));
-                r(1) = exp(matw(1) * log(xt(1)));
+                r(0) = exp(sum(log(matxt(arma::span(0,1))) * trans(matrixw(arma::span(0,1)))));
+                r(1) = exp(matrixw(1) * log(matxt(1)));
             }
             else if(Stype=='A'){
-                r(0) = exp(sum(log(xt(arma::span(0,1))) * trans(matw(arma::span(0,1))))) + sum(xtnew(arma::span(2, ncomponents-1)));
-                r(1) = r(0) / xt(0);
+                r(0) = exp(sum(log(matxt(arma::span(0,1))) * trans(matrixw(arma::span(0,1))))) + sum(xtnew(arma::span(2, ncomponents-1)));
+                r(1) = r(0) / matxt(0);
                 r(arma::span(2, ncomponents-1)).fill(r(0));
             }
             else if(Stype=='M'){
-                r(0) = exp(sum(log(xt(arma::span(0,1))) * trans(matw(arma::span(0,1)))));
-                r(1) = exp(matw(1) * log(xt(1)));
+                r(0) = exp(sum(log(matxt(arma::span(0,1))) * trans(matrixw(arma::span(0,1)))));
+                r(1) = exp(matrixw(1) * log(matxt(1)));
                 r(arma::span(2, ncomponents-1)).fill(sum(xtnew(arma::span(2, ncomponents-1))));
             }
         }
@@ -148,18 +148,18 @@ arma::mat avalue(int freq, double(error), double gamma, double yfit, char E, cha
 }
 
 // [[Rcpp::export]]
-RcppExport SEXP fitets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP sf) {
-    NumericMatrix mxt(xt);
-    NumericMatrix mF(F);
-    NumericMatrix vw(w);
+RcppExport SEXP fitets2(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq) {
+    NumericMatrix mxt(matxt);
+    NumericMatrix mF(matF);
+    NumericMatrix vw(matw);
     NumericMatrix vyt(yt);
-    NumericMatrix vg(g);
-    arma::mat matxt(mxt.begin(), mxt.nrow(), mxt.ncol(), false);
-    arma::mat matF(mF.begin(), mF.nrow(), mF.ncol(), false);
-    arma::mat matw(vw.begin(), vw.nrow(), vw.ncol(), false);
+    NumericMatrix vg(vecg);
+    arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol(), false);
+    arma::mat matrixF(mF.begin(), mF.nrow(), mF.ncol(), false);
+    arma::mat matrixw(vw.begin(), vw.nrow(), vw.ncol(), false);
     arma::mat matyt(vyt.begin(), vyt.nrow(), vyt.ncol(), false);
     arma::mat matg(vg.begin(), vg.nrow(), vg.ncol(), false);
-    int freq = as<int>(sf);
+    int freq = as<int>(seasfreq);
     char E = as<char>(Etype);
     char T = as<char>(Ttype);
     char S = as<char>(Stype);
@@ -172,17 +172,17 @@ RcppExport SEXP fitets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP Etype, SE
     arma::mat matyfit(obs, 1, arma::fill::zeros);
     arma::mat materrors(obs, 1, arma::fill::zeros);
 
-    arma::mat matxtnew;
-    arma::mat matwnew;
-    arma::mat matFnew;
+    arma::mat matrixxtnew;
+    arma::mat matrixwnew;
+    arma::mat matrixFnew;
     arma::mat matgnew;
     arma::mat dummy(freq,freq, arma::fill::eye);
     arma::mat avec(1,freq);
 
-/* # xt is transformed into obs by n.components+freq matrix, where last freq are seasonal coefficients,
-# w is matrix obs by n.components+freq with dummies in freq parts,
-# F is a matrix as in Hyndman et al.
-# g is the vector of 
+/* # matxt is transformed into obs by n.components+freq matrix, where last freq are seasonal coefficients,
+# matw is matrix obs by n.components+freq with dummies in freq parts,
+# matF is a matrix as in Hyndman et al.
+# vecg is the vector of 
 # dummy contains dummy variables for seasonal coefficients
 */
     if(S!='N'){
@@ -192,26 +192,26 @@ RcppExport SEXP fitets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP Etype, SE
         matgnew.set_size(obs,ncomponentsall);
         matgnew.cols(0,ncomponents-1).each_row() = trans(matg.rows(0,ncomponents-1));
 
-/* # Fill in xt with provided initial level and trend and then - with the provided initial seasonals */
-        matxtnew.set_size(obs+1,ncomponentsall);
-        matxtnew.zeros();
-        matxtnew.submat(0, 0, 0, ncomponents-1) = matxt.submat(0, 0, 0, ncomponents-1);
-        matxtnew.submat(0, ncomponents, 0, ncomponentsall-1) = trans(matxt.submat(0, ncomponents, freq-1, ncomponents));
+/* # Fill in matxt with provided initial level and trend and then - with the provided initial seasonals */
+        matrixxtnew.set_size(obs+1,ncomponentsall);
+        matrixxtnew.zeros();
+        matrixxtnew.submat(0, 0, 0, ncomponents-1) = matrixxt.submat(0, 0, 0, ncomponents-1);
+        matrixxtnew.submat(0, ncomponents, 0, ncomponentsall-1) = trans(matrixxt.submat(0, ncomponents, freq-1, ncomponents));
 
-        matwnew.set_size(obs,ncomponentsall);
-        matFnew.eye(ncomponentsall,ncomponentsall);
-/* # Fill in the matrix w and cube F with the provided values of w and F */
+        matrixwnew.set_size(obs,ncomponentsall);
+        matrixFnew.eye(ncomponentsall,ncomponentsall);
+/* # Fill in the matrix matw and cube matF with the provided values of matw and matF */
         for(int i=0; i<ncomponents; i=i+1){
-            matwnew.col(i).each_row() = matw.col(i);
-            matFnew(i,0) = matF(i,0);
+            matrixwnew.col(i).each_row() = matrixw.col(i);
+            matrixFnew(i,0) = matrixF(i,0);
             if(ncomponents>1){
-                matFnew(i,1) = matF(i,1);
+                matrixFnew(i,1) = matrixF(i,1);
             }
         }
 
 /* # Fill in dummies for the seasonal components */
         for(int i=0; i < std::floor(obs/freq); i=i+1){
-            matwnew.submat(i*freq, ncomponents, (i+1)*freq-1, ncomponentsall-1) = dummy;
+            matrixwnew.submat(i*freq, ncomponents, (i+1)*freq-1, ncomponentsall-1) = dummy;
             matgnew.submat(i*freq, ncomponents, (i+1)*freq-1, ncomponentsall-1) = dummy * matg(ncomponents,0);
         }
 
@@ -219,7 +219,7 @@ RcppExport SEXP fitets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP Etype, SE
         if(freqtail!=0){
             j = 0;
             for(int i=obs-freqtail; i<obs; i=i+1){
-                matwnew.submat(i, ncomponents, i, ncomponents-1+freq) = dummy.row(j);
+                matrixwnew.submat(i, ncomponents, i, ncomponents-1+freq) = dummy.row(j);
                 matgnew.submat(i, ncomponents, i, ncomponents-1+freq) = dummy.row(j) * matg(ncomponents,0);
                 j=j+1;
             }
@@ -228,145 +228,134 @@ RcppExport SEXP fitets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP Etype, SE
     else{
         ncomponents = mxt.ncol();
         ncomponentsall = ncomponents;
-        matxtnew = matxt;
+        matrixxtnew = matrixxt;
         matgnew.set_size(obs,ncomponents);
         matgnew.each_row() = trans(matg);
 
-        matwnew.set_size(obs,ncomponents);
-        matFnew.eye(ncomponents,ncomponents);
+        matrixwnew.set_size(obs,ncomponents);
+        matrixFnew.eye(ncomponents,ncomponents);
 
-/* # Fill in the matrices w and F with the provided values of w and F. Transform F into the one used in Hyndman et al. */
+/* # Fill in the matrices matw and matF with the provided values of matw and matF. Transform matF into the one used in Hyndman et al. */
         for(int i=0; i<ncomponents; i=i+1){
-            matwnew.col(i).each_row() = matw.col(i);
-            matFnew(i,0) = matF(i,0);
+            matrixwnew.col(i).each_row() = matrixw.col(i);
+            matrixFnew(i,0) = matrixF(i,0);
             if(ncomponents>1){
-                matFnew(i,1) = matF(i,1);
+                matrixFnew(i,1) = matrixF(i,1);
             }
         }
     }
 
     if((T!='M') & (S!='M')){
         for (int i=0; i<obs; i=i+1) {
-            matyfit.row(i) = matwnew.row(i) * trans(matxtnew.row(i));
+            matyfit.row(i) = matrixwnew.row(i) * trans(matrixxtnew.row(i));
             materrors(i,0) = errorf(matyt(i,0), matyfit(i,0), E);
-            matxtnew.row(i+1) = matxtnew.row(i) * trans(matFnew) + trans(materrors.row(i)) * matgnew.row(i) % rvalue(matxtnew.row(i), matwnew.row(i), E, T, S, ncomponentsall);
+            matrixxtnew.row(i+1) = matrixxtnew.row(i) * trans(matrixFnew) + trans(materrors.row(i)) * matgnew.row(i) % rvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall);
 /*            if(S=='A'){
-                avec.fill(as_scalar(mean(matxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1),1)));
-                matxtnew(i+1,0) = matxtnew(i+1,0) + avec(0,0);
-                matxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) = matxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) - avec;
+                avec.fill(as_scalar(mean(matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1),1)));
+                matrixxtnew(i+1,0) = matrixxtnew(i+1,0) + avec(0,0);
+                matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) = matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) - avec;
             } */
         }
     }
     else if((T!='A') & (S!='A')){
         if((T=='M') | (S=='M')){
             for (int i=0; i<obs; i=i+1) {
-                matyfit.row(i) = exp(matwnew.row(i) * log(trans(matxtnew.row(i))));
+                matyfit.row(i) = exp(matrixwnew.row(i) * log(trans(matrixxtnew.row(i))));
                 materrors(i,0) = errorf(matyt(i,0), matyfit(i,0), E);
-                matxtnew.row(i+1) = exp(log(matxtnew.row(i)) * trans(matFnew)) + trans(materrors.row(i)) * matgnew.row(i) % rvalue(matxtnew.row(i), matwnew.row(i), E, T, S, ncomponentsall);
-                if(arma::as_scalar(matxtnew(i+1,0))<0){
-                    matxtnew(i+1,0) = 0.0001;
+                matrixxtnew.row(i+1) = exp(log(matrixxtnew.row(i)) * trans(matrixFnew)) + trans(materrors.row(i)) * matgnew.row(i) % rvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall);
+                if(arma::as_scalar(matrixxtnew(i+1,0))<0){
+                    matrixxtnew(i+1,0) = 0.0001;
                 }
-                if(arma::as_scalar(matxtnew(i+1,1))<0){
-                    matxtnew(i+1,1) = 0.0001;
+                if(arma::as_scalar(matrixxtnew(i+1,1))<0){
+                    matrixxtnew(i+1,1) = 0.0001;
                 }
 /*                if(S=='M'){
-                    avec.fill(as_scalar(exp(mean(log(matxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1)),1))));
-                    matxtnew(i+1,0) = matxtnew(i+1,0) * avec(0,0);
-                    matxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) = matxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) / avec;
+                    avec.fill(as_scalar(exp(mean(log(matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1)),1))));
+                    matrixxtnew(i+1,0) = matrixxtnew(i+1,0) * avec(0,0);
+                    matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) = matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) / avec;
                 }
                 a = avalue(freq, double(materrors(i,0)), double(matgnew(i,ncomponents)), double(matyfit(i,0)), E, S, T);
-                matxtnew(i+1,0) = matxtnew(i+1,0) + a(0,0);
-                matxtnew.submat(i+1, ncomponents, i+1, ncomponentsall) = matxtnew.submat(i+1, ncomponents, i+1, ncomponentsall) - a; */
+                matrixxtnew(i+1,0) = matrixxtnew(i+1,0) + a(0,0);
+                matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall) = matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall) - a; */
             }
         }
     }
     else if((T=='A') & (S=='M')){
         for (int i=0; i<obs; i=i+1) {
-            matyfit.row(i) = matwnew.row(i).cols(0,1) * trans(matxtnew.row(i).cols(0,1)) * sum(matwnew.row(i).cols(2,ncomponentsall-1) % matxtnew.row(i).cols(2,ncomponentsall-1));
+            matyfit.row(i) = matrixwnew.row(i).cols(0,1) * trans(matrixxtnew.row(i).cols(0,1)) * sum(matrixwnew.row(i).cols(2,ncomponentsall-1) % matrixxtnew.row(i).cols(2,ncomponentsall-1));
             materrors(i,0) = errorf(matyt(i,0), matyfit(i,0), E);
-            matxtnew.row(i+1) = matxtnew.row(i) * trans(matFnew) + trans(materrors.row(i)) * matgnew.row(i) % rvalue(matxtnew.row(i), matwnew.row(i), E, T, S, ncomponentsall);
-            matxtnew.elem(find(matxtnew.row(i+1).cols(2,ncomponentsall-1)<0)).zeros();
-/*            avec.fill(as_scalar(exp(mean(log(matxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1)),1))));
-            matxtnew(i+1,0) = matxtnew(i+1,0) * avec(0,0);
-            matxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) = matxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) / avec; */
+            matrixxtnew.row(i+1) = matrixxtnew.row(i) * trans(matrixFnew) + trans(materrors.row(i)) * matgnew.row(i) % rvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall);
+            matrixxtnew.elem(find(matrixxtnew.row(i+1).cols(2,ncomponentsall-1)<0)).zeros();
+/*            avec.fill(as_scalar(exp(mean(log(matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1)),1))));
+            matrixxtnew(i+1,0) = matrixxtnew(i+1,0) * avec(0,0);
+            matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) = matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) / avec; */
         }
     }
     else if((T=='M') & (S=='A')){
         for (int i=0; i<obs; i=i+1) {
-            if(arma::as_scalar(matxtnew(i,1))<0){
-                matxtnew(i+1,0) = matxtnew(i,0) * matxtnew(i,1);
-                matxtnew(i+1,1) = matxtnew(i,1);
-                matyfit.row(i) = matxtnew(i,0) * matxtnew(i,1) + sum(matwnew.row(i).cols(2,ncomponentsall-1) % matxtnew.row(i).cols(2,ncomponentsall-1));
+            if(arma::as_scalar(matrixxtnew(i,1))<0){
+                matrixxtnew(i+1,0) = matrixxtnew(i,0) * matrixxtnew(i,1);
+                matrixxtnew(i+1,1) = matrixxtnew(i,1);
+                matyfit.row(i) = matrixxtnew(i,0) * matrixxtnew(i,1) + sum(matrixwnew.row(i).cols(2,ncomponentsall-1) % matrixxtnew.row(i).cols(2,ncomponentsall-1));
             }
             else{
-                matxtnew(i+1,0) = matxtnew(i,0) * pow(matxtnew(i,1),matFnew(0,1));
-                matxtnew(i+1,1) = pow(matxtnew(i,1),matFnew(1,1));
-                matyfit.row(i) = exp(matwnew.row(i).cols(0,1) * log(trans(matxtnew.row(i).cols(0,1)))) + sum(matwnew.row(i).cols(2,ncomponentsall-1) % matxtnew.row(i).cols(2,ncomponentsall-1));
+                matrixxtnew(i+1,0) = matrixxtnew(i,0) * pow(matrixxtnew(i,1),matrixFnew(0,1));
+                matrixxtnew(i+1,1) = pow(matrixxtnew(i,1),matrixFnew(1,1));
+                matyfit.row(i) = exp(matrixwnew.row(i).cols(0,1) * log(trans(matrixxtnew.row(i).cols(0,1)))) + sum(matrixwnew.row(i).cols(2,ncomponentsall-1) % matrixxtnew.row(i).cols(2,ncomponentsall-1));
             }
             if(arma::as_scalar(matyfit.row(i))<0){
                 matyfit.row(i) = 0;
             }
             materrors(i,0) = errorf(matyt(i,0), matyfit(i,0), E);
-            matxtnew.row(i+1).cols(0,1) = matxtnew.row(i+1).cols(0,1) + trans(materrors.row(i)) * matgnew.row(i).cols(0,1) % rvalue(matxtnew.row(i), matwnew.row(i), E, T, S, ncomponentsall).cols(0,1);
-            matxtnew.row(i+1).cols(2,ncomponentsall-1) = matxtnew.row(i).cols(2,ncomponentsall-1) * trans(matFnew.submat(2,2,ncomponentsall-1,ncomponentsall-1)) + trans(materrors.row(i)) * matgnew.row(i).cols(2,ncomponentsall-1) % rvalue(matxtnew.row(i), matwnew.row(i), E, T, S, ncomponentsall).cols(2,ncomponentsall-1);
-            if((arma::as_scalar(matxtnew(i+1,0))<0) || (std::isnan(arma::as_scalar(matxtnew(i+1,0))))){
-                matxtnew(i+1,0) = 0.0001;
+            matrixxtnew.row(i+1).cols(0,1) = matrixxtnew.row(i+1).cols(0,1) + trans(materrors.row(i)) * matgnew.row(i).cols(0,1) % rvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall).cols(0,1);
+            matrixxtnew.row(i+1).cols(2,ncomponentsall-1) = matrixxtnew.row(i).cols(2,ncomponentsall-1) * trans(matrixFnew.submat(2,2,ncomponentsall-1,ncomponentsall-1)) + trans(materrors.row(i)) * matgnew.row(i).cols(2,ncomponentsall-1) % rvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall).cols(2,ncomponentsall-1);
+            if((arma::as_scalar(matrixxtnew(i+1,0))<0) || (std::isnan(arma::as_scalar(matrixxtnew(i+1,0))))){
+                matrixxtnew(i+1,0) = 0.0001;
             }
-            if((arma::as_scalar(matxtnew(i+1,1))<0) || (std::isnan(arma::as_scalar(matxtnew(i+1,1))))){
-                matxtnew(i+1,1) = 0.0001;
+            if((arma::as_scalar(matrixxtnew(i+1,1))<0) || (std::isnan(arma::as_scalar(matrixxtnew(i+1,1))))){
+                matrixxtnew(i+1,1) = 0.0001;
             }
-/*            avec.fill(as_scalar(mean(matxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1),1)));
-            matxtnew(i+1,0) = (matxtnew(i+1,0) + avec(0,0));
-            matxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) = matxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) - avec; */
+/*            avec.fill(as_scalar(mean(matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1),1)));
+            matrixxtnew(i+1,0) = (matrixxtnew(i+1,0) + avec(0,0));
+            matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) = matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) - avec; */
         }
     }
 
-// # Fill in xt for the seasonal models
+// # Fill in matxt for the seasonal models
     if(S!='N'){
-        matxt.submat(freq-1,0,mxt.nrow()-1,ncomponents-1) = matxtnew.cols(0,ncomponents-1);
+        matrixxt.submat(freq-1,0,mxt.nrow()-1,ncomponents-1) = matrixxtnew.cols(0,ncomponents-1);
 
         for(int i=0; i < std::floor(obs/freq); i=i+1){
-            matxt.submat((i+1)*freq,ncomponents,(i+2)*freq-1,ncomponents) = matxtnew.submat(i*freq+1,ncomponents,(i+1)*freq,ncomponentsall-1).diag();
+            matrixxt.submat((i+1)*freq,ncomponents,(i+2)*freq-1,ncomponents) = matrixxtnew.submat(i*freq+1,ncomponents,(i+1)*freq,ncomponentsall-1).diag();
         }
 
         if(freqtail!=0){
             j = 0;
-            for(unsigned int i=matxtnew.n_rows-freqtail; i<matxtnew.n_rows; i=i+1){
-                matxt(i+freq-1, ncomponents) = matxtnew(i, ncomponents+j);
+            for(unsigned int i=matrixxtnew.n_rows-freqtail; i<matrixxtnew.n_rows; i=i+1){
+                matrixxt(i+freq-1, ncomponents) = matrixxtnew(i, ncomponents+j);
                 j=j+1;
             }
         }
     }
     else{
-        matxt = matxtnew;
+        matrixxt = matrixxtnew;
     }
 
-    return List::create(Named("xt") = matxt, Named("yfit") = matyfit, Named("errors") = materrors);
+    return List::create(Named("matxt") = matrixxt, Named("yfit") = matyfit, Named("errors") = materrors);
 }
 
-// [[Rcpp::export]]
-RcppExport arma::mat forets2(SEXP xt, SEXP F, SEXP w, SEXP h, SEXP Ttype, SEXP Stype, SEXP sf) {
-    NumericMatrix mxt(xt);
-    NumericMatrix mF(F);
-    NumericMatrix vw(w);
-    arma::mat matxt(mxt.begin(), mxt.nrow(), mxt.ncol(), false);
-    arma::mat matF(mF.begin(), mF.nrow(), mF.ncol(), false);
-    arma::mat matw(vw.begin(), vw.nrow(), vw.ncol(), false);
-    int hor = as<int>(h);
-    int freq = as<int>(sf);
-    char T = as<char>(Ttype);
-    char S = as<char>(Stype);
+arma::mat forets2(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, int hor, char T, char S, int freq) {
     int hh;
 
     arma::mat matyfor(hor, 1, arma::fill::zeros);
-    arma::mat matxtnew;
-    arma::mat matwnew;
-    arma::mat matFnew;
+    arma::mat matrixxtnew;
+    arma::mat matrixwnew;
+    arma::mat matrixFnew;
     arma::mat seasxt(hor, 1, arma::fill::zeros);
 
     if(S!='N'){
         hh = std::min(hor,freq);
-        seasxt.submat(0, 0, hh-1, 0) = matxt.submat(0,matxt.n_cols-1,hh-1,matxt.n_cols-1);
+        seasxt.submat(0, 0, hh-1, 0) = matrixxt.submat(0,matrixxt.n_cols-1,hh-1,matrixxt.n_cols-1);
 
         if(hor > freq){
             for(int i = freq; i < hor; i=i+1){
@@ -374,24 +363,24 @@ RcppExport arma::mat forets2(SEXP xt, SEXP F, SEXP w, SEXP h, SEXP Ttype, SEXP S
             }
         }
 
-        matxtnew = matxt.submat(mxt.nrow()-1, 0, mxt.nrow()-1, mxt.ncol()-2);
-        matwnew = matw.cols(0, vw.ncol()-2);
-        matFnew = matF.submat(0, 0, mF.nrow()-2, mF.ncol()-2);
+        matrixxtnew = matrixxt.submat(matrixxt.n_rows-1, 0, matrixxt.n_rows-1, matrixxt.n_cols-2);
+        matrixwnew = matrixw.cols(0, matrixw.n_cols-2);
+        matrixFnew = matrixF.submat(0, 0, matrixF.n_rows-2, matrixF.n_cols-2);
     }
     else{
-        matxtnew = matxt.submat(mxt.nrow()-1, 0, mxt.nrow()-1, mxt.ncol()-1);
-        matwnew = matw;
-        matFnew = matF;
+        matrixxtnew = matrixxt.submat(matrixxt.n_rows-1, 0, matrixxt.n_rows-1, matrixxt.n_cols-1);
+        matrixwnew = matrixw;
+        matrixFnew = matrixF;
     }
 
     if(T!='M'){
         for(int i = 0; i < hor; i=i+1){
-            matyfor.row(i) = matwnew * matrixpower(matFnew,i) * trans(matxtnew);
+            matyfor.row(i) = matrixwnew * matrixpower(matrixFnew,i) * trans(matrixxtnew);
         }
     }
     else{
         for(int i = 0; i < hor; i=i+1){
-            matyfor.row(i) = exp(matwnew * matrixpower(matFnew,i) * log(trans(matxtnew)));
+            matyfor.row(i) = exp(matrixwnew * matrixpower(matrixFnew,i) * log(trans(matrixxtnew)));
         }
     }
     if(S=='A'){
@@ -405,20 +394,23 @@ RcppExport arma::mat forets2(SEXP xt, SEXP F, SEXP w, SEXP h, SEXP Ttype, SEXP S
 }
 
 // [[Rcpp::export]]
-RcppExport arma::mat errorets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP sf, SEXP trace) {
-    NumericMatrix mxt(xt);
-    NumericMatrix mF(F);
-    NumericMatrix vw(w);
-    NumericMatrix vyt(yt);
-    arma::mat matxt(mxt.begin(), mxt.nrow(), mxt.ncol(), false);
-    arma::mat matF(mF.begin(), mF.nrow(), mF.ncol(), false);
-    arma::mat matw(vw.begin(), vw.nrow(), vw.ncol(), false);
-    arma::mat matyt(vyt.begin(), vyt.nrow(), vyt.ncol(), false);
+RcppExport arma::mat forets2wrap(SEXP matxt, SEXP matF, SEXP matw, SEXP h, SEXP Ttype, SEXP Stype, SEXP seasfreq){
+    NumericMatrix mxt(matxt);
+    arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol(), false);
+    NumericMatrix mF(matF);
+    arma::mat matrixF(mF.begin(), mF.nrow(), mF.ncol(), false);
+    NumericMatrix vw(matw);
+    arma::mat matrixw(vw.begin(), vw.nrow(), vw.ncol(), false);
     int hor = as<int>(h);
-    int freq = as<int>(sf);
-    char E = as<char>(Etype);
-    bool tr = as<bool>(trace);
-    int obs = vyt.nrow();
+    char T = as<char>(Ttype);
+    char S = as<char>(Stype);
+    int freq = as<int>(seasfreq);
+    
+    return(forets2(matrixxt, matrixF, matrixw, hor, T, S, freq));
+}
+
+arma::mat errorets2(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat matyt, int hor, char E, char T, char S, int freq, bool tr) {
+    int obs = matyt.n_rows;
     int hh;
     arma::mat materrors;
 
@@ -433,12 +425,12 @@ RcppExport arma::mat errorets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP h, SEXP Et
     if(tr==true){
         for(int i = 0; i < obs; i=i+1){
             hh = std::min(hor, obs-i);
-            materrors.submat(i, 0, i, hh-1) = trans(errorvf(matyt.rows(i, i+hh-1),forets2(wrap(matxt.rows(i,i+freq-1)),F,w,wrap(hh),Ttype,Stype,sf),E));
+            materrors.submat(i, 0, i, hh-1) = trans(errorvf(matyt.rows(i, i+hh-1), forets2(matrixxt.rows(i,i+freq-1), matrixF, matrixw, hh, T, S, freq), E));
         }
     }
     else{
       for(int i = 0; i < obs; i=i+1){
-	    materrors.row(i) = trans(errorvf(matyt.row(i),forets2(wrap(matxt.rows(i,i+freq-1)),F,w,wrap(1),Ttype,Stype,sf),E));
+	    materrors.row(i) = trans(errorvf(matyt.row(i), forets2(matrixxt.rows(i,i+freq-1), matrixF, matrixw, 1, T, S, freq), E));
 	    }
     }
 
@@ -446,30 +438,57 @@ RcppExport arma::mat errorets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP h, SEXP Et
 }
 
 // [[Rcpp::export]]
-RcppExport SEXP optimizeets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP sf, SEXP trace, SEXP CFt, SEXP normalizer) {
-    NumericMatrix mF(F);
-    NumericMatrix vw(w);
+RcppExport arma::mat errorets2wrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP trace){
+    NumericMatrix mxt(matxt);
+    arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol(), false);
+    NumericMatrix mF(matF);
+    arma::mat matrixF(mF.begin(), mF.nrow(), mF.ncol(), false);
+    NumericMatrix vw(matw);
+    arma::mat matrixw(vw.begin(), vw.nrow(), vw.ncol(), false);
     NumericMatrix vyt(yt);
     arma::mat matyt(vyt.begin(), vyt.nrow(), vyt.ncol(), false);
     int hor = as<int>(h);
     char E = as<char>(Etype);
+    char T = as<char>(Ttype);
+    char S = as<char>(Stype);
+    int freq = as<int>(seasfreq);
+    bool tr = as<bool>(trace);
+
+    return errorets2(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, tr);
+}
+
+// [[Rcpp::export]]
+RcppExport SEXP optimizeets2(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP trace, SEXP CFt, SEXP normalizer) {
+    NumericMatrix mF(matF);
+    arma::mat matrixF(mF.begin(), mF.nrow(), mF.ncol(), false);
+    NumericMatrix vw(matw);
+    arma::mat matrixw(vw.begin(), vw.nrow(), vw.ncol(), false);
+    NumericMatrix vyt(yt);
+    arma::mat matyt(vyt.begin(), vyt.nrow(), vyt.ncol(), false);
+    int hor = as<int>(h);
+    char E = as<char>(Etype);
+    char T = as<char>(Ttype);
+    char S = as<char>(Stype);
+    int freq = as<int>(seasfreq);
     bool tr = as<bool>(trace);
     std::string CFtype = as<std::string>(CFt);
-    int obs = vyt.nrow();
+    double normalize = as<double>(normalizer);
+
+    int obs = matyt.n_rows;
     double CFres = 0;
     int matobs = obs - hor + 1;
-    double normalize = as<double>(normalizer);
     double yactsum = arma::as_scalar(arma::sum(log(matyt)));
 
-    List fitting = fitets2(xt,F,w,yt,g,Etype,Ttype,Stype,sf);
-    NumericMatrix mxtfromfit = as<NumericMatrix>(fitting["xt"]);
+    List fitting = fitets2(matxt,matF,matw,yt,vecg,Etype,Ttype,Stype,seasfreq);
+    NumericMatrix mxtfromfit = as<NumericMatrix>(fitting["matxt"]);
+    arma::mat matrixxt(mxtfromfit.begin(), mxtfromfit.nrow(), mxtfromfit.ncol(), false);
     NumericMatrix errorsfromfit = as<NumericMatrix>(fitting["errors"]);
 
     arma::mat materrors;
 
     if(E=='M'){
-        if(tr==true){
-            materrors = log(1 + errorets2(wrap(mxtfromfit),F,w,yt,h,Etype,Ttype,Stype,sf,trace));
+        if(tr==true){ 
+            materrors = log(1 + errorets2(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, tr));
             if(CFtype=="GV"){
                 materrors.resize(matobs,hor);
                 CFres = double(log(arma::det(arma::trans(materrors) * materrors / double(matobs))));
@@ -499,7 +518,7 @@ RcppExport SEXP optimizeets2(SEXP xt, SEXP F, SEXP w, SEXP yt, SEXP g, SEXP h, S
     }
     else{
         if(tr==true){
-            materrors = errorets2(wrap(mxtfromfit),F,w,yt,h,Etype,Ttype,Stype,sf,trace);
+            materrors = errorets2(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, tr);
             if(CFtype=="GV"){
                 materrors.resize(matobs,hor);
                 materrors = materrors / normalize ;
