@@ -150,19 +150,20 @@ arma::mat avalue(int freq, double(error), double gamma, double yfit, char E, cha
 // [[Rcpp::export]]
 RcppExport SEXP fitets2(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq) {
     NumericMatrix mxt(matxt);
-    NumericMatrix mF(matF);
-    NumericMatrix vw(matw);
-    NumericMatrix vyt(yt);
-    NumericMatrix vg(vecg);
     arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol(), false);
+    NumericMatrix mF(matF);
     arma::mat matrixF(mF.begin(), mF.nrow(), mF.ncol(), false);
+    NumericMatrix vw(matw);
     arma::mat matrixw(vw.begin(), vw.nrow(), vw.ncol(), false);
+    NumericMatrix vyt(yt);
     arma::mat matyt(vyt.begin(), vyt.nrow(), vyt.ncol(), false);
+    NumericMatrix vg(vecg);
     arma::mat matg(vg.begin(), vg.nrow(), vg.ncol(), false);
-    int freq = as<int>(seasfreq);
     char E = as<char>(Etype);
     char T = as<char>(Ttype);
     char S = as<char>(Stype);
+    int freq = as<int>(seasfreq);
+
     int obs = matyt.n_rows;
     int freqtail = 0;
     int j;
