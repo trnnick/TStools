@@ -23,7 +23,12 @@ double errorf(double yact, double yfit, char Etype){
         return yact - yfit;
     }
     else{
-        return (yact - yfit) / yfit;
+        if(yfit==0){
+            return R_PosInf;
+        }
+        else{
+            return (yact - yfit) / yfit;
+        }
     }
 }
 
@@ -33,6 +38,7 @@ arma::mat errorvf(arma::mat yact, arma::mat yfit, char Etype){
         return yact - yfit;
     }
     else{
+        yfit.elem(find(yfit==0)).fill(1e-100);
         return (yact - yfit) / yfit;
     }
 }
@@ -147,23 +153,7 @@ arma::mat avalue(int freq, double(error), double gamma, double yfit, char E, cha
     return(a);
 }
 
-// [[Rcpp::export]]
-RcppExport SEXP fitets2(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq) {
-    NumericMatrix mxt(matxt);
-    arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol(), false);
-    NumericMatrix mF(matF);
-    arma::mat matrixF(mF.begin(), mF.nrow(), mF.ncol(), false);
-    NumericMatrix vw(matw);
-    arma::mat matrixw(vw.begin(), vw.nrow(), vw.ncol(), false);
-    NumericMatrix vyt(yt);
-    arma::mat matyt(vyt.begin(), vyt.nrow(), vyt.ncol(), false);
-    NumericMatrix vg(vecg);
-    arma::mat matg(vg.begin(), vg.nrow(), vg.ncol(), false);
-    char E = as<char>(Etype);
-    char T = as<char>(Ttype);
-    char S = as<char>(Stype);
-    int freq = as<int>(seasfreq);
-
+List fitter(arma::mat matrixxt,arma::mat  matrixF,arma::mat  matrixw,arma::mat  matyt,arma::mat  matg,char E,char T,char S,int freq) {
     int obs = matyt.n_rows;
     int freqtail = 0;
     int j;
@@ -187,7 +177,7 @@ RcppExport SEXP fitets2(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SE
 # dummy contains dummy variables for seasonal coefficients
 */
     if(S!='N'){
-        ncomponents = mxt.ncol()-1;
+        ncomponents = matrixxt.n_cols-1;
         ncomponentsall = ncomponents + freq;
 
         matgnew.set_size(obs,ncomponentsall);
@@ -227,7 +217,7 @@ RcppExport SEXP fitets2(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SE
         }
     }
     else{
-        ncomponents = mxt.ncol();
+        ncomponents = matrixxt.n_cols;
         ncomponentsall = ncomponents;
         matrixxtnew = matrixxt;
         matgnew.set_size(obs,ncomponents);
@@ -324,7 +314,7 @@ RcppExport SEXP fitets2(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SE
 
 // # Fill in matxt for the seasonal models
     if(S!='N'){
-        matrixxt.submat(freq-1,0,mxt.nrow()-1,ncomponents-1) = matrixxtnew.cols(0,ncomponents-1);
+        matrixxt.submat(freq-1,0,matrixxt.n_rows-1,ncomponents-1) = matrixxtnew.cols(0,ncomponents-1);
 
         for(int i=0; i < std::floor(obs/freq); i=i+1){
             matrixxt.submat((i+1)*freq,ncomponents,(i+2)*freq-1,ncomponents) = matrixxtnew.submat(i*freq+1,ncomponents,(i+1)*freq,ncomponentsall-1).diag();
@@ -345,7 +335,28 @@ RcppExport SEXP fitets2(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SE
     return List::create(Named("matxt") = matrixxt, Named("yfit") = matyfit, Named("errors") = materrors);
 }
 
-arma::mat forets2(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, int hor, char T, char S, int freq) {
+
+// [[Rcpp::export]]
+RcppExport SEXP fitterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq) {
+    NumericMatrix mxt(matxt);
+    arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol(), false);
+    NumericMatrix mF(matF);
+    arma::mat matrixF(mF.begin(), mF.nrow(), mF.ncol(), false);
+    NumericMatrix vw(matw);
+    arma::mat matrixw(vw.begin(), vw.nrow(), vw.ncol(), false);
+    NumericMatrix vyt(yt);
+    arma::mat matyt(vyt.begin(), vyt.nrow(), vyt.ncol(), false);
+    NumericMatrix vg(vecg);
+    arma::mat matg(vg.begin(), vg.nrow(), vg.ncol(), false);
+    char E = as<char>(Etype);
+    char T = as<char>(Ttype);
+    char S = as<char>(Stype);
+    int freq = as<int>(seasfreq);
+    
+    return fitter(matrixxt, matrixF, matrixw, matyt, matg, E, T, S, freq);
+}
+
+arma::mat forecaster(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, int hor, char T, char S, int freq) {
     int hh;
 
     arma::mat matyfor(hor, 1, arma::fill::zeros);
@@ -395,7 +406,7 @@ arma::mat forets2(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, int 
 }
 
 // [[Rcpp::export]]
-RcppExport arma::mat forets2wrap(SEXP matxt, SEXP matF, SEXP matw, SEXP h, SEXP Ttype, SEXP Stype, SEXP seasfreq){
+RcppExport arma::mat forecasterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP h, SEXP Ttype, SEXP Stype, SEXP seasfreq){
     NumericMatrix mxt(matxt);
     arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol(), false);
     NumericMatrix mF(matF);
@@ -407,10 +418,10 @@ RcppExport arma::mat forets2wrap(SEXP matxt, SEXP matF, SEXP matw, SEXP h, SEXP 
     char S = as<char>(Stype);
     int freq = as<int>(seasfreq);
     
-    return(forets2(matrixxt, matrixF, matrixw, hor, T, S, freq));
+    return(forecaster(matrixxt, matrixF, matrixw, hor, T, S, freq));
 }
 
-arma::mat errorets2(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat matyt, int hor, char E, char T, char S, int freq, bool tr) {
+arma::mat errorer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat matyt, int hor, char E, char T, char S, int freq, bool tr) {
     int obs = matyt.n_rows;
     int hh;
     arma::mat materrors;
@@ -426,20 +437,20 @@ arma::mat errorets2(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, ar
     if(tr==true){
         for(int i = 0; i < obs; i=i+1){
             hh = std::min(hor, obs-i);
-            materrors.submat(i, 0, i, hh-1) = trans(errorvf(matyt.rows(i, i+hh-1), forets2(matrixxt.rows(i,i+freq-1), matrixF, matrixw, hh, T, S, freq), E));
+            materrors.submat(i, 0, i, hh-1) = trans(errorvf(matyt.rows(i, i+hh-1), forecaster(matrixxt.rows(i,i+freq-1), matrixF, matrixw, hh, T, S, freq), E));
         }
     }
     else{
       for(int i = 0; i < obs; i=i+1){
-	    materrors.row(i) = trans(errorvf(matyt.row(i), forets2(matrixxt.rows(i,i+freq-1), matrixF, matrixw, 1, T, S, freq), E));
+	    materrors.row(i) = trans(errorvf(matyt.row(i), forecaster(matrixxt.rows(i,i+freq-1), matrixF, matrixw, 1, T, S, freq), E));
 	    }
     }
-
+//std::cout << materrors;
     return materrors;
 }
 
 // [[Rcpp::export]]
-RcppExport arma::mat errorets2wrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP trace){
+RcppExport arma::mat errorerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP trace){
     NumericMatrix mxt(matxt);
     arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol(), false);
     NumericMatrix mF(matF);
@@ -455,41 +466,27 @@ RcppExport arma::mat errorets2wrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SE
     int freq = as<int>(seasfreq);
     bool tr = as<bool>(trace);
 
-    return errorets2(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, tr);
+    return errorer(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, tr);
 }
 
-// [[Rcpp::export]]
-RcppExport SEXP optimizeets2(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP trace, SEXP CFt, SEXP normalizer) {
-    NumericMatrix mF(matF);
-    arma::mat matrixF(mF.begin(), mF.nrow(), mF.ncol(), false);
-    NumericMatrix vw(matw);
-    arma::mat matrixw(vw.begin(), vw.nrow(), vw.ncol(), false);
-    NumericMatrix vyt(yt);
-    arma::mat matyt(vyt.begin(), vyt.nrow(), vyt.ncol(), false);
-    int hor = as<int>(h);
-    char E = as<char>(Etype);
-    char T = as<char>(Ttype);
-    char S = as<char>(Stype);
-    int freq = as<int>(seasfreq);
-    bool tr = as<bool>(trace);
-    std::string CFtype = as<std::string>(CFt);
-    double normalize = as<double>(normalizer);
 
+double optimizer(arma::mat matrixxt,arma::mat matrixF,arma::mat matrixw,arma::mat matyt,arma::mat matg,int hor,char E,char T,char S,int freq,bool tr,std::string CFtype,int normalize){
     int obs = matyt.n_rows;
     double CFres = 0;
     int matobs = obs - hor + 1;
     double yactsum = arma::as_scalar(arma::sum(log(matyt)));
 
-    List fitting = fitets2(matxt,matF,matw,yt,vecg,Etype,Ttype,Stype,seasfreq);
+    List fitting = fitter(matrixxt,matrixF,matrixw,matyt,matg,E,T,S,freq);
     NumericMatrix mxtfromfit = as<NumericMatrix>(fitting["matxt"]);
-    arma::mat matrixxt(mxtfromfit.begin(), mxtfromfit.nrow(), mxtfromfit.ncol(), false);
+    matrixxt = as<arma::mat>(mxtfromfit);
     NumericMatrix errorsfromfit = as<NumericMatrix>(fitting["errors"]);
 
     arma::mat materrors;
 
     if(E=='M'){
-        if(tr==true){ 
-            materrors = log(1 + errorets2(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, tr));
+        if(tr==true){
+            materrors = log(1 + errorer(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, tr));
+            materrors.elem(find_nonfinite(materrors)).fill(1e10);
             if(CFtype=="GV"){
                 materrors.resize(matobs,hor);
                 CFres = double(log(arma::det(arma::trans(materrors) * materrors / double(matobs))));
@@ -519,7 +516,7 @@ RcppExport SEXP optimizeets2(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vec
     }
     else{
         if(tr==true){
-            materrors = errorets2(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, tr);
+            materrors = errorer(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, tr);
             if(CFtype=="GV"){
                 materrors.resize(matobs,hor);
                 materrors = materrors / normalize ;
@@ -544,6 +541,142 @@ RcppExport SEXP optimizeets2(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vec
             CFres = arma::as_scalar(mean(pow(materrors,2)));
         }
     }
+    return CFres;
+}
 
-    return wrap(CFres);
+// [[Rcpp::export]]
+RcppExport double optimizerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP trace, SEXP CFt, SEXP normalizer) {
+    NumericMatrix mxt(matxt);
+    arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol());
+    NumericMatrix mF(matF);
+    arma::mat matrixF(mF.begin(), mF.nrow(), mF.ncol(), false);
+    NumericMatrix vw(matw);
+    arma::mat matrixw(vw.begin(), vw.nrow(), vw.ncol(), false);
+    NumericMatrix vyt(yt);
+    arma::mat matyt(vyt.begin(), vyt.nrow(), vyt.ncol(), false);
+    NumericMatrix vg(vecg);
+    arma::mat matg(vg.begin(), vg.nrow(), vg.ncol(), false);
+    int hor = as<int>(h);
+    char E = as<char>(Etype);
+    char T = as<char>(Ttype);
+    char S = as<char>(Stype);
+    int freq = as<int>(seasfreq);
+    bool tr = as<bool>(trace);
+    std::string CFtype = as<std::string>(CFt);
+    double normalize = as<double>(normalizer);
+    
+    return optimizer(matrixxt,matrixF,matrixw,matyt,matg,hor,E,T,S,freq,tr,CFtype,normalize);
+}
+
+
+double Thetafunc(double Theta, arma::vec matg, double phivalue, int freq){
+    return(abs(phivalue*matg(0)+phivalue+1)/(matg(2)) + ((phivalue-1)*(1+cos(Theta)-cos(freq*Theta))+cos((freq-1)*Theta)-phivalue*cos((freq+1)*Theta))/(2*(1+cos(Theta))*(1-cos(freq*Theta))));
+}
+
+// [[Rcpp::export]]
+RcppExport double costfunc(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP trace, SEXP CFt, SEXP normalizer, SEXP bounds, SEXP phi, SEXP Theta) {
+/* Function is needed to implement constrains on smoothing parameters */
+    NumericMatrix mxt(matxt);
+    arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol());
+    NumericMatrix mF(matF);
+    arma::mat matrixF(mF.begin(), mF.nrow(), mF.ncol(), false);
+    NumericMatrix vw(matw);
+    arma::mat matrixw(vw.begin(), vw.nrow(), vw.ncol(), false);
+    NumericMatrix vyt(yt);
+    arma::vec matyt(vyt.begin(), vyt.nrow(), vyt.ncol(), false);
+    NumericMatrix vg(vecg);
+    arma::vec matg(vg.begin(), vg.nrow(), vg.ncol());
+    int hor = as<int>(h);
+    char E = as<char>(Etype);
+    char T = as<char>(Ttype);
+    char S = as<char>(Stype);
+    int freq = as<int>(seasfreq);
+    bool tr = as<bool>(trace);
+    std::string CFtype = as<std::string>(CFt);
+    double normalize = as<double>(normalizer);
+
+    char boundtype = as<char>(bounds);
+    double phivalue = as<double>(phi);
+    double theta = as<double>(Theta);
+
+    if(boundtype='u'){
+// alpha in (0,1)
+        if((matg(0)>1) || (matg(0)<0)){
+            matg.zeros();
+            matrixxt.zeros();
+        }
+        if(T!='N'){
+// beta in (0,alpha)
+            if((matg(1)>matg(0)) || (matg(1)<0)){
+                matg.zeros();
+                matrixxt.zeros();
+            }
+            if(S!='N'){
+// gamma in (0,1-alpha)
+                if((matg(2)>(1-matg(0))) || (matg(2)<0)){
+                    matg.zeros();
+                    matrixxt.zeros();
+                }
+            }
+        }
+        if(S!='N'){
+// gamma in (0,1-alpha)
+            if((matg(1)>(1-matg(0))) || (matg(1)<0)){
+                matg.zeros();
+                matrixxt.zeros();
+            }
+        }
+    }
+    else{
+        if(S=='N'){
+// alpha restrictions with no seasonality
+            if((matg(0)>1+1/phivalue) || (matg(0)<1-1/phivalue)){
+                matg.zeros();
+                matrixxt.zeros();
+            }
+            if(T!='N'){
+// beta restrictions with no seasonality
+                if((matg(1)>(1+phivalue)*(2-matg(0))) || (matg(1)<matg(0)*(phivalue-1))){
+                    matg.zeros();
+                    matrixxt.zeros();
+                }
+            }
+        }
+        else{
+            if(T=='N'){
+// alpha restrictions with no trend
+                if((matg(0)>2-matg(1)) ||  (matg(0)<(-2/(freq-1)))){
+                    matg.zeros();
+                    matrixxt.zeros();
+                }
+// gamma restrictions with no trend
+                if((matg(1)>2-matg(0)) || (matg(1)<std::max(-freq*matg(0),0.0))){
+                    matg.zeros();
+                    matrixxt.zeros();
+                }
+            }
+            else{
+                double Bvalue = phivalue*(4-3*matg(2))+matg(2)*(1-phivalue) / freq;
+                double Cvalue = sqrt(pow(Bvalue,2)-8*(pow(phivalue,2)*pow((1-matg(2)),2)+2*(phivalue-1)*(1-matg(2))-1)+8*pow(matg(2),2)*(1-phivalue) / freq);
+                double Dvalue = (phivalue*(1-matg(0))+1)*(1-cos(theta))-matg(2)*((1+phivalue)*(1-cos(theta)-cos(freq*theta))+cos((freq-1)*theta)+phivalue*cos((freq+1)*theta))/(2*(1+cos(theta))*(1-cos(freq*theta)));
+// alpha restriction
+                if((matg(0)>((Bvalue + Cvalue)/(4*phivalue))) || (matg(0)<(1-1/phivalue-matg(2)*(1-freq+phivalue*(1+freq))/(2*phivalue*freq)))){
+                    matg.zeros();
+                    matrixxt.zeros();
+                }
+// beta restriction
+                if((matg(1)>(Dvalue+matg(0)*(phivalue-1))) || (matg(1)<(phivalue-1)*(matg(2)/freq+matg(0)))){
+                    matg.zeros();
+                    matrixxt.zeros();
+                }
+// gamma restriction
+                if((matg(2)>(1+1/phivalue-matg(0))) || (matg(2)<(std::max(1-1/phivalue-matg(0),0.0)))){
+                    matg.zeros();
+                    matrixxt.zeros();
+                }
+            }
+        }
+    }
+
+    return optimizer(matrixxt,matrixF,matrixw,matyt,matg,hor,E,T,S,freq,tr,CFtype,normalize);
 }

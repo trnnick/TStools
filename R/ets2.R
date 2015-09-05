@@ -376,7 +376,22 @@ CF <- function(C){
     matF <- matrices$matF
     matw <- matrices$matw
 
-    CF.res <- optimizeets2(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),matrix(vecg,length(vecg),1),h,Etype,Ttype,Stype,seasfreq,trace,CF.type,normalizer)
+    if(estimate.persistence==TRUE){
+        if(bounds=="a" & trend.component==TRUE & seasonal.component==TRUE){
+            Theta.func <- function(Theta){
+                return(abs((phi*C[1]+phi+1)/(C[3]) + ((phi-1)*(1+cos(Theta)-cos(seasfreq*Theta))+cos((seasfreq-1)*Theta)-phi*cos((seasfreq+1)*Theta))/(2*(1+cos(Theta))*(1-cos(seasfreq*Theta)))))
+            }
+            Theta <- 0.1
+            Theta <- suppressWarnings(optim(Theta,Theta.func,method="Brent",lower=0,upper=1)$par)
+        }
+        else{
+            Theta <- 0
+        }
+        CF.res <- costfunc(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),matrix(vecg,length(vecg),1),h,Etype,Ttype,Stype,seasfreq,trace,CF.type,normalizer,bounds,phi,Theta)
+    }
+    else{
+        CF.res <- optimizerwrap(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),matrix(vecg,length(vecg),1),h,Etype,Ttype,Stype,seasfreq,trace,CF.type,normalizer)        
+    }
 
     if(is.nan(CF.res) | is.na(CF.res) | is.infinite(CF.res)){
         CF.res <- 1e100
@@ -409,174 +424,6 @@ MASE <- function(a,f,scale,round=3){
     return(result)
 }
 
-# Constrains for the usual bounds
-hin.constrains.u <- function(C){
-    p <- NA
-    d <- NA
-    i <- NA
-    i.s <- NA
-
-### Constrains for persistence vector
-    if(estimate.persistence==TRUE){
-# smoothing parameters constrains
-        p <- rep(NA,n.components*2)
-
-# alpha restrictions (0, 1)
-        p[1] <- C[1]
-        p[2] <- 1 - C[1]
-        if(trend.component==TRUE){
-# beta restrictions (0, alpha)
-            p[3] <- C[2]
-            p[4] <- C[1] - C[2]
-            if(seasonal.component==TRUE){
-# gamma restrictions (0, 1 - alpha)
-                p[5] <- C[3]
-                p[6] <- 1 - C[1] - C[3]
-            }
-        }
-        else{
-            if(seasonal.component==TRUE){
-# gamma restrictions (0, 1 - alpha)
-                p[3] <- C[2]
-                p[4] <- 1 - C[1] - C[2]
-            }
-        }
-    }
-
-### Constrains for damping parameter (0, 1)
-    if(estimate.phi==TRUE){
-        d <- rep(NA,2)
-        d[1] <- C[n.components*estimate.persistence + 1]
-        d[2] <- 1 - C[n.components*estimate.persistence + 1]
-    }
-
-### Constrains on initial parameters (-Inf, Inf)
-    if(estimate.initial){
-        i <- rep(NA,(n.components - seasonal.component + 1))
-        i[1] <- 1
-        n <- n.components*estimate.persistence + estimate.phi
-        if(Ttype=="M"){
-            i[2] <- C[n+1]
-            i[3] <- C[n+2]
-        }
-    }
-
-### Constrains on initial seasonal parameters (-Inf, Inf) for additive and (0.1, 1.9) for multiplicative
-    if(estimate.initial.season==TRUE){
-        i.s <- rep(NA,(seasfreq*2))
-        n <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial
-            if(Stype=="A"){
-                i.s <- 1
-            }
-            else{
-                i.s[1:seasfreq] <- C[(n + 1):(n + seasfreq)] - 0.1
-                i.s[(seasfreq+1):(2*seasfreq)] <- 1.9 - C[(n + 1):(n + seasfreq)]
-            }
-    }
-
-    constrains <- c(p,d,i,i.s)
-    constrains <- constrains[!is.na(constrains)]
-
-    return(constrains)
-}
-
-# Constrains for the admissible bounds
-hin.constrains.a <- function(C){
-    p <- NA
-    d <- NA
-    i <- NA
-    i.s <- NA
-
-### Constrains for persistence vector
-    if(estimate.persistence==TRUE){
-# smoothing parameters constrains
-        p <- rep(NA,n.components*2)
-
-        if(estimate.phi==TRUE){
-            phi <- C[3]
-        }
-        if(seasonal.component==FALSE){
-# alpha restrictions
-            p[1] <- C[1] - 1 + 1 / phi
-            p[2] <- 1 + 1 / phi - C[1]
-            if(trend.component==TRUE){
-# beta restrictions
-                p[3] <- C[2] - C[1] * (phi - 1)
-                p[4] <- (1 + phi) * (2 - C[1]) - C[2]
-            }
-        }
-        else{
-            if(trend.component==FALSE){
-# alpha restrictions
-                p[1] <- C[1] + 2 / (seasfreq - 1)
-                p[2] <- 2 - C[2] - C[1]
-# gamma restrictions
-                p[3] <- C[2] - max(- seasfreq * C[1], 0)
-                p[4] <- 2 - C[1] - C[2]
-            }
-            else{
-                B.value <- phi*(4-3*C[3])+C[3]*(1-phi) / seasfreq
-                C.value <- sqrt(B.value^2-8*(phi^2*(1-C[3])^2+2*(phi-1)*(1-C[3])-1)+8*C[3]^2*(1-phi) / seasfreq)
-### Solve the equation to get Theta value for D.value variable
-                Theta.func <- function(Theta){
-                    result <- (phi*C[1]+phi+1)/(C[3]) +
-                        ((phi-1)*(1+cos(Theta)-cos(seasfreq*Theta))+cos((seasfreq-1)*Theta)-phi*cos((seasfreq+1)*Theta))/(2*(1+cos(Theta))*(1-cos(seasfreq*Theta)))
-                    return(abs(result))
-                }
-                Theta <- 0.1
-                Theta <- optim(Theta,Theta.func,method="Brent",lower=0,upper=1)$par
-                D.value <- (phi*(1-C[1])+1)*(1-cos(Theta)) - C[3]*((1+phi)*(1-cos(Theta)-cos(seasfreq*Theta))+cos((seasfreq-1)*Theta)+phi*cos((seasfreq+1)*Theta))/(2*(1+cos(Theta))*(1-cos(seasfreq*Theta)))
-
-# alpha restrictions
-                p[1] <- C[1] - 1 + 1 / phi + C[3] * (1 - seasfreq + phi * (1 + seasfreq)) / (2 * phi * seasfreq)
-                p[2] <- (B.value + C.value) / (4 * phi) - C[1]
-# beta restrictions
-                p[3] <- C[2] + (1 - phi) * (C[3]/seasfreq + C[1])
-                p[4] <- D.value + (phi - 1) * C[1] - C[2]
-# gamma restrictions
-                p[5] <- C[3] - max(1 - 1/phi - C[1], 0)
-                p[6] <- 1 + 1/phi - C[3]
-            }
-        }
-    }
-
-### Constrains for damping parameter (0, 1)
-    if(estimate.phi==TRUE){
-        d <- rep(NA,2)
-        d[1] <- C[n.components*estimate.persistence + 1]
-        d[2] <- 1 - C[n.components*estimate.persistence + 1]
-    }
-
-### Constrains on initial parameters: (-Inf, Inf) for additive and (0, Inf) for multiplicative
-    if(estimate.initial){
-        i <- rep(NA,(n.components - seasonal.component + 1))
-        i[1] <- 1
-        n <- n.components*estimate.persistence + estimate.phi
-        if(Ttype=="M"){
-            i[2] <- C[n+1]
-            i[3] <- C[n+2]
-        }
-    }
-
-### Constrains on initial seasonal parameters (-Inf, Inf) for additive and (0.1, 1.9) for multiplicative
-    if(estimate.initial.season==TRUE){
-        i.s <- rep(NA,(seasfreq*2))
-        n <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial
-            if(Stype=="A"){
-                i.s <- 1
-            }
-            else{
-                i.s[1:seasfreq] <- C[(n + 1):(n + seasfreq)] - 0.1
-                i.s[(seasfreq+1):(2*seasfreq)] <- 1.9 - C[(n + 1):(n + seasfreq)]
-            }
-    }
-
-    constrains <- c(p,d,i,i.s)
-    constrains <- constrains[!is.na(constrains)]
-
-    return(constrains)
-}
-
 # Function constructs default bounds where C values should lie
 C.values <- function(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,seasonal.component){
     if(bounds=="u"){
@@ -586,7 +433,7 @@ C.values <- function(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,sea
 
         if(estimate.persistence==TRUE){
             C <- c(C,vecg)
-            C.lower <- c(C.lower,rep(-0.0001,length(vecg)))
+            C.lower <- c(C.lower,rep(0,length(vecg)))
             C.upper <- c(C.upper,rep(1,length(vecg)))
         }
         if(estimate.phi==TRUE){
@@ -613,7 +460,7 @@ C.values <- function(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,sea
                     C.upper <- c(C.upper,rep(Inf,seasfreq))
                 }
                 else{
-                    C.lower <- c(C.lower,rep(-0.0001,seasfreq))
+                    C.lower <- c(C.lower,rep(0,seasfreq))
                     C.upper <- c(C.upper,rep(10,seasfreq))
                 }
             }
@@ -626,7 +473,7 @@ C.values <- function(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,sea
 
         if(estimate.persistence==TRUE){
             C <- c(C,vecg)
-            C.lower <- c(C.lower,rep(0,length(vecg)))
+            C.lower <- c(C.lower,rep(-5,length(vecg)))
             C.upper <- c(C.upper,rep(5,length(vecg)))
         }
         if(estimate.phi==TRUE){
@@ -793,10 +640,13 @@ ets2.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
         C <- Cs$C
         C.upper <- Cs$C.upper
         C.lower <- Cs$C.lower
-        res <- nloptr::cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper)
-        CF.objective <- res$value
+#        res <- nloptr::cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper)
+#        CF.objective <- res$value
+        res <- nloptr::nloptr(C, CF, lb=C.lower, ub=C.upper,
+                              opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000))
+        CF.objective <- res$objective
 
-        init.ets <- estim.values(matxt,vecg,phi,res$par,n.components,seasfreq,seasonal.component,Stype)
+        init.ets <- estim.values(matxt,vecg,phi,res$solution,n.components,seasfreq,seasonal.component,Stype)
         vecg <<- init.ets$vecg
         phi <- init.ets$phi
         matxt <<- init.ets$matxt
@@ -807,10 +657,10 @@ ets2.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
 
         n.param <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + seasfreq*estimate.initial.season
 
-        IC.values <- IC.calc(CF.objective=CF.objective,n.param=n.param,C=res$par,Etype=Etype)
+        IC.values <- IC.calc(CF.objective=CF.objective,n.param=n.param,C=res$solution,Etype=Etype)
         ICs <- IC.values$ICs
 
-        results[[j]] <- c(ICs,Etype,Ttype,Stype,damped,CF.objective,res$par)
+        results[[j]] <- c(ICs,Etype,Ttype,Stype,damped,CF.objective,res$solution)
     }
     if(silent==FALSE){
         cat("... Done! \n")
@@ -900,13 +750,6 @@ ets2.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
 
 # Number of observations in the mat.error matrix excluding NAs.
         errors.mat.obs <- obs - h + 1
-        
-        if(bounds=="u"){
-            hin.constrains <- hin.constrains.u
-        }
-        else{
-            hin.constrains <- hin.constrains.a
-        }
 
         if(Etype=="Z" | Ttype=="Z" | Stype=="Z"){
 ############ ETS2.auto should be rewritten in C++!!! ############
@@ -944,9 +787,16 @@ ets2.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
             C <- Cs$C
             C.upper <- Cs$C.upper
             C.lower <- Cs$C.lower
-            res <- nloptr::cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper)
-            CF.objective <- res$value
-            C <- res$par
+#            res <- nloptr::cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper)
+#            CF.objective <- res$value
+#            C <- res$par
+#            eval_g_ineq=hin.constrains,
+#   
+############ Can we introduce the constraints in the cost function (returning Inf if constrains are violated)? ############
+            res <- nloptr::nloptr(C, CF, lb=C.lower, ub=C.upper,
+                                  opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000))
+            CF.objective <- res$objective
+            C <- res$solution
 
             init.ets <- estim.values(matxt,vecg,phi,C,n.components,seasfreq,seasonal.component,Stype)
             vecg <- init.ets$vecg
@@ -966,15 +816,15 @@ ets2.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
     matF <- matrices$matF
     matw <- matrices$matw
 
-    fitting <- fitets2(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),matrix(vecg,length(vecg),1),Etype,Ttype,Stype,seasfreq)
+    fitting <- fitterwrap(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),matrix(vecg,length(vecg),1),Etype,Ttype,Stype,seasfreq)
     matxt <- ts(fitting$matxt,start=(time(data)[1] - deltat(data)*seasfreq),frequency=frequency(data))
     y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data))
 
-    errors.mat <- ts(errorets2wrap(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),h,Etype,Ttype,Stype,seasfreq,TRUE),start=start(data),frequency=frequency(data))
+    errors.mat <- ts(errorerwrap(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),h,Etype,Ttype,Stype,seasfreq,TRUE),start=start(data),frequency=frequency(data))
     colnames(errors.mat) <- paste0("Error",c(1:h))
     errors <- ts(errors.mat[,1],start=start(data),frequency=frequency(data))
 
-    y.for <- ts(forets2wrap(matrix(matxt[(obs+1):(obs+seasfreq),],nrow=seasfreq),matF,matrix(matw,nrow=1),h,Ttype,Stype,seasfreq),start=time(data)[obs]+deltat(data),frequency=frequency(data))
+    y.for <- ts(forecasterwrap(matrix(matxt[(obs+1):(obs+seasfreq),],nrow=seasfreq),matF,matrix(matw,nrow=1),h,Ttype,Stype,seasfreq),start=time(data)[obs]+deltat(data),frequency=frequency(data))
 
     y <- data
 

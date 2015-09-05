@@ -53,7 +53,6 @@ nemenyi(data, conf.int=0.95, sort=c(TRUE,FALSE),
 }
 \references{
 Hibbon M., Crone S. F., Kourentzes N., 2012. Statistical significance of forecasting methods: An empirical evaluation of the robustness and interpretability of the MCB, ANOM and Nemenyi tests, The 32nd Annual International Symposium on Forecasting, Boston.
-\url{http://www.forecasters.org/proceedings12/HibonMicheleISF2012.pdf}
 }
 \author{
 Ivan Svetunkov and Nikolaos Kourentzes
