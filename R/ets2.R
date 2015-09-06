@@ -166,6 +166,68 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         }
     }
 
+# Now let's prepare the provided exogenous data for the inclusion in ETS
+# Check the exogenous variable if it is present and
+# fill in the values of xreg if it is absent in the holdout sample.
+    if(!is.null(xreg)){
+##### The case with vectors and ts objects, but not matrices #####
+        if(is.vector(xreg) | (is.ts(xreg) & !is.matrix(xreg))){
+# If xreg is vector or simple ts
+        if(length(xreg)!=obs & length(xreg)!=obs.all){
+            stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=F)
+        }
+        if(length(xreg)==obs){
+            message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
+            xreg <- c(coredata(xreg),rep(xreg[obs],h));
+        }
+# Number of exogenous variables
+        n.exovars <- 1;
+# Define matrix w for exogenous variables
+        matwex <- matrix(xreg,ncol=1);
+# Define the second matxtreg to fill in the coefs of the exogenous vars
+        matxtreg <- matrix(NA,max(obs+seasfreq,obs.all),1);
+        colnames(matxtreg) <- "exogenous";
+# Fill in the initial values for exogenous coefs using OLS
+        matxtreg[1:seasfreq,] <- cov(data[1:obs],xreg[1:obs])/var(xreg[1:obs]);
+# Redefine the number of components of ETS.
+#        n.components <- n.components + 1;
+        }
+##### The case with matrices and data frames #####
+        else if(is.matrix(xreg) | is.data.frame(xreg)){
+    # If xreg is matrix or data frame
+            if(nrow(xreg)!=obs & nrow(xreg)!=obs.all){
+                stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=F)
+            }
+            if(nrow(xreg)==obs){
+              message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
+                for(j in 1:h){
+                xreg <- rbind(xreg,xreg[obs,]);
+                }
+            }
+# mat.x is needed for the initial values of coefs estimation using OLS
+            mat.x <- as.matrix(cbind(rep(1,obs.all),xreg));
+            n.exovars <- ncol(xreg);
+# Define the second matxtreg to fill in the coefs of the exogenous vars
+            matxtreg <- matrix(NA,max(obs+seasfreq,obs.all),n.exovars)
+            colnames(matxtreg) <- paste0("x",c(1:n.exovars));
+# Define matrix w for exogenous variables
+            matwex <- as.matrix(xreg);
+# Fill in the initial values for exogenous coefs using OLS
+            matxtreg[1:seasfreq,] <- rep(t(solve(t(mat.x[1:obs,]) %*% mat.x[1:obs,]) %*% t(mat.x[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],each=seasfreq);
+# Redefine the number of components of ETS.
+#            n.components <- n.components + n.exovars;
+        }
+        else{
+            stop("Unknown format of xreg. Should be either vector or matrix. Aborting!",call.=F);
+        }
+# Redefine the number of all the parameters. Used in AIC mainly!
+#        n.param <- n.param + n.exovars;
+    }
+    else{
+        n.exovars <- 1;
+        matwex <- matrix(0,max(obs+seasfreq,obs.all),1);
+        matxtreg <- matrix(0,max(obs+seasfreq,obs.all),1);
+    }
 
 # Function fills in the initial values of xt estimating the series.
 define.xt <- function(Ttype,Stype,seasfreq,n.components){
@@ -306,6 +368,7 @@ define.param <- function(Ttype,Stype,damped,phi){
 }
 
 # Function returns transition matrix F and measurement matrix w depending on chosen model
+##### This function can be transfered into Rcpp #####
 mat.ets <- function(trend.component,seasonal.component,phi){
     if(seasonal.component==FALSE){
         if(trend.component==FALSE){
@@ -331,7 +394,8 @@ mat.ets <- function(trend.component,seasonal.component,phi){
 }
 
 # Function fills in the initial values of matxt using values of C
-estim.values <- function(matxt,vecg,phi,C,n.components,seasfreq,seasonal.component,Stype){
+##### This function can be transfered into Rcpp #####
+estim.values <- function(matxt,vecg,phi,C,n.components,seasfreq,seasonal.component,Stype,matxtreg){
 
 # If the persistence vector is provided, use it
     if(estimate.persistence==TRUE){
@@ -360,17 +424,22 @@ estim.values <- function(matxt,vecg,phi,C,n.components,seasfreq,seasonal.compone
             }
         }
     }
+# If exogenous are included
+    if(!is.null(xreg)){
+        matxtreg[1:seasfreq,] <- rep(C[(length(C)-n.exovars+1):length(C)],each=seasfreq);
+    }
 
-    return(list(vecg=vecg,phi=phi,matxt=matxt))
+    return(list(vecg=vecg,phi=phi,matxt=matxt,matxtreg=matxtreg))
 }
 
 # Cost function for ETS
 CF <- function(C){
 
-    init.ets <- estim.values(matxt,vecg,phi,C,n.components,seasfreq,seasonal.component,Stype)
+    init.ets <- estim.values(matxt,vecg,phi,C,n.components,seasfreq,seasonal.component,Stype,matxtreg)
     vecg <- init.ets$vecg
     phi <- init.ets$phi
     matxt <- init.ets$matxt
+    matxtreg <- init.ets$matxtreg
 
     matrices <- mat.ets(trend.component,seasonal.component,phi)
     matF <- matrices$matF
@@ -387,10 +456,10 @@ CF <- function(C){
         else{
             Theta <- 0
         }
-        CF.res <- costfunc(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),matrix(vecg,length(vecg),1),h,Etype,Ttype,Stype,seasfreq,trace,CF.type,normalizer,bounds,phi,Theta)
+        CF.res <- costfunc(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),matrix(vecg,length(vecg),1),h,Etype,Ttype,Stype,seasfreq,trace,CF.type,normalizer,matwex,matxtreg,bounds,phi,Theta)
     }
     else{
-        CF.res <- optimizerwrap(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),matrix(vecg,length(vecg),1),h,Etype,Ttype,Stype,seasfreq,trace,CF.type,normalizer)        
+        CF.res <- optimizerwrap(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),matrix(vecg,length(vecg),1),h,Etype,Ttype,Stype,seasfreq,trace,CF.type,normalizer,matwex,matxtreg)
     }
 
     if(is.nan(CF.res) | is.na(CF.res) | is.infinite(CF.res)){
@@ -398,13 +467,6 @@ CF <- function(C){
     }
 
     return(CF.res)
-}
-
-# Function returns interval forecasts.
-int.ets <- function(xt,matF,matw,vecg,h=1){
-    y.lo <- rep(NA,h)
-    y.up <- y.lo
-    return(list(y.up=y.up,y.lo=y.lo))
 }
 
 MASE.lvl <- function(a,f,round=3){
@@ -425,7 +487,7 @@ MASE <- function(a,f,scale,round=3){
 }
 
 # Function constructs default bounds where C values should lie
-C.values <- function(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,seasonal.component){
+C.values <- function(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,seasonal.component,matxtreg){
     if(bounds=="u"){
         C <- NA
         C.lower <- NA
@@ -507,6 +569,12 @@ C.values <- function(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,sea
         }
     }
 
+    if(!is.null(xreg)){
+        C <- c(C,matxtreg[seasfreq,])
+        C.lower <- c(C.lower,rep(-Inf,n.exovars))
+        C.upper <- c(C.upper,rep(Inf,n.exovars))
+    }
+    
     C <- C[!is.na(C)]
     C.lower <- C.lower[!is.na(C.lower)]
     C.upper <- C.upper[!is.na(C.upper)]
@@ -636,17 +704,15 @@ ets2.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
         estimate.initial <<- param.values$estimate.initial
         estimate.initial.season <<- param.values$estimate.initial.season
 
-        Cs <- C.values(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,seasonal.component)
+        Cs <- C.values(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,seasonal.component,matxtreg)
         C <- Cs$C
         C.upper <- Cs$C.upper
         C.lower <- Cs$C.lower
-#        res <- nloptr::cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper)
-#        CF.objective <- res$value
         res <- nloptr::nloptr(C, CF, lb=C.lower, ub=C.upper,
                               opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000))
         CF.objective <- res$objective
 
-        init.ets <- estim.values(matxt,vecg,phi,res$solution,n.components,seasfreq,seasonal.component,Stype)
+        init.ets <- estim.values(matxt,vecg,phi,res$solution,n.components,seasfreq,seasonal.component,Stype,matxtreg)
         vecg <<- init.ets$vecg
         phi <- init.ets$phi
         matxt <<- init.ets$matxt
@@ -776,32 +842,28 @@ ets2.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
             estimate.initial <- param.values$estimate.initial
             estimate.initial.season <- param.values$estimate.initial.season
 
-            init.ets <- estim.values(matxt,vecg,phi,C,n.components,seasfreq,seasonal.component,Stype)
+            init.ets <- estim.values(matxt,vecg,phi,C,n.components,seasfreq,seasonal.component,Stype,matxtreg)
             vecg <- init.ets$vecg
             phi <- init.ets$phi
             matxt <- init.ets$matxt
+            matxtreg <- init.ets$matxtreg
 
         }
         else{
-            Cs <- C.values(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,seasonal.component)
+            Cs <- C.values(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,seasonal.component,matxtreg)
             C <- Cs$C
             C.upper <- Cs$C.upper
             C.lower <- Cs$C.lower
-#            res <- nloptr::cobyla(C, CF, hin=hin.constrains, lower=C.lower, upper=C.upper)
-#            CF.objective <- res$value
-#            C <- res$par
-#            eval_g_ineq=hin.constrains,
-#   
-############ Can we introduce the constraints in the cost function (returning Inf if constrains are violated)? ############
             res <- nloptr::nloptr(C, CF, lb=C.lower, ub=C.upper,
                                   opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000))
             CF.objective <- res$objective
             C <- res$solution
 
-            init.ets <- estim.values(matxt,vecg,phi,C,n.components,seasfreq,seasonal.component,Stype)
+            init.ets <- estim.values(matxt,vecg,phi,C,n.components,seasfreq,seasonal.component,Stype,matxtreg)
             vecg <- init.ets$vecg
             phi <- init.ets$phi
             matxt <- init.ets$matxt
+            matxtreg <- init.ets$matxtreg
         }
     }
 
@@ -816,15 +878,34 @@ ets2.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
     matF <- matrices$matF
     matw <- matrices$matw
 
-    fitting <- fitterwrap(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),matrix(vecg,length(vecg),1),Etype,Ttype,Stype,seasfreq)
+    component.names <- colnames(matxt)
+
+    fitting <- fitterwrap(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),matrix(vecg,length(vecg),1),Etype,Ttype,Stype,seasfreq,matwex,matxtreg)
     matxt <- ts(fitting$matxt,start=(time(data)[1] - deltat(data)*seasfreq),frequency=frequency(data))
     y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data))
 
-    errors.mat <- ts(errorerwrap(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),h,Etype,Ttype,Stype,seasfreq,TRUE),start=start(data),frequency=frequency(data))
+    if(!is.null(xreg)){
+# Write down the matxtreg and copy values for the holdout
+        matxtreg[1:nrow(fitting$matxtreg),] <- fitting$matxtreg
+        matxtreg[(obs.all-h+1):obs.all,] <- rep(matxtreg[1,],each=h)
+    }
+
+    errors.mat <- ts(errorerwrap(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),h,Etype,Ttype,Stype,seasfreq,TRUE,matwex,matxtreg),start=start(data),frequency=frequency(data))
     colnames(errors.mat) <- paste0("Error",c(1:h))
     errors <- ts(errors.mat[,1],start=start(data),frequency=frequency(data))
 
-    y.for <- ts(forecasterwrap(matrix(matxt[(obs+1):(obs+seasfreq),],nrow=seasfreq),matF,matrix(matw,nrow=1),h,Ttype,Stype,seasfreq),start=time(data)[obs]+deltat(data),frequency=frequency(data))
+    y.for <- ts(forecasterwrap(matrix(matxt[(obs+1):(obs+seasfreq),],nrow=seasfreq),matF,matrix(matw,nrow=1),h,Ttype,Stype,seasfreq,matrix(matwex[(obs.all-h+1):(obs.all),],ncol=n.exovars),matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars)),start=time(data)[obs]+deltat(data),frequency=frequency(data))
+
+# Write down the forecasting intervals
+#    if(intervals==T){
+#    y.var <- forecastervar(matF,matrix(matw[1,],nrow=1),vecg,h,var(errors),Etype,Ttype,Stype,seasfreq);
+#    y.low <- ts(y.for + qt((1-int.w)/2,df=(obs - n.components))*sqrt(y.var),start=start(y.for),frequency=frequency(data))
+#    y.high <- ts(y.for + qt(1-(1-int.w)/2,df=(obs - n.components))*sqrt(y.var),start=start(y.for),frequency=frequency(data))
+#    }
+#    else{
+        y.low <- NA
+        y.high <- NA
+#    }
 
     y <- data
 
@@ -838,6 +919,10 @@ ets2.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
         n.param <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + seasfreq*estimate.initial.season
     }
 
+    if(!is.null(xreg)){
+        n.param <- n.param + n.exovars
+    }
+
     FI <- numDeriv::hessian(Likelihood.value,C)
 
 # Calculate IC values
@@ -845,20 +930,22 @@ ets2.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
     llikelihood <- IC.values$llikelihood
     ICs <- IC.values$ICs
 
-# Convert bounds to ts
-    if(intervals==T){
-        y.low <- ts(y.low,start=start(y.for),frequency=frequency(data))
-        y.high <- ts(y.high,start=start(y.for),frequency=frequency(data))
+    if(!is.null(xreg)){
+        matxt <- cbind(matxt,matxtreg[1:nrow(matxt),])
+        colnames(matxt) <- c(component.names,colnames(matxtreg))
+    }
+    else{
+        colnames(matxt) <- c(component.names)
     }
 
 if(silent==FALSE){
 # Define plot.range for plot
-    if(intervals==T){
-        plot.range <- range(min(data,y.fit,y.for,y.low),max(data,y.fit,y.for,y.high))
-    }
-    else{
+#    if(intervals==T){
+#        plot.range <- range(min(data,y.fit,y.for,y.low),max(data,y.fit,y.for,y.high))
+#    }
+#    else{
         plot.range <- range(min(data,y.fit,y.for),max(data,y.fit,y.for))
-    }
+#    }
     
 # Print time elapsed on the construction
     print(paste0("Time elapsed: ",round(as.numeric(Sys.time() - start.time,units="secs"),2)," seconds"))
@@ -871,15 +958,17 @@ if(silent==FALSE){
     if(seasonal.component==TRUE){
         print(paste0("Initial seasonal components: ", paste(round(matxt[1:seasfreq,n.components],3),collapse=", ")))
     }
+    if(!is.null(xreg)){
+        print(paste0("Xreg coefficients: ", paste(round(matxtreg[seasfreq,],3),collapse=", ")))
+    }
     print(paste0("Residuals sigma: ",round(sqrt(mean(errors^2)),3)))
     if(trace==TRUE){
-        print(paste0("CF type: trace with ",CF.type))
+        print(paste0("CF type: trace with ",CF.type, "; CF value is: ",round(CF.objective,0)))
     }
     else{
-        print(paste0("CF type: one step ahead"))
+        print(paste0("CF type: one step ahead; CF value is: ",round(CF.objective,0)))
     }
-    print(paste0("CF value is: ",round(CF.objective,0)))
-    print(paste0("Biased log-likelihood: ",round((llikelihood - n.param*h^trace),0)))
+#    print(paste0("Biased log-likelihood: ",round((llikelihood - n.param*h^trace),0)))
     print(paste0("AIC: ",round(ICs["AIC"],3)," AICc: ", round(ICs["AICc"],3)))
     if(holdout==T){
         print(paste0("MASE: ",MASE(coredata(data)[(obs+1):obs.all],coredata(y.for),mean(abs(diff(coredata(data)[1:obs]))),round=3)))
@@ -989,5 +1078,5 @@ if(silent==FALSE){
     par(mfrow=c(1,1), mar=c(5,4,4,2))
 }
 
-return(list(persistence=vecg,phi=phi,states=matxt,fitted=y.fit,forecast=y.for,residuals=errors,errors=errors.mat,x=data,ICs=ICs,CF=CF.objective,FI=FI))
+return(list(persistence=vecg,phi=phi,states=matxt,fitted=y.fit,forecast=y.for,residuals=errors,errors=errors.mat,x=data,ICs=ICs,CF=CF.objective,FI=FI,xreg=xreg))
 }

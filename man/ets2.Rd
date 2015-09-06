@@ -42,7 +42,7 @@ ets2(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{int.w}{ Defines the width of the prediction interval. NOT IMPLEMENTED YET
   }
-  \item{xreg}{ The vector / matrix / dataframe of exogenous variables. NOT IMPLEMENTED YET
+  \item{xreg}{ The vector / matrix / dataframe of exogenous variables.
   }
   \item{holdout}{ If TRUE, the holdout sample of size h is taken from the end of the data.
   }
@@ -75,6 +75,7 @@ The details will be here soon.
     \item \code{FI} - Fisher Information estimated in the optimal point.
     \item \code{lower} - the lower bound of prediction interval. When \code{intervals=FALSE} then NA is returned. NOT YET IMPLEMENTED
     \item \code{upper} - the higher bound of prediction interval. When \code{intervals=FALSE} then NA is returned. NOT YET IMPLEMENTED
+    \item \code{xreg} - the provided vector or matrix of exogenous variables.
   }
 }
 \references{
@@ -100,8 +101,10 @@ library(Mcomp)
 ets2(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,trace=FALSE) -> test
 ets2(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,trace=TRUE) -> test
 ets2(M3$N2568$x,model="AMA",h=18,holdout=TRUE,trace=TRUE) -> test
-ets2(M3$N1245$x,model="ZZN",IC="AIC",h=8,holdout=FALSE,trace=FALSE) -> test
+ets2(M3$N1245$x,model="ZZN",IC="AIC",h=8,holdout=FALSE,trace=FALSE,boudns="a") -> test
 
+x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
+ets2(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,trace=TRUE)->test
 }
 \keyword{ exponential smoothing }
 \keyword{ ETS }
