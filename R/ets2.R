@@ -2,8 +2,9 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                  bounds=c("usual","admissible"),
                  initial=NULL, initial.season=NULL,
                  IC=c("AICc","AIC"), trace=FALSE, CF.type=c("TLV","GV","TV","hsteps"),
-                 intervals=FALSE, int.w=0.95, xreg=NULL,
-                 holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
+                 intervals=FALSE, int.w=0.95,
+                 int.type=c("parametric","semiparametric","nonparametric"),
+                 xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
                  ...){
 
 # Start measuring the time of calculations
@@ -12,6 +13,17 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     bounds <- substring(bounds[1],1,1)
     IC <- IC[1]
     CF.type <- CF.type[1]
+
+    int.type <- substring(int.type[1],1,1)
+# Check the provided type of interval
+    if(int.type!="p" & int.type!="s" & int.type!="n"){
+        message(paste0("The wrong type of interval chosen: '",int.type, "'. Switching to 'semiparametric'."))
+        int.type <- "s";
+    }
+#### While intervals are not fully supported, use semi-parametric instead of parametric.
+    if(int.type=="p"){
+        int.type <- "s"
+    }
 
 # Check if the data is vector
     if(!is.numeric(data) & !is.ts(data)){
@@ -897,15 +909,39 @@ ets2.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
     y.for <- ts(forecasterwrap(matrix(matxt[(obs+1):(obs+seasfreq),],nrow=seasfreq),matF,matrix(matw,nrow=1),h,Ttype,Stype,seasfreq,matrix(matwex[(obs.all-h+1):(obs.all),],ncol=n.exovars),matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars)),start=time(data)[obs]+deltat(data),frequency=frequency(data))
 
 # Write down the forecasting intervals
-#    if(intervals==T){
-#    y.var <- forecastervar(matF,matrix(matw[1,],nrow=1),vecg,h,var(errors),Etype,Ttype,Stype,seasfreq);
-#    y.low <- ts(y.for + qt((1-int.w)/2,df=(obs - n.components))*sqrt(y.var),start=start(y.for),frequency=frequency(data))
-#    y.high <- ts(y.for + qt(1-(1-int.w)/2,df=(obs - n.components))*sqrt(y.var),start=start(y.for),frequency=frequency(data))
-#    }
-#    else{
+    if(intervals==T){
+        if(int.type=="p"){
+#            y.var <- forecastervar(matF,matrix(matw[1,],nrow=1),vecg,h,var(errors),Etype,Ttype,Stype,seasfreq)
+            y.low <- NA
+            y.high <- NA
+        }
+        else if(int.type=="s"){
+            y.var <- colMeans(errors.mat^2,na.rm=T)
+            if(Etype=="A"){
+                y.low <- ts(y.for + qt((1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var),start=start(y.for),frequency=frequency(data))
+                y.high <- ts(y.for + qt(1-(1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var),start=start(y.for),frequency=frequency(data))
+            }
+            else{
+                y.low <- ts(y.for*(1 + qt((1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var)),start=start(y.for),frequency=frequency(data))
+                y.high <- ts(y.for*(1 + qt(1-(1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var)),start=start(y.for),frequency=frequency(data))
+            }
+        }
+        else{
+            y.var <- apply(errors.mat,2,quantile,probs=c((1-int.w)/2,1-(1-int.w)/2),na.rm=T)
+            if(Etype=="A"){
+                y.low <- ts(y.for + y.var[1,],start=start(y.for),frequency=frequency(data))
+                y.high <- ts(y.for + y.var[2,],start=start(y.for),frequency=frequency(data))
+            }
+            else{
+                y.low <- ts(y.for*(1 + y.var[1,]),start=start(y.for),frequency=frequency(data))
+                y.high <- ts(y.for*(1 + y.var[2,]),start=start(y.for),frequency=frequency(data))
+            }
+        }
+    }
+    else{
         y.low <- NA
         y.high <- NA
-#    }
+    }
 
     y <- data
 
@@ -940,12 +976,12 @@ ets2.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
 
 if(silent==FALSE){
 # Define plot.range for plot
-#    if(intervals==T){
-#        plot.range <- range(min(data,y.fit,y.for,y.low),max(data,y.fit,y.for,y.high))
-#    }
-#    else{
+    if(intervals==T){
+        plot.range <- range(min(data,y.fit,y.for,y.low),max(data,y.fit,y.for,y.high))
+    }
+    else{
         plot.range <- range(min(data,y.fit,y.for),max(data,y.fit,y.for))
-#    }
+    }
     
 # Print time elapsed on the construction
     print(paste0("Time elapsed: ",round(as.numeric(Sys.time() - start.time,units="secs"),2)," seconds"))
@@ -967,6 +1003,18 @@ if(silent==FALSE){
     }
     else{
         print(paste0("CF type: one step ahead; CF value is: ",round(CF.objective,0)))
+    }
+    if(intervals==TRUE){
+        if(int.type=="p"){
+            int.type <- "parametric"
+        }
+        else if(int.type=="s"){
+            int.type <- "semiparametric"
+        }
+        if(int.type=="n"){
+            int.type <- "nonparametric"
+        }
+        print(paste0(int.w*100,"% ",int.type," intervals were constructed"))
     }
 #    print(paste0("Biased log-likelihood: ",round((llikelihood - n.param*h^trace),0)))
     print(paste0("AIC: ",round(ICs["AIC"],3)," AICc: ", round(ICs["AICc"],3)))
@@ -1078,5 +1126,7 @@ if(silent==FALSE){
     par(mfrow=c(1,1), mar=c(5,4,4,2))
 }
 
-return(list(persistence=vecg,phi=phi,states=matxt,fitted=y.fit,forecast=y.for,residuals=errors,errors=errors.mat,x=data,ICs=ICs,CF=CF.objective,FI=FI,xreg=xreg))
+return(list(persistence=vecg,phi=phi,states=matxt,fitted=y.fit,forecast=y.for,
+            lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
+            x=data,ICs=ICs,CF=CF.objective,FI=FI,xreg=xreg))
 }

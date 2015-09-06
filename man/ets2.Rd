@@ -12,45 +12,48 @@ ets2(data, model="ZZZ", persistence=NULL, phi=NULL,
     bounds=c("usual","admissible"),
     initial=NULL, initial.season=NULL,
     IC=c("AICc","AIC"), trace=FALSE, CF.type=c("TLV","GV","TV","hsteps"),
-    intervals=FALSE, int.w=0.95, xreg=NULL,
-    holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
+    intervals=FALSE, int.w=0.95,
+    int.type=c("parametric","semiparametric","nonparametric"),
+    xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
     ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{data}{ the vector or ts object, containing the data needed to be forecasted.
   }
-  \item{model}{ the type of ETS model. Can consist of 3 or 4 chars: ANN, AAN, AAdN, AAA, AAdA, MAdM etc. ZZZ means that the model will be selected based on the chosen IC type.
+  \item{model}{ the type of ETS model. Can consist of 3 or 4 chars: \code{ANN}, \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA}, \code{MAdM} etc. \code{ZZZ} means that the model will be selected based on the chosen IC type.
   }
-  \item{persistence}{ The vector of smoothing parameters. If NULL, the parameters are estimated.
+  \item{persistence}{ The vector of smoothing parameters. If \code{NULL}, the parameters are estimated.
   }
-  \item{phi}{ The value of damping parameter. If NULL then the parameter is estimated.
+  \item{phi}{ The value of damping parameter. If \code{NULL} then the parameter is estimated.
   }
   \item{bounds}{ What type of bouds to use for the smoothing parameters.
   }
-  \item{initial}{ The vector of initial values for level and trend. If NULL, it is estimated in the optimization.
+  \item{initial}{ The vector of initial values for level and trend. If \code{NULL}, it is estimated in the optimization.
   }
-  \item{initial.season}{ The vector of initial values for seasonal components. If NULL, they are estimated in the optimization.
+  \item{initial.season}{ The vector of initial values for seasonal components. If \code{NULL}, they are estimated in the optimization.
   }
   \item{IC}{ The information criterion to use in the model selection.
   }
-  \item{trace}{ If TRUE, the trace likelihood is used in the estimation with trace of the length h.
+  \item{trace}{ If TRUE, the trace likelihood is used in the estimation with trace of the length \code{h}.
   }
-  \item{CF.type}{ Type of Cost Function used in trace optimization. Can be "GV" - Generalized Variance, "TLV" - Total Logarythmic Variation and "TV" - Total Variation, "hsteps" - optimisation using only h-steps ahead error.
+  \item{CF.type}{ Type of Cost Function used in trace optimization. Can be \code{GV} - Generalized Variance, \code{TLV} - Total Logarythmic Variation and \code{TV} - Total Variation, \code{hsteps} - optimisation using only h-steps ahead error.
   }
-  \item{intervals}{ If TRUE, the prediction interval is constructed. NOT IMPLEMENTED YET
+  \item{intervals}{ If \code{TRUE}, the prediction interval is constructed.
   }
-  \item{int.w}{ Defines the width of the prediction interval. NOT IMPLEMENTED YET
+  \item{int.w}{ Defines the width of the prediction interval.
+  }
+  \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} use the state-space structure of ETS, \code{semiparametric} are based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} use the quantiles of the errors in that matrix. PARTLY IMPLEMENTED - NO PARAMETRIC INTERVALS YET!
   }
   \item{xreg}{ The vector / matrix / dataframe of exogenous variables.
   }
-  \item{holdout}{ If TRUE, the holdout sample of size h is taken from the end of the data.
+  \item{holdout}{ If \code{TRUE}, the holdout sample of size \code{h} is taken from the end of the data.
   }
   \item{h}{ The length of the forecasting horizon.
   }
-  \item{silent}{ If TRUE, no output or graphs are printed out.
+  \item{silent}{ If \code{TRUE}, no output or graphs are printed out.
   }
-  \item{legend}{ If TRUE, the legend is drawn in the outplot.
+  \item{legend}{ If \code{TRUE}, the legend is drawn in the outplot.
   }
   \item{...}{ Other parameters that are passed to DON'T KNOW WHAT YET.
   }
@@ -67,14 +70,14 @@ The details will be here soon.
     \item \code{states} - the matrix of the components of CES. The included minimum is "level" and "potential". In the case of seasonal model the seasonal component is also included. In the case of exogenous variables the estimated coefficients for the exogenous variables are also included.
     \item \code{fitted} - the fitted values of ETS.
     \item \code{forecast} - the point forecast of ETS.
+    \item \code{lower} - the lower bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
+    \item \code{upper} - the higher bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
     \item \code{residuals} - the residuals of the estimated model.
-    \item \code{errors} - trace forecast in-sample errors used in the cost function. Matrix is returned in the case of \code{trace=T} and vector equal to \code{residuals} is return in the other case.
+    \item \code{errors} - trace forecast in-sample errors, returned as a matrix. In the case of trace forecasts this is the matrix used in optimisation. In non-trace estimations it is returned just for the information.
     \item \code{x} - the original data.
     \item \code{ICs} - values of information criteria of the model. Includes AIC and AICc.
     \item \code{CF} - Cost function value.
     \item \code{FI} - Fisher Information estimated in the optimal point.
-    \item \code{lower} - the lower bound of prediction interval. When \code{intervals=FALSE} then NA is returned. NOT YET IMPLEMENTED
-    \item \code{upper} - the higher bound of prediction interval. When \code{intervals=FALSE} then NA is returned. NOT YET IMPLEMENTED
     \item \code{xreg} - the provided vector or matrix of exogenous variables.
   }
 }
@@ -87,9 +90,7 @@ Ivan Svetunkov, \email{ivan@svetunkov.ru}
 \note{
 To do:
 
-1. Solve optimization issues.
-2. Derive the prediction intervals.
-3. Implement xreg.
+1. Derive the prediction intervals.
 }
 
 \seealso{
@@ -100,8 +101,10 @@ library(Mcomp)
 
 ets2(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,trace=FALSE) -> test
 ets2(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,trace=TRUE) -> test
-ets2(M3$N2568$x,model="AMA",h=18,holdout=TRUE,trace=TRUE) -> test
+ets2(M3$N2568$x,model="MAM",h=18,holdout=TRUE,trace=TRUE) -> test
 ets2(M3$N1245$x,model="ZZN",IC="AIC",h=8,holdout=FALSE,trace=FALSE,boudns="a") -> test
+
+ets2(M3$N1587$x,h=18,holdout=TRUE,intervals=TRUE,int.type="s") -> test
 
 x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
 ets2(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,trace=TRUE)->test
