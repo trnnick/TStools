@@ -82,9 +82,10 @@ The details will be here soon.
   }
 }
 \references{
-  \enumerate{
-    \item{Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008) Forecasting with exponential smoothing: the state space approach, Springer-Verlag. \url{http://www.exponentialsmoothing.net}.}
-    \item{Taylor J.W. and Bunn D.W. (1999) A Quantile Regression Approach to Generating Prediction Intervals. Management Science, Vol 45, No 2, pp 225-237.}
+    \enumerate{
+        \item{Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008) Forecasting with exponential smoothing: the state space approach, Springer-Verlag. \url{http://www.exponentialsmoothing.net}.}
+        \item{Taylor J.W. and Bunn D.W. (1999) A Quantile Regression Approach to Generating Prediction Intervals. Management Science, Vol 45, No 2, pp 225-237.}
+    }
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}
