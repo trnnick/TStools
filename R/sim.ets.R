@@ -1,4 +1,4 @@
-sim.ets <- function(model="ANN",seasfreq=1,
+sim.ets <- function(model="ANN",frequency=1,
              persistence=NULL, phi=1,
              initial=NULL, initial.season=NULL,
              bounds=c("usual","admissible","restricted"),
@@ -15,10 +15,10 @@ sim.ets <- function(model="ANN",seasfreq=1,
     Ttype <- substring(model,2,2)
     Stype <- substring(model,3,3)
 
-# In the case of wrong nseries, make it natural number. The same is for obs and seasfreq.
+# In the case of wrong nseries, make it natural number. The same is for obs and frequency.
     nseries <- abs(round(nseries,0))
     obs <- abs(round(obs,0))
-    seasfreq <- abs(round(seasfreq,0))
+    frequency <- abs(round(frequency,0))
 
     if(!is.null(persistence) & length(persistence)>3){
         stop("The length of persistence vector is wrong! It should not be greater than 3.",call.=FALSE)
@@ -151,16 +151,16 @@ ry.value <- function(Etype, Ttype, Stype, xt){
         stop("Wrong seasonality type! Should be 'N', 'A' or 'M'.",call.=FALSE)
     }
 
-    if(Stype!="N" & seasfreq==1){
-        stop("Cannot create the seasonal model with the data seasfreq 1!",call.=FALSE)
+    if(Stype!="N" & frequency==1){
+        stop("Cannot create the seasonal model with the data frequency 1!",call.=FALSE)
     }
 
     if(Stype!="N"){
         persistence.length <- persistence.length + 1
 # modelfreq is used in the cases of seasonal models.
-#   if modelfreq==1 then non-seasonal data will be produced with the defined seasfreq.
-        modelfreq <- seasfreq
-        lags <- c(lags,seasfreq)
+#   if modelfreq==1 then non-seasonal data will be produced with the defined frequency.
+        modelfreq <- frequency
+        lags <- c(lags,frequency)
         component.names <- c(component.names,"seasonality")
         matw <- c(matw,1)
         seasonal.component <- TRUE
@@ -212,7 +212,7 @@ ry.value <- function(Etype, Ttype, Stype, xt){
         }
     }
 
-# If the seasonal model is chosen, fill in the first "seasfreq" values of seasonal component.
+# If the seasonal model is chosen, fill in the first "frequency" values of seasonal component.
     if(seasonal.component==TRUE & !is.null(initial.season)){
         matxt[1:modelfreq,(n.components+1)] <- initial.season
     }
@@ -419,16 +419,16 @@ for(k in 1:nseries){
                 y[j-modelfreq] <- matw %*% matxt[cbind((j-lags),c(1:persistence.length))] + errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))])
                 matxt[j,] <- matF %*% matxt[cbind((j-lags),c(1:persistence.length))] + vecg * errors[j-modelfreq] * r.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))])
 # Renormalize seasonal component
-                at <- vecg[n.components+1] / seasfreq * errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))])
+                at <- vecg[n.components+1] / frequency * errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))])
                 matxt[j,1] <- matxt[j,1] + at
-                matxt[(j-seasfreq+1):(j),n.components+1] <- matxt[(j-seasfreq+1):(j),n.components+1] - at
+                matxt[(j-frequency+1):(j),n.components+1] <- matxt[(j-frequency+1):(j),n.components+1] - at
                 j <- j + 1
             }
         }
         else{
 ### ZMA
             while(j<=(obs+modelfreq)){
-                y[j-modelfreq] <- exp(matw[1:n.components] %*% log(matxt[cbind((j-lags[1:n.components]),c(1:n.components))])) + matxt[j-seasfreq,n.components+1] + errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))])
+                y[j-modelfreq] <- exp(matw[1:n.components] %*% log(matxt[cbind((j-lags[1:n.components]),c(1:n.components))])) + matxt[j-frequency,n.components+1] + errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))])
                 matxt[j,] <- Re(exp(matF %*% log(as.complex(matxt[cbind((j-lags),c(1:persistence.length))])))) + vecg * errors[j-modelfreq] * r.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))])
 #Failsafe for the negative components
                 if(matxt[j,1] < 0){
@@ -438,9 +438,9 @@ for(k in 1:nseries){
                     matxt[j,2] <- matxt[j-1,2]
                 }
 # Renormalize seasonal component
-                at <- vecg[n.components+1] / seasfreq * errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))])
+                at <- vecg[n.components+1] / frequency * errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))])
                 matxt[j,1] <- matxt[j,1] + at
-                matxt[(j-seasfreq+1):(j),n.components+1] <- matxt[(j-seasfreq+1):(j),n.components+1] - at
+                matxt[(j-frequency+1):(j),n.components+1] <- matxt[(j-frequency+1):(j),n.components+1] - at
                 j <- j + 1
             }
         }
@@ -450,15 +450,15 @@ for(k in 1:nseries){
 ### ZNM and ZAM
             while(j<=(obs+modelfreq)){
                 vec.r <- r.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))])
-                y[j-modelfreq] <- matw[1:n.components] %*% matxt[cbind((j-lags[1:n.components]),c(1:n.components))] * matxt[j-seasfreq,n.components+1] + errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))])
+                y[j-modelfreq] <- matw[1:n.components] %*% matxt[cbind((j-lags[1:n.components]),c(1:n.components))] * matxt[j-frequency,n.components+1] + errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))])
                 matxt[j,1:n.components] <- matF[1:n.components,1:n.components] %*% matxt[cbind((j-lags[1:n.components]),c(1:n.components))] + vecg[1:n.components] * errors[j-modelfreq] * vec.r[1:n.components]
-                matxt[j,(n.components+1)] <- matxt[j-seasfreq,(n.components+1)] + vecg[n.components+1] * errors[j-modelfreq] * vec.r[n.components+1]
+                matxt[j,(n.components+1)] <- matxt[j-frequency,(n.components+1)] + vecg[n.components+1] * errors[j-modelfreq] * vec.r[n.components+1]
 # Failsafe mechanism for the cases with negative multiplicative seasonals
                 if(matxt[j,(n.components+1)] < 0){
-                    matxt[j,(n.components+1)] <- matxt[j-seasfreq,(n.components+1)]
+                    matxt[j,(n.components+1)] <- matxt[j-frequency,(n.components+1)]
                 }
 # Renormalize seasonal component. It is done differently comparing with Hyndman et. al. 2008!
-                matxt[(j-seasfreq+1):(j),n.components+1] <- matxt[(j-seasfreq+1):(j),n.components+1] / exp(mean(log(matxt[(j-seasfreq+1):(j),n.components+1])))
+                matxt[(j-frequency+1):(j),n.components+1] <- matxt[(j-frequency+1):(j),n.components+1] / exp(mean(log(matxt[(j-frequency+1):(j),n.components+1])))
                 j <- j + 1
             }
         }
@@ -475,10 +475,10 @@ for(k in 1:nseries){
                     matxt[j,2] <- matxt[j-1,2]
                 }
                 if(matxt[j,3] < 0){
-                    matxt[j,3] <- matxt[j-seasfreq,3]
+                    matxt[j,3] <- matxt[j-frequency,3]
                 }
 # Renormalize seasonal component. It is done differently comparing with Hyndman et. al. 2008!
-                matxt[(j-seasfreq+1):(j),3] <- matxt[(j-seasfreq+1):(j),3] / exp(mean(log(matxt[(j-seasfreq+1):(j),3])))
+                matxt[(j-frequency+1):(j),3] <- matxt[(j-frequency+1):(j),3] / exp(mean(log(matxt[(j-frequency+1):(j),3])))
                 j <- j + 1
             }
         }
@@ -534,15 +534,15 @@ for(k in 1:nseries){
 }
 
     if(nseries==1){
-        y <- ts(y,frequency=seasfreq)
-        errors <- ts(errors,frequency=seasfreq)
-        matxt <- ts(matxt,frequency=seasfreq,start=c(0,seasfreq-modelfreq+1))
+        y <- ts(y,frequency=frequency)
+        errors <- ts(errors,frequency=frequency)
+        matxt <- ts(matxt,frequency=frequency,start=c(0,frequency-modelfreq+1))
 
         return(list(data=y,states=matxt,persistence=vecg,residuals=errors,model=model,likelihood=likelihood))
     }
     else{
-        mat.yt <- ts(mat.yt,frequency=seasfreq)
-        mat.errors <- ts(mat.errors,frequency=seasfreq)
+        mat.yt <- ts(mat.yt,frequency=frequency)
+        mat.errors <- ts(mat.errors,frequency=frequency)
         return(list(data=mat.yt,states=arr.xt,persistence=mat.g,residuals=mat.errors,model=model,likelihood=vec.likelihood))
     }
 }
