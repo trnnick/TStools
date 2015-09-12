@@ -911,7 +911,6 @@ ets2.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
 # Write down the forecasting intervals
     if(intervals==T){
         if(int.type=="p"){
-#            y.var <- forecastervar(matF,matrix(matw[1,],nrow=1),vecg,h,var(errors),Etype,Ttype,Stype,seasfreq)
             y.low <- NA
             y.high <- NA
         }
@@ -927,14 +926,27 @@ ets2.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
             }
         }
         else{
-            y.var <- apply(errors.mat,2,quantile,probs=c((1-int.w)/2,1-(1-int.w)/2),na.rm=T)
+            ye <- errors.mat
+            xe <- matrix(c(1:h),byrow=TRUE,ncol=h,nrow=nrow(errors.mat))
+            xe <- xe[!is.na(ye)]
+            ye <- ye[!is.na(ye)]
+#Function allows to estimate the coefficients of the simple quantile regression
+            quantfunc <- function(A){
+                ee <- ye - (A[1] + A[2]*xe + A[3]*xe^2)
+                return((1-quant)*sum(abs(ee[which(ee<0)]))+quant*sum(abs(ee[which(ee>=0)])))
+            }
+            A <- rep(1,3)
+            quant <- (1-int.w)/2;
+            A1 <- nlminb(A,quantfunc)$par
+            quant <- 1-(1-int.w)/2
+            A2 <- nlminb(A,quantfunc)$par
             if(Etype=="A"){
-                y.low <- ts(y.for + y.var[1,],start=start(y.for),frequency=frequency(data))
-                y.high <- ts(y.for + y.var[2,],start=start(y.for),frequency=frequency(data))
+                y.low <- ts(y.for + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2,start=start(y.for),frequency=frequency(data))
+                y.high <- ts(y.for + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2,start=start(y.for),frequency=frequency(data))
             }
             else{
-                y.low <- ts(y.for*(1 + y.var[1,]),start=start(y.for),frequency=frequency(data))
-                y.high <- ts(y.for*(1 + y.var[2,]),start=start(y.for),frequency=frequency(data))
+                y.low <- ts(y.for*(1 + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2),start=start(y.for),frequency=frequency(data))
+                y.high <- ts(y.for*(1 + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2),start=start(y.for),frequency=frequency(data))
             }
         }
     }
@@ -1021,6 +1033,11 @@ if(silent==FALSE){
     if(holdout==T){
         print(paste0("MASE: ",MASE(coredata(data)[(obs+1):obs.all],coredata(y.for),mean(abs(diff(coredata(data)[1:obs]))),round=3)))
         print(paste0("MASE.lvl: ",MASE.lvl(coredata(data)[(obs+1):obs.all],coredata(y.for),round=5)*100,"%"))
+        if(intervals==TRUE){
+            print(paste0(round(sum(coredata(data)[(obs+1):obs.all]<y.high &
+                    coredata(data)[(obs+1):obs.all]>y.low)/h*100,0),
+                    "% of values are in the interval"))
+        }
     }
 
     par(mfrow=c(1,1), mar=c(5,3,2,1))

@@ -43,7 +43,7 @@ ets2(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{int.w}{ Defines the width of the prediction interval.
   }
-  \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} use the state-space structure of ETS, \code{semiparametric} are based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} use the quantiles of the errors in that matrix. PARTLY IMPLEMENTED - NO PARAMETRIC INTERVALS YET!
+  \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} uses the state-space structure of ETS, \code{semiparametric} is based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} uses the values from a quantile regression on the error matrix (see Taylor and Bunn, 1999). PARTLY IMPLEMENTED - NO PARAMETRIC INTERVALS YET!
   }
   \item{xreg}{ The vector / matrix / dataframe of exogenous variables.
   }
@@ -82,7 +82,9 @@ The details will be here soon.
   }
 }
 \references{
-Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008) Forecasting with exponential smoothing: the state space approach, Springer-Verlag. \url{http://www.exponentialsmoothing.net}.
+  \enumerate{
+    \item{Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008) Forecasting with exponential smoothing: the state space approach, Springer-Verlag. \url{http://www.exponentialsmoothing.net}.}
+    \item{Taylor J.W. and Bunn D.W. (1999) A Quantile Regression Approach to Generating Prediction Intervals. Management Science, Vol 45, No 2, pp 225-237.}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}
