@@ -1,5 +1,5 @@
 ro <- function(data,h=1,origins=1,call,value=NULL,
-               ci=FALSE,co=FALSE){
+               ci=FALSE,co=FALSE,silent=FALSE){
 # Function makes Rolling Origin for the data using the call
 #    Copyright (C) 2015  Yves Sagaert & Ivan Svetunkov
   l.value <- length(value)
@@ -38,7 +38,9 @@ ro <- function(data,h=1,origins=1,call,value=NULL,
 
 #  forecasts <- actuals
   forecasts <- list(NA)
-  cat(paste0("Origins done:  "))
+  if(silent==FALSE){
+    cat(paste0("Origins done:  "))
+  }
 
   if(co==FALSE){
     for (i in 1:origins){
@@ -59,8 +61,10 @@ ro <- function(data,h=1,origins=1,call,value=NULL,
         forecasts[[(i-1)*l.value+j]] <- eval(parse(text=paste0("o.m",value[j])))
       }
       actuals[1:h,i] <- y[(in.sample+i):(in.sample+i+h-1)]
-      cat(paste(rep("\b",nchar(i)),collapse=""))
-      cat(i)
+      if(silent==FALSE){
+        cat(paste(rep("\b",nchar(i)),collapse=""))
+        cat(i)
+      }
     }
   }
   else{
@@ -80,12 +84,16 @@ ro <- function(data,h=1,origins=1,call,value=NULL,
         forecasts[[(i-1)*l.value+j]] <- eval(parse(text=paste0("o.m",value[j])))
       }
       actuals[,i] <- y[(in.sample+i-h+1):(in.sample+i)]
-      cat(paste(rep("\b",nchar(i)),collapse=""))
-      cat(i)
+      if(silent==FALSE){
+        cat(paste(rep("\b",nchar(i)),collapse=""))
+        cat(i)
+      }
     }
   }
 
-  cat("\n")
+  if(silent==FALSE){
+    cat("\n")
+  }
 
   if(is.null(value)){
     value <- "$output"

@@ -8,7 +8,7 @@ This function makes rolling origin using the \code{data} and \code{call} passed 
 }
 \usage{
   ro(data,h=1,origins=1,call,value=NULL,
-    ci=FALSE,co=FALSE)
+    ci=FALSE,co=FALSE,silent=FALSE)
 }
 \arguments{
   \item{data}{Data vector or ts object passed to the function.
@@ -24,6 +24,8 @@ This function makes rolling origin using the \code{data} and \code{call} passed 
   \item{ci}{The parameter defines if the in-sample window size should be constant.
 }
   \item{co}{The parameter defines whether the holdout sample window size should be constant. If \code{TRUE} the rolling origin will stop when less than \code{h} observations are left.
+}
+  \item{silent}{If TRUE, no output is given.
 }
 }
 \details{
