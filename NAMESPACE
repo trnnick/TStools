@@ -3,6 +3,6 @@ import(forecast,nloptr,numDeriv,zoo,Rcpp)
 
 export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        coxstuart,wins,rowWins,colWins,theta,abc,xyz,abcxyz,
-       nzlength,init.ets,mre,mre.plot,bias.coeff,sim.ets,ets2,sowhat,ro,
+       nzlength,init.ets,mre,mre.plot,bias.coeff,sim.ets,es,sowhat,ro,
 	   residout,stlboot)
 useDynLib(TStools)

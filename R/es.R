@@ -1,4 +1,4 @@
-ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
+es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                  bounds=c("usual","admissible"),
                  initial=NULL, initial.season=NULL,
                  IC=c("AICc","AIC"), trace=FALSE, CF.type=c("TLV","GV","TV","hsteps"),
@@ -211,7 +211,7 @@ ets2 <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                 stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=F)
             }
             if(nrow(xreg)==obs){
-              message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
+	            message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
                 for(j in 1:h){
                 xreg <- rbind(xreg,xreg[obs,]);
                 }
@@ -604,15 +604,14 @@ Likelihood.value <- function(C){
 }
 
 ## Function calculates ICs
-IC.calc <- function(CF.objective=CF.objective,n.param=n.param,C,Etype=Etype){
-# Information criteria are calculated with the constant part "log(2*pi*exp(1)*h)*obs".
+IC.calc <- function(n.param=n.param,C,Etype=Etype){
+# Information criteria are calculated with the constant part "log(2*pi*exp(1)*h+log(obs))*obs".
 # And it is based on the mean of the sum squared residuals either than sum.
 # Hyndman likelihood is: llikelihood <- obs*log(obs*CF.objective)
     llikelihood <- Likelihood.value(C)
 
-
     AIC.coef <- 2*n.param*h^trace - 2*llikelihood
-    AICc.coef <- AIC.coef + 2 * n.param * (n.param + 1) / (obs - n.param - 1)
+    AICc.coef <- AIC.coef + 2 * n.param*h^trace * (n.param + 1) / (obs - n.param - 1)
     BIC.coef <- log(obs)*n.param*h^trace - 2*llikelihood
 
     ICs <- c(AIC.coef, AICc.coef, BIC.coef)
@@ -621,7 +620,7 @@ IC.calc <- function(CF.objective=CF.objective,n.param=n.param,C,Etype=Etype){
     return(list(llikelihood=llikelihood,ICs=ICs))
 }
 
-ets2.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
+es.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
 # Script for the automatic model selection based on chosen IC.
 
 # Define the pool of models to select from
@@ -735,7 +734,7 @@ ets2.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
 
         n.param <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + seasfreq*estimate.initial.season
 
-        IC.values <- IC.calc(CF.objective=CF.objective,n.param=n.param,C=res$solution,Etype=Etype)
+        IC.values <- IC.calc(n.param=n.param,C=res$solution,Etype=Etype)
         ICs <- IC.values$ICs
 
         results[[j]] <- c(ICs,Etype,Ttype,Stype,damped,CF.objective,res$solution)
@@ -830,8 +829,8 @@ ets2.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
         errors.mat.obs <- obs - h + 1
 
         if(Etype=="Z" | Ttype=="Z" | Stype=="Z"){
-############ ETS2.auto should be rewritten in C++!!! ############
-            results <- ets2.auto(Etype,Ttype,Stype,IC=IC,CF.type=CF.type)
+############ es.auto should be rewritten in C++!!! ############
+            results <- es.auto(Etype,Ttype,Stype,IC=IC,CF.type=CF.type)
 
             Etype <- results[4]
             Ttype <- results[5]
@@ -911,6 +910,7 @@ ets2.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
 # Write down the forecasting intervals
     if(intervals==T){
         if(int.type=="p"){
+#            y.var <- forecastervar(matF,matrix(matw[1,],nrow=1),vecg,h,var(errors),Etype,Ttype,Stype,seasfreq)
             y.low <- NA
             y.high <- NA
         }
@@ -940,13 +940,18 @@ ets2.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
             A1 <- nlminb(A,quantfunc)$par
             quant <- 1-(1-int.w)/2
             A2 <- nlminb(A,quantfunc)$par
+#            y.var <- apply(errors.mat,2,quantile,probs=c((1-int.w)/2,1-(1-int.w)/2),na.rm=T)
             if(Etype=="A"){
                 y.low <- ts(y.for + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2,start=start(y.for),frequency=frequency(data))
                 y.high <- ts(y.for + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2,start=start(y.for),frequency=frequency(data))
+#                y.low <- ts(y.for + y.var[1,],start=start(y.for),frequency=frequency(data))
+#                y.high <- ts(y.for + y.var[2,],start=start(y.for),frequency=frequency(data))
             }
             else{
                 y.low <- ts(y.for*(1 + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2),start=start(y.for),frequency=frequency(data))
                 y.high <- ts(y.for*(1 + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2),start=start(y.for),frequency=frequency(data))
+#                y.low <- ts(y.for*(1 + y.var[1,]),start=start(y.for),frequency=frequency(data))
+#                y.high <- ts(y.for*(1 + y.var[2,]),start=start(y.for),frequency=frequency(data))
             }
         }
     }
@@ -974,7 +979,7 @@ ets2.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
     FI <- numDeriv::hessian(Likelihood.value,C)
 
 # Calculate IC values
-    IC.values <- IC.calc(CF.objective=CF.objective,n.param=n.param,C=C,Etype=Etype)
+    IC.values <- IC.calc(n.param=n.param,C=C,Etype=Etype)
     llikelihood <- IC.values$llikelihood
     ICs <- IC.values$ICs
 

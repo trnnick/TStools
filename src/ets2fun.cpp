@@ -466,7 +466,7 @@ int hor, char E, char T, char S, int freq, bool tr, arma::mat matrixwex, arma::m
         }
     }
     else{
-      for(int i = 0; i < obs; i=i+1){
+	    for(int i = 0; i < obs; i=i+1){
 	    materrors.row(i) = trans(errorvf(matyt.row(i),
             forecaster(matrixxt.rows(i,i+freq-1), matrixF, matrixw, 1, T, S, freq, matrixwex.rows(i, i+hh-1),
                 matrixxtreg.rows(i, i+hh-1)), E));

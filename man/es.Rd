@@ -1,14 +1,14 @@
-\name{ets2}
-\alias{ets2}
+\name{es}
+\alias{es}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Exponential smoothing in SSOE state-space model
+Exponential Smoothing in SSOE state-space model
 }
 \description{
 Function constructs ETS model and returns forecast, fitted values, errors and matrix of states.
 }
 \usage{
-ets2(data, model="ZZZ", persistence=NULL, phi=NULL,
+es(data, model="ZZZ", persistence=NULL, phi=NULL,
     bounds=c("usual","admissible"),
     initial=NULL, initial.season=NULL,
     IC=c("AICc","AIC"), trace=FALSE, CF.type=c("TLV","GV","TV","hsteps"),
@@ -90,27 +90,22 @@ The details will be here soon.
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
-\note{
-To do:
-
-1. Derive the prediction intervals.
-}
 
 \seealso{
-\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[stats]{Distributions} \link[TStools]{sim.ets}}
+\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[stats]{Distributions} \link[prognosis]{sim.ets}}
 }
 \examples{
 library(Mcomp)
 
-ets2(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,trace=FALSE) -> test
-ets2(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,trace=TRUE) -> test
-ets2(M3$N2568$x,model="MAM",h=18,holdout=TRUE,trace=TRUE) -> test
-ets2(M3$N1245$x,model="ZZN",IC="AIC",h=8,holdout=FALSE,trace=FALSE,boudns="a") -> test
+es(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,trace=FALSE) -> test
+es(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,trace=TRUE) -> test
+es(M3$N2568$x,model="MAM",h=18,holdout=TRUE,trace=TRUE) -> test
+es(M3$N1245$x,model="ZZN",IC="AIC",h=8,holdout=FALSE,trace=FALSE,boudns="a") -> test
 
-ets2(M3$N1587$x,h=18,holdout=TRUE,intervals=TRUE,int.type="s") -> test
+es(M3$N1587$x,h=18,holdout=TRUE,intervals=TRUE,int.type="s") -> test
 
 x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
-ets2(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,trace=TRUE)->test
+es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,trace=TRUE)->test
 }
 \keyword{ exponential smoothing }
 \keyword{ ETS }
