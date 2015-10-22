@@ -133,7 +133,6 @@ nemenyi <- function(data, conf.int=0.95, sort=c(TRUE,FALSE),
       labels <- labels[order.idx]
     }
     if (!is.null(select)){
-      print(order.idx)
       select <- which(order.idx == select)
     }
   }
