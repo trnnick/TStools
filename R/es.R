@@ -1,7 +1,7 @@
 es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                  bounds=c("usual","admissible"),
                  initial=NULL, initial.season=NULL,
-                 IC=c("AICc","AIC"), trace=FALSE, CF.type=c("TLV","GV","TV","hsteps"),
+                 IC=c("AICc","AIC"), trace=FALSE, CF.type=c("TLV","GV","TV","hsteps","MAD","HAM"),
                  intervals=FALSE, int.w=0.95,
                  int.type=c("parametric","semiparametric","nonparametric"),
                  xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
@@ -320,6 +320,9 @@ define.param <- function(Ttype,Stype,damped,phi){
         else{
             vecg <- c(0.3,0.2,0.1)[1:n.components]
             estimate.persistence <- TRUE
+            if(CF.type=="HAM"){
+                vecg <- rep(0,3)[1:n.components]
+            }
         }
     }
 
@@ -481,21 +484,34 @@ CF <- function(C){
     return(CF.res)
 }
 
-MASE.lvl <- function(a,f,round=3){
-    # This function calculates Mean Absolute Scaled Error using level of the actual series
-    # a - actual values,
-    # f - forecasted values.
-    result <- round(sum(abs(a-f),na.rm=TRUE)/sum(a),round)
-    return(result)
-}
+CFforIC <- function(C){
+    init.ets <- estim.values(matxt,vecg,phi,C,n.components,seasfreq,seasonal.component,Stype,matxtreg)
+    vecg <- init.ets$vecg
+    phi <- init.ets$phi
+    matxt <- init.ets$matxt
+    matxtreg <- init.ets$matxtreg
 
-MASE <- function(a,f,scale,round=3){
-    # This function calculates Mean Absolute Scaled Error as in Hyndman & Koehler, 2006
-    # a - actual values,
-    # f - forecasted values.
-    # scale - the measure to scale errors with. Usually - MAE of in-sample.
-    result <- round(mean(abs(a-f),na.rm=TRUE)/scale,round)
-    return(result)
+    matrices <- mat.ets(trend.component,seasonal.component,phi)
+    matF <- matrices$matF
+    matw <- matrices$matw
+
+    if(estimate.persistence==TRUE){
+        if(bounds=="a" & trend.component==TRUE & seasonal.component==TRUE){
+            Theta.func <- function(Theta){
+                return(abs((phi*C[1]+phi+1)/(C[3]) + ((phi-1)*(1+cos(Theta)-cos(seasfreq*Theta))+cos((seasfreq-1)*Theta)-phi*cos((seasfreq+1)*Theta))/(2*(1+cos(Theta))*(1-cos(seasfreq*Theta)))))
+            }
+            Theta <- 0.1
+            Theta <- suppressWarnings(optim(Theta,Theta.func,method="Brent",lower=0,upper=1)$par)
+        }
+        else{
+            Theta <- 0
+        }
+        CF.res <- costfunc(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),matrix(vecg,length(vecg),1),h,Etype,Ttype,Stype,seasfreq,trace,"MSE",normalizer,matwex,matxtreg,bounds,phi,Theta)
+    }
+    else{
+        CF.res <- optimizerwrap(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),matrix(vecg,length(vecg),1),h,Etype,Ttype,Stype,seasfreq,trace,"MSE",normalizer,matwex,matxtreg)
+    }
+    return(CF.res);
 }
 
 # Function constructs default bounds where C values should lie
@@ -522,7 +538,7 @@ C.values <- function(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,sea
                 C.upper <- c(C.upper,rep(Inf,(n.components - seasonal.component)))
             }
             else{
-                C.lower <- c(C.lower,1,0.01)
+                C.lower <- c(C.lower,0.1,0.01)
                 C.upper <- c(C.upper,Inf,3)
             }
         }
@@ -599,7 +615,15 @@ Likelihood.value <- function(C){
         return(-obs/2 *((h^trace)*log(2*pi*exp(1)) + CF(C)))
     }
     else{
-        return(-obs/2 *((h^trace)*log(2*pi*exp(1)) + log(CF(C))))
+        if(CF.type=="MAD"){
+            return(-obs/2 *((h^trace)*log(2*pi*exp(1)) + log(CFforIC(C))))
+        }
+        else if(CF.type=="HAM"){
+            return(-obs/2 *((h^trace)*log(2*pi*exp(1)) + log(CFforIC(C))))
+        }
+        else{
+            return(-obs/2 *((h^trace)*log(2*pi*exp(1)) + log(CF(C))))
+        }
     }
 }
 
@@ -747,6 +771,8 @@ es.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
         IC.selection[i] <- as.numeric(eval(parse(text=paste0("results[[",i,"]]['",IC,"']"))))
     }
 
+    IC.selection[is.nan(IC.selection)] <- 1E100
+    
     i <- which(IC.selection==min(IC.selection))[1]
 
     return(results[[i]])
@@ -1036,8 +1062,9 @@ if(silent==FALSE){
 #    print(paste0("Biased log-likelihood: ",round((llikelihood - n.param*h^trace),0)))
     print(paste0("AIC: ",round(ICs["AIC"],3)," AICc: ", round(ICs["AICc"],3)))
     if(holdout==T){
+        print(paste0("MAPE: ",MAPE(coredata(data)[(obs+1):obs.all],coredata(y.for),round=5)*100,"%"));
         print(paste0("MASE: ",MASE(coredata(data)[(obs+1):obs.all],coredata(y.for),mean(abs(diff(coredata(data)[1:obs]))),round=3)))
-        print(paste0("MASE.lvl: ",MASE.lvl(coredata(data)[(obs+1):obs.all],coredata(y.for),round=5)*100,"%"))
+        print(paste0("MASALE: ",MASE(coredata(data)[(obs+1):obs.all],coredata(y.for),mean(abs(coredata(data)[1:obs])),round=5)*100,"%"))
         if(intervals==TRUE){
             print(paste0(round(sum(coredata(data)[(obs+1):obs.all]<y.high &
                     coredata(data)[(obs+1):obs.all]>y.low)/h*100,0),

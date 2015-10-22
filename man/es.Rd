@@ -11,7 +11,7 @@ Function constructs ETS model and returns forecast, fitted values, errors and ma
 es(data, model="ZZZ", persistence=NULL, phi=NULL,
     bounds=c("usual","admissible"),
     initial=NULL, initial.season=NULL,
-    IC=c("AICc","AIC"), trace=FALSE, CF.type=c("TLV","GV","TV","hsteps"),
+    IC=c("AICc","AIC"), trace=FALSE, CF.type=c("TLV","GV","TV","hsteps","MAE","HAM"),
     intervals=FALSE, int.w=0.95,
     int.type=c("parametric","semiparametric","nonparametric"),
     xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
@@ -37,7 +37,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{trace}{ If TRUE, the trace likelihood is used in the estimation with trace of the length \code{h}.
   }
-  \item{CF.type}{ Type of Cost Function used in trace optimization. Can be \code{GV} - Generalized Variance, \code{TLV} - Total Logarythmic Variation and \code{TV} - Total Variation, \code{hsteps} - optimisation using only h-steps ahead error.
+  \item{CF.type}{ Type of Cost Function used in trace optimization. Can be \code{GV} - Generalized Variance, \code{TLV} - Total Logarythmic Variation and \code{TV} - Total Variation, \code{hsteps} - optimisation using only h-steps ahead error. When \code{trace=FALSE}, \code{MAE} - Mean Absolute Error and \code{HAM} - Half Absolute Moment can be used.
   }
   \item{intervals}{ If \code{TRUE}, the prediction interval is constructed.
   }
@@ -92,7 +92,7 @@ Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
 
 \seealso{
-\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[stats]{Distributions} \link[prognosis]{sim.ets}}
+\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[stats]{Distributions} \link[TStools]{sim.ets}}
 }
 \examples{
 library(Mcomp)

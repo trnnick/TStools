@@ -446,7 +446,7 @@ SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP matwex, SEXP matxtreg){
 arma::mat errorer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat matyt,
 int hor, char E, char T, char S, int freq, bool tr, arma::mat matrixwex, arma::mat matrixxtreg) {
     int obs = matyt.n_rows;
-    int hh;
+    int hh = 0;
     arma::mat materrors;
 
     if(tr==true){
@@ -520,7 +520,7 @@ int hor, char E, char T, char S, int freq, bool tr, std::string CFtype, int norm
     if(E=='M'){
         if(tr==true){
             materrors = log(1 + errorer(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, tr, matrixwex, matrixxtreg));
-            materrors.elem(find_nonfinite(materrors)).fill(1e10);
+            materrors.elem(arma::find_nonfinite(materrors)).fill(1e10);
             if(CFtype=="GV"){
                 materrors.resize(matobs,hor);
                 CFres = double(log(arma::det(arma::trans(materrors) * materrors / double(matobs))));
@@ -545,7 +545,15 @@ int hor, char E, char T, char S, int freq, bool tr, std::string CFtype, int norm
         else{
             arma::mat materrors(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
             materrors = log(1+materrors);
-            CFres = arma::as_scalar(exp(log(mean(pow(materrors,2))) + (2 / double(obs)) * yactsum));
+            if(CFtype=="HAM"){
+                CFres = arma::as_scalar(exp(log(mean(sqrt(abs(materrors)))) + (2 / double(obs)) * yactsum));
+            }
+            else if(CFtype=="MAE"){
+                CFres = arma::as_scalar(exp(log(mean(abs(materrors))) + (2 / double(obs)) * yactsum));
+            }
+            else{
+                CFres = arma::as_scalar(exp(log(mean(pow(materrors,2))) + (2 / double(obs)) * yactsum));
+            }
         }
     }
     else{
@@ -572,7 +580,15 @@ int hor, char E, char T, char S, int freq, bool tr, std::string CFtype, int norm
         }
         else{
             arma::mat materrors(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
-            CFres = arma::as_scalar(mean(pow(materrors,2)));
+            if(CFtype=="HAM"){
+                CFres = arma::as_scalar(mean(sqrt(abs(materrors))));
+            }
+            else if(CFtype=="MAE"){
+                CFres = arma::as_scalar(mean(abs(materrors)));
+            }
+            else{
+                CFres = arma::as_scalar(mean(pow(materrors,2)));
+            }
         }
     }
     return CFres;
