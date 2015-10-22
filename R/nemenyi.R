@@ -127,13 +127,14 @@ nemenyi <- function(data, conf.int=0.95, sort=c(TRUE,FALSE),
 # Sort interval matrix and means
   if(sort==TRUE){
     order.idx <- order(ranks.means)
-    ranks.means = ranks.means[order.idx]
-    ranks.intervals = ranks.intervals[,order(ranks.intervals[2,])]
+    ranks.means <- ranks.means[order.idx]
+    ranks.intervals <- ranks.intervals[,order(ranks.intervals[2,])]
     if (!is.null(labels)){
-      labels = labels[order.idx]
+      labels <- labels[order.idx]
     }
     if (!is.null(select)){
-      select <- order.idx[select]
+      print(order.idx)
+      select <- which(order.idx == select)
     }
   }
 
