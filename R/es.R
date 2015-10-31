@@ -1,7 +1,7 @@
 es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                  bounds=c("usual","admissible"),
                  initial=NULL, initial.season=NULL,
-                 IC=c("AICc","AIC"), trace=FALSE, CF.type=c("TLV","GV","TV","hsteps","MAD","HAM"),
+                 IC=c("AICc","AIC"), trace=FALSE, CF.type=c("TLV","GV","TV","hsteps","MAE","HAM"),
                  intervals=FALSE, int.w=0.95,
                  int.type=c("parametric","semiparametric","nonparametric"),
                  xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
@@ -33,7 +33,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # Check if CF.type is appropriate in the case of trace==TRUE
     if(trace==TRUE){
         if(CF.type!="GV" & CF.type!="TLV" & CF.type!="TV" & CF.type!="hsteps"){
-            message(paste0("The strange Cost Function is chosen: ",CF.type))
+            message(paste0("The strange Cost Function is chosen for trace: ",CF.type))
             sowhat(CF.type)
             message("Switching to 'TLV'")
             CF.type <- "TLV"
@@ -77,7 +77,9 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     }
 
     if(any(is.na(data))){
-        message("Data contains NAs. These observations will be excluded.")
+        if(silent==FALSE){
+            message("Data contains NAs. These observations will be excluded.")
+        }
         datanew <- data[!is.na(data)]
         if(is.ts(data)){
             datanew <- ts(datanew,start=start(data),frequency=frequency(data))
@@ -92,7 +94,8 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     obs <- length(data) - holdout*h
 
 # Define the actual values
-    y <- coredata(data)
+#    y <- coredata(data)
+    y <- as.vector(data)
 
 # Check if the data is ts-object
     if(!is.ts(data) & Stype!="N"){
@@ -190,7 +193,8 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         }
         if(length(xreg)==obs){
             message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
-            xreg <- c(coredata(xreg),rep(xreg[obs],h));
+#            xreg <- c(coredata(xreg),rep(xreg[obs],h));
+            xreg <- c(as.vector(xreg),rep(xreg[obs],h));
         }
 # Number of exogenous variables
         n.exovars <- 1;
@@ -383,7 +387,8 @@ define.param <- function(Ttype,Stype,damped,phi){
 }
 
 # Function returns transition matrix F and measurement matrix w depending on chosen model
-##### This function can be transfered into Rcpp #####
+##### This function should be transfered into Rcpp #####
+##### logical seasonal.component and trend.component should be removed. Ttype and Stype used instead. #####
 mat.ets <- function(trend.component,seasonal.component,phi){
     if(seasonal.component==FALSE){
         if(trend.component==FALSE){
@@ -447,6 +452,7 @@ estim.values <- function(matxt,vecg,phi,C,n.components,seasfreq,seasonal.compone
     return(list(vecg=vecg,phi=phi,matxt=matxt,matxtreg=matxtreg))
 }
 
+##### All the function should be transfered into optimizerwrap #####
 # Cost function for ETS
 CF <- function(C){
 
@@ -1017,6 +1023,20 @@ es.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
         colnames(matxt) <- c(component.names)
     }
 
+    if(holdout==T){
+        y.holdout <- ts(data[(obs+1):obs.all],start=start(y.for),frequency=frequency(data));
+        errormeasures <- c(MAPE(as.vector(y.holdout),as.vector(y.for),round=5),
+                           MASE(as.vector(y.holdout),as.vector(y.for),mean(abs(diff(as.vector(data)[1:obs])))),
+                           MASE(as.vector(y.holdout),as.vector(y.for),mean(abs(as.vector(data)[1:obs]))),
+                           MPE(as.vector(y.holdout),as.vector(y.for),round=5),
+                           SMAPE(as.vector(y.holdout),as.vector(y.for),round=5));
+        names(errormeasures) <- c("MAPE","MASE","MASALE","MPE","SMAPE");
+    }
+    else{
+        y.holdout <- NA;
+        errormeasures <- NA;
+    }
+
 if(silent==FALSE){
 # Define plot.range for plot
     if(intervals==T){
@@ -1062,12 +1082,12 @@ if(silent==FALSE){
 #    print(paste0("Biased log-likelihood: ",round((llikelihood - n.param*h^trace),0)))
     print(paste0("AIC: ",round(ICs["AIC"],3)," AICc: ", round(ICs["AICc"],3)))
     if(holdout==T){
-        print(paste0("MAPE: ",MAPE(coredata(data)[(obs+1):obs.all],coredata(y.for),round=5)*100,"%"));
-        print(paste0("MASE: ",MASE(coredata(data)[(obs+1):obs.all],coredata(y.for),mean(abs(diff(coredata(data)[1:obs]))),round=3)))
-        print(paste0("MASALE: ",MASE(coredata(data)[(obs+1):obs.all],coredata(y.for),mean(abs(coredata(data)[1:obs])),round=5)*100,"%"))
+        print(paste0("MAPE: ",errormeasures["MAPE"]*100,"%"));
+        print(paste0("MASE: ",errormeasures["MASE"]));
+        print(paste0("MASALE: ",errormeasures["MASALE"]*100,"%"));
         if(intervals==TRUE){
-            print(paste0(round(sum(coredata(data)[(obs+1):obs.all]<y.high &
-                    coredata(data)[(obs+1):obs.all]>y.low)/h*100,0),
+            print(paste0(round(sum(as.vector(data)[(obs+1):obs.all]<y.high &
+                    as.vector(data)[(obs+1):obs.all]>y.low)/h*100,0),
                     "% of values are in the interval"))
         }
     }
@@ -1084,7 +1104,7 @@ if(silent==FALSE){
 # Draw the nice areas between the borders
             polygon(c(seq(deltat(y.high)*(start(y.high)[2]-1)+start(y.high)[1],deltat(y.high)*(end(y.high)[2]-1)+end(y.high)[1],deltat(y.high)),
                   rev(seq(deltat(y.low)*(start(y.low)[2]-1)+start(y.low)[1],deltat(y.low)*(end(y.low)[2]-1)+end(y.low)[1],deltat(y.low)))),
-                c(coredata(y.high), rev(coredata(y.low))), col = "lightgray", border=NA, density=10)
+                c(as.vector(y.high), rev(as.vector(y.low))), col = "lightgray", border=NA, density=10)
 
             lines(y.for,col="blue",lwd=2)
 
@@ -1177,5 +1197,5 @@ if(silent==FALSE){
 
 return(list(persistence=vecg,phi=phi,states=matxt,fitted=y.fit,forecast=y.for,
             lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
-            x=data,ICs=ICs,CF=CF.objective,FI=FI,xreg=xreg))
+            x=data,x.holdout=y.holdout,ICs=ICs,CF=CF.objective,FI=FI,xreg=xreg,accuracy=errormeasures))
 }

@@ -4,7 +4,8 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 
 using namespace Rcpp;
- 
+
+/* # The function allows to calculate the power of a matrix. */
 arma::mat matrixpower(arma::mat A, int power){
     arma::mat B = A;
     if(power>1){
@@ -18,6 +19,7 @@ arma::mat matrixpower(arma::mat A, int power){
     return B;
 }
 
+/* # Function returns multiplicative or additive error for scalar */
 double errorf(double yact, double yfit, char Etype){
     if(Etype=='A'){
         return yact - yfit;
@@ -43,6 +45,7 @@ arma::mat errorvf(arma::mat yact, arma::mat yfit, char Etype){
     }
 }
 
+/* # Function returns value of r used in components estimation */
 arma::rowvec rvalue(arma::rowvec matxt, arma::rowvec matrixw, char Etype, char Ttype, char Stype, int ncomponents){
     arma::rowvec r(ncomponents);
     arma::rowvec xtnew;
@@ -129,6 +132,7 @@ arma::rowvec rvalue(arma::rowvec matxt, arma::rowvec matrixw, char Etype, char T
     return r;
 }
 
+/* # Function is needed for the renormalisation of seasonal components. NOT IMPLEMENTED YET! */
 arma::mat avalue(int freq, double(error), double gamma, double yfit, char E, char S, char T){
     arma::mat a(1,freq);
     if(S=='A'){
@@ -153,6 +157,24 @@ arma::mat avalue(int freq, double(error), double gamma, double yfit, char E, cha
     return(a);
 }
 
+/* # initxt - function that initialises states of ETS */
+
+/*
+# etsparam - function that returns all the necessary parameters for ETS:
+# number of components, lags, model frequency, states matrix, persistence vector,
+# phi value, which parameters to estimate.
+*/
+
+/*
+# etsmatrices - function that returns matF and matw.
+# Needs to be stand alone to change the damping parameter during the estimation.
+*/
+
+/*
+# etsestims - function takes the vector of estimates (C from the CF) and returns phi, states, persistence and exogenous vars vectors.
+*/
+
+/* # Function fits ETS model to the data */
 List fitter(arma::mat matrixxt, arma::mat  matrixF, arma::mat  matrixw, arma::mat  matyt,
 arma::mat  matg, char E, char T, char S, int freq, arma::mat matrixwex, arma::mat matrixxtreg) {
     int obs = matyt.n_rows;
@@ -171,7 +193,8 @@ arma::mat  matg, char E, char T, char S, int freq, arma::mat matrixwex, arma::ma
     arma::mat dummy(freq,freq, arma::fill::eye);
     arma::mat avec(1,freq);
 
-/* # matxt is transformed into obs by n.components+freq matrix, where last freq are seasonal coefficients,
+/*
+# matxt is transformed into obs by n.components+freq matrix, where last freq are seasonal coefficients,
 # matw is matrix obs by n.components+freq with dummies in freq parts,
 # matF is a matrix as in Hyndman et al.
 # vecg is the vector of 
@@ -340,7 +363,7 @@ arma::mat  matg, char E, char T, char S, int freq, arma::mat matrixwex, arma::ma
     return List::create(Named("matxt") = matrixxt, Named("yfit") = matyfit, Named("errors") = materrors, Named("matxtreg") = matrixxtreg);
 }
 
-
+/* # Wrapper for fitter */
 // [[Rcpp::export]]
 RcppExport List fitterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
 SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP matwex, SEXP matxtreg) {
@@ -366,6 +389,7 @@ SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP matwex, SEXP matxtreg) {
     return fitter(matrixxt, matrixF, matrixw, matyt, matg, E, T, S, freq, matrixwex, matrixxtreg);
 }
 
+/* # Function produces the point forecasts for the specified model */
 arma::mat forecaster(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw,
 int hor, char T, char S, int freq, arma::mat matrixwex, arma::mat matrixxtreg) {
     int hh;
@@ -422,6 +446,7 @@ int hor, char T, char S, int freq, arma::mat matrixwex, arma::mat matrixxtreg) {
     return matyfor;
 }
 
+/* # Wrapper for forecaster */
 // [[Rcpp::export]]
 RcppExport arma::mat forecasterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP h,
 SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP matwex, SEXP matxtreg){
@@ -443,6 +468,7 @@ SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP matwex, SEXP matxtreg){
     return forecaster(matrixxt, matrixF, matrixw, hor, T, S, freq, matrixwex, matrixxtreg);
 }
 
+/* # Function produces matrix of errors based on trace forecast */
 arma::mat errorer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat matyt,
 int hor, char E, char T, char S, int freq, bool tr, arma::mat matrixwex, arma::mat matrixxtreg) {
     int obs = matyt.n_rows;
@@ -475,6 +501,7 @@ int hor, char E, char T, char S, int freq, bool tr, arma::mat matrixwex, arma::m
     return materrors;
 }
 
+/* # Wrapper for errorer */
 // [[Rcpp::export]]
 RcppExport arma::mat errorerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype,
 SEXP seasfreq, SEXP trace, SEXP matwex, SEXP matxtreg){
@@ -500,7 +527,7 @@ SEXP seasfreq, SEXP trace, SEXP matwex, SEXP matxtreg){
     return errorer(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, tr, matrixwex, matrixxtreg);
 }
 
-
+/* # Function returns the chosen Cost Function based on the chosen model and produced errors */
 double optimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat matyt, arma::mat matg,
 int hor, char E, char T, char S, int freq, bool tr, std::string CFtype, int normalize, arma::mat matrixwex, arma::mat matrixxtreg){
     int obs = matyt.n_rows;
@@ -594,6 +621,7 @@ int hor, char E, char T, char S, int freq, bool tr, std::string CFtype, int norm
     return CFres;
 }
 
+/* # Wrapper for optimiser */
 // [[Rcpp::export]]
 RcppExport double optimizerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
 SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP trace, SEXP CFt, SEXP normalizer, SEXP matwex, SEXP matxtreg) {
@@ -623,6 +651,8 @@ SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP trace, SEXP CFt,
     return optimizer(matrixxt,matrixF,matrixw,matyt,matg,hor,E,T,S,freq,tr,CFtype,normalize,matrixwex,matrixxtreg);
 }
 
+/* # Function is used in cases when the persistence vector needs to be estimated.
+# If bounds are violated, it returns a state vector with zeroes. */
 // [[Rcpp::export]]
 RcppExport double costfunc(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
 SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP trace, SEXP CFt,
@@ -736,3 +766,7 @@ SEXP normalizer, SEXP matwex, SEXP matxtreg, SEXP bounds, SEXP phi, SEXP Theta) 
 
     return optimizer(matrixxt,matrixF,matrixw,matyt,matg,hor,E,T,S,freq,tr,CFtype,normalize,matrixwex,matrixxtreg);
 }
+
+/*
+# autoets - function estimates all the necessary ETS models and returns the one with the smallest chosen IC.
+*/

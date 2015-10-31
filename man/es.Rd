@@ -19,9 +19,9 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{data}{ the vector or ts object, containing the data needed to be forecasted.
+  \item{data}{ The vector or ts object, containing the data needed to be forecasted.
   }
-  \item{model}{ the type of ETS model. Can consist of 3 or 4 chars: \code{ANN}, \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA}, \code{MAdM} etc. \code{ZZZ} means that the model will be selected based on the chosen IC type.
+  \item{model}{ The type of ETS model. Can consist of 3 or 4 chars: \code{ANN}, \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA}, \code{MAdM} etc. \code{ZZZ} means that the model will be selected based on the chosen IC type.
   }
   \item{persistence}{ The vector of smoothing parameters. If \code{NULL}, the parameters are estimated.
   }
@@ -37,7 +37,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{trace}{ If TRUE, the trace likelihood is used in the estimation with trace of the length \code{h}.
   }
-  \item{CF.type}{ Type of Cost Function used in trace optimization. Can be \code{GV} - Generalized Variance, \code{TLV} - Total Logarythmic Variation and \code{TV} - Total Variation, \code{hsteps} - optimisation using only h-steps ahead error. When \code{trace=FALSE}, \code{MAE} - Mean Absolute Error and \code{HAM} - Half Absolute Moment can be used.
+  \item{CF.type}{ Type of Cost Function used in trace optimization. Can be \code{GV} - Generalized Variance, \code{TLV} - Total Logarythmic Variation and \code{TV} - Total Variation, \code{hsteps} - optimisation using only h-steps ahead error. If \code{trace=FALSE}, \code{CF.type} can be \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error) or \code{HAM} (Half Absolute Moment).
   }
   \item{intervals}{ If \code{TRUE}, the prediction interval is constructed.
   }
@@ -75,10 +75,12 @@ The details will be here soon.
     \item \code{residuals} - the residuals of the estimated model.
     \item \code{errors} - trace forecast in-sample errors, returned as a matrix. In the case of trace forecasts this is the matrix used in optimisation. In non-trace estimations it is returned just for the information.
     \item \code{x} - the original data.
+    \item \code{x.holdout} - the holdout part of the original data.
     \item \code{ICs} - values of information criteria of the model. Includes AIC and AICc.
     \item \code{CF} - Cost function value.
     \item \code{FI} - Fisher Information estimated in the optimal point.
     \item \code{xreg} - the provided vector or matrix of exogenous variables.
+    \item \code{accuracy} - the vector or accuracy measures. Includes MPE, MAPE, SMAPE, MASE and MASALE. Available only when \code{holdout=T}.
   }
 }
 \references{
@@ -92,7 +94,7 @@ Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
 
 \seealso{
-\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[stats]{Distributions} \link[TStools]{sim.ets}}
+\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[TStools]{sim.ets}}
 }
 \examples{
 library(Mcomp)
@@ -105,7 +107,7 @@ es(M3$N1245$x,model="ZZN",IC="AIC",h=8,holdout=FALSE,trace=FALSE,boudns="a") -> 
 es(M3$N1587$x,h=18,holdout=TRUE,intervals=TRUE,int.type="s") -> test
 
 x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
-es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,trace=TRUE)->test
+es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,trace=TRUE) -> test
 }
 \keyword{ exponential smoothing }
 \keyword{ ETS }

@@ -1,7 +1,7 @@
 Package: TStools
 Type: Package
 Title: Time Series Analysis Tools and Functions
-Version: 1.414215
+Version: 1.414216
 Date: 2015-10-22
 Author: Nikolaos Kourentzes and Ivan Svetunkov
 Maintainer: Ivan Svetunkov <i.svetunkov@lancaster.ac.uk>
