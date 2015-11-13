@@ -19,7 +19,7 @@ sim.ets(model="ANN",frequency=1,
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{model}{
-  type of ETS model according to [Hyndman et. al., 2008] taxonomy.
+  type of ETS model according to [Hyndman et. al., 2008] taxonomy. Can consist of 3 or 4 chars: \code{ANN}, \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA}, \code{MAdM} etc.
 }
   \item{frequency}{
   the frequency of the data. In the case of seasonal models must be greater than 1.

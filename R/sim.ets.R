@@ -11,9 +11,40 @@ sim.ets <- function(model="ANN",frequency=1,
     bounds <- substring(bounds[1],1,1)
     randomizer <- randomizer[1]
 
-    Etype <- substring(model,1,1)
-    Ttype <- substring(model,2,2)
-    Stype <- substring(model,3,3)
+# If chosen model is "AAdN" or anything like that, we are taking the appropriate values
+    if(nchar(model)==4){
+        Etype <- substring(model,1,1)
+        Ttype <- substring(model,2,2)
+        Stype <- substring(model,4,4)
+        if(substring(model,3,3)!="d"){
+            if(silent == FALSE){
+                message(paste0("You have defined a strange model: ",model))
+                sowhat(model)
+            }
+            model <- paste0(Etype,Ttype,"d",Stype)
+        }
+        if(Ttype!="N" & phi==1){
+            model <- paste0(Etype,Ttype,Stype)
+            if(silent == FALSE){
+                message(paste0("Damping parameter is set to 1. Changing model to: ",model))
+            }
+        }
+    }
+    else if(nchar(model)==3){
+        Etype <- substring(model,1,1)
+        Ttype <- substring(model,2,2)
+        Stype <- substring(model,3,3)
+        if(phi!=1 & Ttype!="N"){
+            model <- paste0(Etype,Ttype,"d",Stype)
+            if(silent == FALSE){
+                message(paste0("Damping parameter is set to ",phi,". Changing model to: ",model))
+            }
+        }
+    }
+    else{
+        message(paste0("You have defined a strange model: ",model))
+        stop("Cannot proceed.",call.=FALSE)
+    }
 
 # In the case of wrong nseries, make it natural number. The same is for obs and frequency.
     nseries <- abs(round(nseries,0))
@@ -25,7 +56,9 @@ sim.ets <- function(model="ANN",frequency=1,
     }
 
     if(phi<0 | phi>2){
-        message(paste0("Damping parameter should lie in (0, 2) region! You have chosen phi=",phi,". Be careful!"))
+        if(silent == FALSE){
+            message(paste0("Damping parameter should lie in (0, 2) region! You have chosen phi=",phi,". Be careful!"))
+        }
     }
 
 r.value <- function(Etype, Ttype, Stype, xt){
@@ -231,7 +264,7 @@ ry.value <- function(Etype, Ttype, Stype, xt){
 # The vector of likelihoods
         vec.likelihood <- rep(NA,nseries)
 
-        if (silent == FALSE){
+        if(silent == FALSE){
           cat("Series simulated:  ")
         }
     }
