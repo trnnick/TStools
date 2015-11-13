@@ -21,7 +21,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
 \arguments{
   \item{data}{ The vector or ts object, containing the data needed to be forecasted.
   }
-  \item{model}{ The type of ETS model. Can consist of 3 or 4 chars: \code{ANN}, \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA}, \code{MAdM} etc. \code{ZZZ} means that the model will be selected based on the chosen IC type.
+  \item{model}{ The type of ETS model. Can consist of 3 or 4 chars: \code{ANN}, \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA}, \code{MAdM} etc. \code{ZZZ} means that the model will be selected based on the chosen IC type. If \code{model="XXX"}, then all the models are estimated and the combination of their forecasts using AIC weights if produced (Kolassa, 2011). This can also be regulated. For example, \code{model="XXN"} will combine forecasts of all the non-seasonal models.
   }
   \item{persistence}{ The vector of smoothing parameters. If \code{NULL}, the parameters are estimated.
   }
@@ -62,9 +62,10 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
 The details will be here soon.
 }
 \value{
-  The list of the following values is returned:
+  The list of the following values is returned for the simpler models:
 
   \itemize{
+    \item \code{model} - type of constructed model.
     \item \code{persistence} - the persistence vector.
     \item \code{phi} - the value of damping parameter.
     \item \code{states} - the matrix of the components of CES. The included minimum is "level" and "potential". In the case of seasonal model the seasonal component is also included. In the case of exogenous variables the estimated coefficients for the exogenous variables are also included.
@@ -80,13 +81,30 @@ The details will be here soon.
     \item \code{CF} - Cost function value.
     \item \code{FI} - Fisher Information estimated in the optimal point.
     \item \code{xreg} - the provided vector or matrix of exogenous variables.
-    \item \code{accuracy} - the vector or accuracy measures. Includes MPE, MAPE, SMAPE, MASE and MASALE. Available only when \code{holdout=T}.
+    \item \code{accuracy} - the vector or accuracy measures for the holdout sample. Includes MPE, MAPE, SMAPE, MASE and MASALE. Available only when \code{holdout=T}.
+  }
+
+  If the combination of forecasts is produced (using \code{model="XXX"}), then the shorter list of the values is returned:
+
+  \itemize{
+    \item \code{model},
+    \item \code{fitted},
+    \item \code{forecast},
+    \item \code{lower},
+    \item \code{upper},
+    \item \code{residuals},
+    \item \code{x},
+    \item \code{x.holdout},
+    \item \code{ICs} - the IC weights used in the combination.
+    \item \code{xreg},
+    \item \code{accuracy}.
   }
 }
 \references{
     \enumerate{
         \item{Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008) Forecasting with exponential smoothing: the state space approach, Springer-Verlag. \url{http://www.exponentialsmoothing.net}.}
-        \item{Taylor J.W. and Bunn D.W. (1999) A Quantile Regression Approach to Generating Prediction Intervals. Management Science, Vol 45, No 2, pp 225-237.}
+        \item{Taylor, J.W. and Bunn, D.W. (1999) A Quantile Regression Approach to Generating Prediction Intervals. Management Science, Vol 45, No 2, pp 225-237.}
+        \item{Kolassa, S. (2011) Combining exponential smoothing forecasts using Akaike weights. International Journal of Forecasting, 27, pp 238 - 251.}
     }
 }
 \author{
@@ -102,12 +120,13 @@ library(Mcomp)
 es(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,trace=FALSE) -> test
 es(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,trace=TRUE) -> test
 es(M3$N2568$x,model="MAM",h=18,holdout=TRUE,trace=TRUE) -> test
-es(M3$N1245$x,model="ZZN",IC="AIC",h=8,holdout=FALSE,trace=FALSE,boudns="a") -> test
+es(M3$N1245$x,model="ZZN",IC="AIC",h=8,holdout=FALSE,trace=FALSE,bounds="a") -> test
+es(M3$N1245$x,model="XXX",h=8,holdout=TRUE) -> test
 
 es(M3$N1587$x,h=18,holdout=TRUE,intervals=TRUE,int.type="s") -> test
 
 x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
-es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,trace=TRUE) -> test
+es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,trace=TRUE)->test
 }
 \keyword{ exponential smoothing }
 \keyword{ ETS }

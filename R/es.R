@@ -131,21 +131,27 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
 ### Check the error type
     if(Etype!="Z" & Etype!="A" & Etype!="M"){
-        message("Wrong error type! Should be 'Z', 'A' or 'M'.")
-        message("Changing to 'Z'")
+        if(Etype!="X"){
+            message("Wrong error type! Should be 'Z', 'A' or 'M'.")
+            message("Changing to 'Z'")
+        }
         Etype <- "Z"
     }
 
 ### Check the trend type
     if(Ttype!="Z" & Ttype!="N" & Ttype!="A" & Ttype!="M"){
-        message("Wrong trend type! Should be 'Z', 'N', 'A' or 'M'.")
-        message("Changing to 'Z'")
+        if(Ttype!="X"){
+            message("Wrong trend type! Should be 'Z', 'N', 'A' or 'M'.")
+            message("Changing to 'Z'")
+        }
         Ttype <- "Z"
     }
 
 ### Check the seasonaity type
     if(Stype!="Z" & Stype!="N" & Stype!="A" & Stype!="M"){
-        message("Wrong seasonality type! Should be 'Z', 'N', 'A' or 'M'.")
+        if(Stype!="X"){
+            message("Wrong seasonality type! Should be 'Z', 'N', 'A' or 'M'.")
+        }
         if(seasfreq==1){
             if(silent==FALSE){
                 message("Data is non-seasonal. Changing seasonal component to 'N'")
@@ -153,7 +159,11 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             Stype <- "N"
         }
         else{
-            message("Changing to 'Z'")
+            if(silent==FALSE){
+                if(Stype!="X"){
+                    message("Changing to 'Z'")
+                }
+            }
             Stype <- "Z"
         }
     }
@@ -185,6 +195,9 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # Check the exogenous variable if it is present and
 # fill in the values of xreg if it is absent in the holdout sample.
     if(!is.null(xreg)){
+        if(any(is.na(xreg))){
+            message("The exogenous variables contain NAs! This may lead to problems during estimation and forecast.");
+        }
 ##### The case with vectors and ts objects, but not matrices #####
         if(is.vector(xreg) | (is.ts(xreg) & !is.matrix(xreg))){
 # If xreg is vector or simple ts
@@ -779,9 +792,13 @@ es.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
 
     IC.selection[is.nan(IC.selection)] <- 1E100
     
-    i <- which(IC.selection==min(IC.selection))[1]
-
-    return(results[[i]])
+    if(any(unlist(strsplit(model,""))=="X")){
+        return(list("IC.selection"=IC.selection,"models"=results))
+    }
+    else{
+        i <- which(IC.selection==min(IC.selection))[1]
+        return(results[[i]])
+    }
 }
 
 #########################################
@@ -861,15 +878,197 @@ es.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
         errors.mat.obs <- obs - h + 1
 
         if(Etype=="Z" | Ttype=="Z" | Stype=="Z"){
-############ es.auto should be rewritten in C++!!! ############
-            results <- es.auto(Etype,Ttype,Stype,IC=IC,CF.type=CF.type)
+            if(any(unlist(strsplit(model,""))=="X")){
+# Produce the data for AIC weights
+                results <- es.auto(Etype,Ttype,Stype,IC=IC,CF.type=CF.type)
+                models <- results$models
+                IC.selection <- results$IC.selection
 
-            Etype <- results[4]
-            Ttype <- results[5]
-            Stype <- results[6]
-            damped <- as.logical(results[7])
-            CF.objective <- as.numeric(results[8])
-            C <- as.numeric(results[-c(1:8)])
+                IC.weights <- exp(-0.5*(IC.selection-min(IC.selection)))/sum(exp(-0.5*(IC.selection-min(IC.selection))))
+            }
+            else{
+############ es.auto should be rewritten in C++!!! ############
+                results <- es.auto(Etype,Ttype,Stype,IC=IC,CF.type=CF.type)
+
+                Etype <- results[4]
+                Ttype <- results[5]
+                Stype <- results[6]
+                damped <- as.logical(results[7])
+                CF.objective <- as.numeric(results[8])
+                C <- as.numeric(results[-c(1:8)])
+
+                param.values <- define.param(Ttype=Ttype,Stype=Stype,damped=damped,phi=phi)
+                n.components <- param.values$n.components
+                lags <- param.values$lags
+                seasfreq <- param.values$seasfreq
+                matxt <- param.values$matxt
+                vecg <- param.values$vecg
+                phi <- param.values$phi
+                trend.component <- param.values$trend.component
+                seasonal.component <- param.values$seasonal.component
+                estimate.persistence <- param.values$estimate.persistence
+                estimate.phi <- param.values$estimate.phi
+                estimate.initial <- param.values$estimate.initial
+                estimate.initial.season <- param.values$estimate.initial.season
+
+                init.ets <- estim.values(matxt,vecg,phi,C,n.components,seasfreq,seasonal.component,Stype,matxtreg)
+                vecg <- init.ets$vecg
+                phi <- init.ets$phi
+                matxt <- init.ets$matxt
+                matxtreg <- init.ets$matxtreg
+            }
+        }
+        else{
+            Cs <- C.values(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,seasonal.component,matxtreg)
+            C <- Cs$C
+            C.upper <- Cs$C.upper
+            C.lower <- Cs$C.lower
+            res <- nloptr::nloptr(C, CF, lb=C.lower, ub=C.upper,
+                                  opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000))
+            CF.objective <- res$objective
+            C <- res$solution
+
+            init.ets <- estim.values(matxt,vecg,phi,C,n.components,seasfreq,seasonal.component,Stype,matxtreg)
+            vecg <- init.ets$vecg
+            phi <- init.ets$phi
+            matxt <- init.ets$matxt
+            matxtreg <- init.ets$matxtreg
+        }
+    }
+
+    if(!any(unlist(strsplit(model,""))=="X")){
+        if(damped==TRUE){
+            model <- paste0(Etype,Ttype,"d",Stype)
+        }
+        else{
+            model <- paste0(Etype,Ttype,Stype)
+        }
+
+        matrices <- mat.ets(trend.component,seasonal.component,phi)
+        matF <- matrices$matF
+        matw <- matrices$matw
+
+        component.names <- colnames(matxt)
+
+        fitting <- fitterwrap(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),matrix(vecg,length(vecg),1),Etype,Ttype,Stype,seasfreq,matwex,matxtreg)
+        matxt <- ts(fitting$matxt,start=(time(data)[1] - deltat(data)*seasfreq),frequency=frequency(data))
+        y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data))
+
+        if(!is.null(xreg)){
+# Write down the matxtreg and copy values for the holdout
+            matxtreg[1:nrow(fitting$matxtreg),] <- fitting$matxtreg
+            matxtreg[(obs.all-h+1):obs.all,] <- rep(matxtreg[1,],each=h)
+        }
+
+        errors.mat <- ts(errorerwrap(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),h,Etype,Ttype,Stype,seasfreq,TRUE,matwex,matxtreg),start=start(data),frequency=frequency(data))
+        colnames(errors.mat) <- paste0("Error",c(1:h))
+        errors <- ts(errors.mat[,1],start=start(data),frequency=frequency(data))
+
+        y.for <- ts(forecasterwrap(matrix(matxt[(obs+1):(obs+seasfreq),],nrow=seasfreq),matF,matrix(matw,nrow=1),h,Ttype,Stype,seasfreq,matrix(matwex[(obs.all-h+1):(obs.all),],ncol=n.exovars),matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars)),start=time(data)[obs]+deltat(data),frequency=frequency(data))
+
+# Write down the forecasting intervals
+        if(intervals==TRUE){
+            if(int.type=="p"){
+#            y.var <- forecastervar(matF,matrix(matw[1,],nrow=1),vecg,h,var(errors),Etype,Ttype,Stype,seasfreq)
+                y.low <- NA
+                y.high <- NA
+            }
+            else if(int.type=="s"){
+                y.var <- colMeans(errors.mat^2,na.rm=T)
+                if(Etype=="A"){
+                    y.low <- ts(y.for + qt((1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var),start=start(y.for),frequency=frequency(data))
+                    y.high <- ts(y.for + qt(1-(1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var),start=start(y.for),frequency=frequency(data))
+                }
+                else{
+                    y.low <- ts(y.for*(1 + qt((1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var)),start=start(y.for),frequency=frequency(data))
+                    y.high <- ts(y.for*(1 + qt(1-(1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var)),start=start(y.for),frequency=frequency(data))
+                }
+            }
+            else{
+                ye <- errors.mat
+                xe <- matrix(c(1:h),byrow=TRUE,ncol=h,nrow=nrow(errors.mat))
+                xe <- xe[!is.na(ye)]
+                ye <- ye[!is.na(ye)]
+#Function allows to estimate the coefficients of the simple quantile regression
+                quantfunc <- function(A){
+                    ee <- ye - (A[1] + A[2]*xe + A[3]*xe^2)
+                    return((1-quant)*sum(abs(ee[which(ee<0)]))+quant*sum(abs(ee[which(ee>=0)])))
+                }
+                A <- rep(1,3)
+                quant <- (1-int.w)/2;
+                A1 <- nlminb(A,quantfunc)$par
+                quant <- 1-(1-int.w)/2
+                A2 <- nlminb(A,quantfunc)$par
+#            y.var <- apply(errors.mat,2,quantile,probs=c((1-int.w)/2,1-(1-int.w)/2),na.rm=T)
+                if(Etype=="A"){
+                    y.low <- ts(y.for + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2,start=start(y.for),frequency=frequency(data))
+                    y.high <- ts(y.for + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2,start=start(y.for),frequency=frequency(data))
+#                y.low <- ts(y.for + y.var[1,],start=start(y.for),frequency=frequency(data))
+#                y.high <- ts(y.for + y.var[2,],start=start(y.for),frequency=frequency(data))
+                }
+                else{
+                    y.low <- ts(y.for*(1 + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2),start=start(y.for),frequency=frequency(data))
+                    y.high <- ts(y.for*(1 + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2),start=start(y.for),frequency=frequency(data))
+#                y.low <- ts(y.for*(1 + y.var[1,]),start=start(y.for),frequency=frequency(data))
+#                y.high <- ts(y.for*(1 + y.var[2,]),start=start(y.for),frequency=frequency(data))
+                }
+            }
+        }
+        else{
+            y.low <- NA
+            y.high <- NA
+        }
+
+        if(estimate.persistence==FALSE & estimate.phi==FALSE & estimate.initial==FALSE & estimate.initial.season==FALSE){
+            C <- c(vecg,phi,initial,initial.season)
+            errors.mat.obs <- obs - h + 1
+            CF.objective <- CF(C)
+            n.param <- 0
+        }
+        else{
+            n.param <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + seasfreq*estimate.initial.season
+        }
+
+        if(!is.null(xreg)){
+            n.param <- n.param + n.exovars
+        }
+
+        FI <- numDeriv::hessian(Likelihood.value,C)
+
+# Calculate IC values
+        IC.values <- IC.calc(n.param=n.param,C=C,Etype=Etype)
+        llikelihood <- IC.values$llikelihood
+        ICs <- IC.values$ICs
+
+        if(!is.null(xreg)){
+            matxt <- cbind(matxt,matxtreg[1:nrow(matxt),])
+            colnames(matxt) <- c(component.names,colnames(matxtreg))
+        }
+        else{
+            colnames(matxt) <- c(component.names)
+        }
+        
+    }
+    else{
+# Produce the forecasts using AIC weights
+        models.number <- length(IC.selection)
+        model.current <- rep(NA,models.number)
+        fitted.list <- matrix(NA,obs,models.number)
+        errors.list <- matrix(NA,obs,models.number)
+        forecasts.list <- matrix(NA,h,models.number)
+        if(intervals==TRUE){
+             lower.list <- matrix(NA,h,models.number)
+             upper.list <- matrix(NA,h,models.number)
+        }
+
+        for(i in 1:length(IC.selection)){
+# Get all the parameters from the model
+            Etype <- models[[i]][4]
+            Ttype <- models[[i]][5]
+            Stype <- models[[i]][6]
+            damped <- as.logical(models[[i]][7])
+            CF.objective <- as.numeric(models[[i]][8])
+            C <- as.numeric(models[[i]][-c(1:8)])
 
             param.values <- define.param(Ttype=Ttype,Stype=Stype,damped=damped,phi=phi)
             n.components <- param.values$n.components
@@ -890,140 +1089,114 @@ es.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
             phi <- init.ets$phi
             matxt <- init.ets$matxt
             matxtreg <- init.ets$matxtreg
+# Fit the data
+            matrices <- mat.ets(trend.component,seasonal.component,phi)
+            matF <- matrices$matF
+            matw <- matrices$matw
 
-        }
-        else{
-            Cs <- C.values(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,seasonal.component,matxtreg)
-            C <- Cs$C
-            C.upper <- Cs$C.upper
-            C.lower <- Cs$C.lower
-            res <- nloptr::nloptr(C, CF, lb=C.lower, ub=C.upper,
-                                  opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000))
-            CF.objective <- res$objective
-            C <- res$solution
+            component.names <- colnames(matxt)
 
-            init.ets <- estim.values(matxt,vecg,phi,C,n.components,seasfreq,seasonal.component,Stype,matxtreg)
-            vecg <- init.ets$vecg
-            phi <- init.ets$phi
-            matxt <- init.ets$matxt
-            matxtreg <- init.ets$matxtreg
-        }
-    }
+            fitting <- fitterwrap(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),matrix(vecg,length(vecg),1),Etype,Ttype,Stype,seasfreq,matwex,matxtreg)
+            matxt <- fitting$matxt
+            y.fit <- fitting$yfit
 
-    if(damped==TRUE){
-        model <- paste0(Etype,Ttype,"d",Stype)
-    }
-    else{
-        model <- paste0(Etype,Ttype,Stype)
-    }
-
-    matrices <- mat.ets(trend.component,seasonal.component,phi)
-    matF <- matrices$matF
-    matw <- matrices$matw
-
-    component.names <- colnames(matxt)
-
-    fitting <- fitterwrap(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),matrix(vecg,length(vecg),1),Etype,Ttype,Stype,seasfreq,matwex,matxtreg)
-    matxt <- ts(fitting$matxt,start=(time(data)[1] - deltat(data)*seasfreq),frequency=frequency(data))
-    y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data))
-
-    if(!is.null(xreg)){
+            if(!is.null(xreg)){
 # Write down the matxtreg and copy values for the holdout
-        matxtreg[1:nrow(fitting$matxtreg),] <- fitting$matxtreg
-        matxtreg[(obs.all-h+1):obs.all,] <- rep(matxtreg[1,],each=h)
-    }
+                matxtreg[1:nrow(fitting$matxtreg),] <- fitting$matxtreg
+                matxtreg[(obs.all-h+1):obs.all,] <- rep(matxtreg[1,],each=h)
+            }
 
-    errors.mat <- ts(errorerwrap(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),h,Etype,Ttype,Stype,seasfreq,TRUE,matwex,matxtreg),start=start(data),frequency=frequency(data))
-    colnames(errors.mat) <- paste0("Error",c(1:h))
-    errors <- ts(errors.mat[,1],start=start(data),frequency=frequency(data))
-
-    y.for <- ts(forecasterwrap(matrix(matxt[(obs+1):(obs+seasfreq),],nrow=seasfreq),matF,matrix(matw,nrow=1),h,Ttype,Stype,seasfreq,matrix(matwex[(obs.all-h+1):(obs.all),],ncol=n.exovars),matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars)),start=time(data)[obs]+deltat(data),frequency=frequency(data))
+            errors.mat <- errorerwrap(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),h,Etype,Ttype,Stype,seasfreq,TRUE,matwex,matxtreg)
+            colnames(errors.mat) <- paste0("Error",c(1:h))
+            errors <- errors.mat[,1]
+# Produce point and interval forecasts 
+            y.for <- forecasterwrap(matrix(matxt[(obs+1):(obs+seasfreq),],nrow=seasfreq),matF,matrix(matw,nrow=1),h,Ttype,Stype,seasfreq,matrix(matwex[(obs.all-h+1):(obs.all),],ncol=n.exovars),matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars))
 
 # Write down the forecasting intervals
-    if(intervals==T){
-        if(int.type=="p"){
+            if(intervals==TRUE){
+                if(int.type=="p"){
 #            y.var <- forecastervar(matF,matrix(matw[1,],nrow=1),vecg,h,var(errors),Etype,Ttype,Stype,seasfreq)
+                    y.low <- NA
+                    y.high <- NA
+                }
+                else if(int.type=="s"){
+                    y.var <- colMeans(errors.mat^2,na.rm=T)
+                    if(Etype=="A"){
+                        y.low <- ts(y.for + qt((1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var),start=start(y.for),frequency=frequency(data))
+                        y.high <- ts(y.for + qt(1-(1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var),start=start(y.for),frequency=frequency(data))
+                    }
+                    else{
+                        y.low <- ts(y.for*(1 + qt((1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var)),start=start(y.for),frequency=frequency(data))
+                        y.high <- ts(y.for*(1 + qt(1-(1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var)),start=start(y.for),frequency=frequency(data))
+                    }
+                }
+                else{
+                    ye <- errors.mat
+                    xe <- matrix(c(1:h),byrow=TRUE,ncol=h,nrow=nrow(errors.mat))
+                    xe <- xe[!is.na(ye)]
+                    ye <- ye[!is.na(ye)]
+#Function allows to estimate the coefficients of the simple quantile regression
+                    quantfunc <- function(A){
+                        ee <- ye - (A[1] + A[2]*xe + A[3]*xe^2)
+                        return((1-quant)*sum(abs(ee[which(ee<0)]))+quant*sum(abs(ee[which(ee>=0)])))
+                    }
+                    A <- rep(1,3)
+                    quant <- (1-int.w)/2;
+                    A1 <- nlminb(A,quantfunc)$par
+                    quant <- 1-(1-int.w)/2
+                    A2 <- nlminb(A,quantfunc)$par
+#            y.var <- apply(errors.mat,2,quantile,probs=c((1-int.w)/2,1-(1-int.w)/2),na.rm=T)
+                    if(Etype=="A"){
+                        y.low <- y.for + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2
+                        y.high <- ts(y.for + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2,start=start(y.for),frequency=frequency(data))
+#                y.low <- ts(y.for + y.var[1,],start=start(y.for),frequency=frequency(data))
+#                y.high <- ts(y.for + y.var[2,],start=start(y.for),frequency=frequency(data))
+                    }
+                    else{
+                        y.low <- ts(y.for*(1 + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2),start=start(y.for),frequency=frequency(data))
+                        y.high <- ts(y.for*(1 + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2),start=start(y.for),frequency=frequency(data))
+#                y.low <- ts(y.for*(1 + y.var[1,]),start=start(y.for),frequency=frequency(data))
+#                y.high <- ts(y.for*(1 + y.var[2,]),start=start(y.for),frequency=frequency(data))
+                    }
+                }
+            }
+            fitted.list[,i] <- y.fit
+            forecasts.list[,i] <- y.for
+            if(intervals==TRUE){
+                lower.list[,i] <- y.low
+                upper.list[,i] <- y.high
+            }
+            phi <- NULL;
+
+            if(damped==TRUE){
+                model.current[i] <- paste0(Etype,Ttype,"d",Stype)
+            }
+            else{
+                model.current[i] <- paste0(Etype,Ttype,Stype)
+            }
+        }
+        y.fit <- ts(fitted.list %*% IC.weights,start=start(data),frequency=frequency(data))
+        y.for <- ts(forecasts.list %*% IC.weights,start=time(data)[obs]+deltat(data),frequency=frequency(data))
+        errors <- ts(y[1:obs] - y.fit,start=start(data),frequency=frequency(data))
+        names(IC.weights) <- model.current
+        if(intervals==TRUE){
+            y.low <- ts(lower.list %*% IC.weights,start=start(y.for),frequency=frequency(data))
+            y.high <- ts(upper.list %*% IC.weights,start=start(y.for),frequency=frequency(data))
+        }
+        else{
             y.low <- NA
             y.high <- NA
         }
-        else if(int.type=="s"){
-            y.var <- colMeans(errors.mat^2,na.rm=T)
-            if(Etype=="A"){
-                y.low <- ts(y.for + qt((1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var),start=start(y.for),frequency=frequency(data))
-                y.high <- ts(y.for + qt(1-(1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var),start=start(y.for),frequency=frequency(data))
-            }
-            else{
-                y.low <- ts(y.for*(1 + qt((1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var)),start=start(y.for),frequency=frequency(data))
-                y.high <- ts(y.for*(1 + qt(1-(1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var)),start=start(y.for),frequency=frequency(data))
-            }
-        }
-        else{
-            ye <- errors.mat
-            xe <- matrix(c(1:h),byrow=TRUE,ncol=h,nrow=nrow(errors.mat))
-            xe <- xe[!is.na(ye)]
-            ye <- ye[!is.na(ye)]
-#Function allows to estimate the coefficients of the simple quantile regression
-            quantfunc <- function(A){
-                ee <- ye - (A[1] + A[2]*xe + A[3]*xe^2)
-                return((1-quant)*sum(abs(ee[which(ee<0)]))+quant*sum(abs(ee[which(ee>=0)])))
-            }
-            A <- rep(1,3)
-            quant <- (1-int.w)/2;
-            A1 <- nlminb(A,quantfunc)$par
-            quant <- 1-(1-int.w)/2
-            A2 <- nlminb(A,quantfunc)$par
-#            y.var <- apply(errors.mat,2,quantile,probs=c((1-int.w)/2,1-(1-int.w)/2),na.rm=T)
-            if(Etype=="A"){
-                y.low <- ts(y.for + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2,start=start(y.for),frequency=frequency(data))
-                y.high <- ts(y.for + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2,start=start(y.for),frequency=frequency(data))
-#                y.low <- ts(y.for + y.var[1,],start=start(y.for),frequency=frequency(data))
-#                y.high <- ts(y.for + y.var[2,],start=start(y.for),frequency=frequency(data))
-            }
-            else{
-                y.low <- ts(y.for*(1 + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2),start=start(y.for),frequency=frequency(data))
-                y.high <- ts(y.for*(1 + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2),start=start(y.for),frequency=frequency(data))
-#                y.low <- ts(y.for*(1 + y.var[1,]),start=start(y.for),frequency=frequency(data))
-#                y.high <- ts(y.for*(1 + y.var[2,]),start=start(y.for),frequency=frequency(data))
-            }
-        }
-    }
-    else{
-        y.low <- NA
-        y.high <- NA
     }
 
     y <- data
 
-    if(estimate.persistence==FALSE & estimate.phi==FALSE & estimate.initial==FALSE & estimate.initial.season==FALSE){
-        C <- c(vecg,phi,initial,initial.season)
-        errors.mat.obs <- obs - h + 1
-        CF.objective <- CF(C)
-        n.param <- 0
-    }
-    else{
-        n.param <- n.components*estimate.persistence + estimate.phi + (n.components - seasonal.component)*estimate.initial + seasfreq*estimate.initial.season
+    if(any(is.na(y.fit),is.na(y.for))){
+        message("Something went wrong during the optimisation and NAs were produced!");
+        message("Please check the input and report this error if it persists to the maintainer.");
     }
 
-    if(!is.null(xreg)){
-        n.param <- n.param + n.exovars
-    }
-
-    FI <- numDeriv::hessian(Likelihood.value,C)
-
-# Calculate IC values
-    IC.values <- IC.calc(n.param=n.param,C=C,Etype=Etype)
-    llikelihood <- IC.values$llikelihood
-    ICs <- IC.values$ICs
-
-    if(!is.null(xreg)){
-        matxt <- cbind(matxt,matxtreg[1:nrow(matxt),])
-        colnames(matxt) <- c(component.names,colnames(matxtreg))
-    }
-    else{
-        colnames(matxt) <- c(component.names)
-    }
-
-    if(holdout==T){
+    if(holdout==TRUE){
         y.holdout <- ts(data[(obs+1):obs.all],start=start(y.for),frequency=frequency(data));
         errormeasures <- c(MAPE(as.vector(y.holdout),as.vector(y.for),round=5),
                            MASE(as.vector(y.holdout),as.vector(y.for),mean(abs(diff(as.vector(data)[1:obs])))),
@@ -1039,33 +1212,42 @@ es.auto <- function(Etype,Ttype,Stype,IC="AICc",CF.type="none"){
 
 if(silent==FALSE){
 # Define plot.range for plot
-    if(intervals==T){
-        plot.range <- range(min(data,y.fit,y.for,y.low),max(data,y.fit,y.for,y.high))
+    if(intervals==TRUE){
+        plot.range <- range(min(data[!is.na(data)],y.fit[!is.na(y.fit)],y.for[!is.na(y.for)],y.low[!is.na(y.low)]),
+                            max(data[!is.na(data)],y.fit[!is.na(y.fit)],y.for[!is.na(y.for)],y.high[!is.na(y.high)]))
     }
     else{
-        plot.range <- range(min(data,y.fit,y.for),max(data,y.fit,y.for))
+        plot.range <- range(min(data[!is.na(data)],y.fit[!is.na(y.fit)],y.for[!is.na(y.for)]),
+                            max(data[!is.na(data)],y.fit[!is.na(y.fit)],y.for[!is.na(y.for)]))
     }
     
 # Print time elapsed on the construction
     print(paste0("Time elapsed: ",round(as.numeric(Sys.time() - start.time,units="secs"),2)," seconds"))
-    print(paste0("Model constructed: ",model))
-    print(paste0("Persistence vector: ", paste(round(vecg,3),collapse=", ")))
-    if(damped==TRUE){
-        print(paste0("Damping parameter: ", round(phi,3)))
-    }
-    print(paste0("Initial components: ", paste(round(matxt[seasfreq,1:(n.components - seasonal.component)],3),collapse=", ")))
-    if(seasonal.component==TRUE){
-        print(paste0("Initial seasonal components: ", paste(round(matxt[1:seasfreq,n.components],3),collapse=", ")))
-    }
-    if(!is.null(xreg)){
-        print(paste0("Xreg coefficients: ", paste(round(matxtreg[seasfreq,],3),collapse=", ")))
-    }
-    print(paste0("Residuals sigma: ",round(sqrt(mean(errors^2)),3)))
-    if(trace==TRUE){
-        print(paste0("CF type: trace with ",CF.type, "; CF value is: ",round(CF.objective,0)))
+    if(!any(unlist(strsplit(model,""))=="X")){
+        print(paste0("Model constructed: ",model))
+        print(paste0("Persistence vector: ", paste(round(vecg,3),collapse=", ")))
+        if(damped==TRUE){
+            print(paste0("Damping parameter: ", round(phi,3)))
+        }
+        print(paste0("Initial components: ", paste(round(matxt[seasfreq,1:(n.components - seasonal.component)],3),collapse=", ")))
+        if(seasonal.component==TRUE){
+            print(paste0("Initial seasonal components: ", paste(round(matxt[1:seasfreq,n.components],3),collapse=", ")))
+        }
+        if(!is.null(xreg)){
+            print(paste0("Xreg coefficients: ", paste(round(matxtreg[seasfreq,],3),collapse=", ")))
+        }
+        print(paste0("Residuals sigma: ",round(sqrt(mean(errors^2)),3)))
+        if(trace==TRUE){
+            print(paste0("CF type: trace with ",CF.type, "; CF value is: ",round(CF.objective,0)))
+        }
+        else{
+            print(paste0("CF type: one step ahead; CF value is: ",round(CF.objective,0)))
+        }
+        print(paste0("AIC: ",round(ICs["AIC"],3)," AICc: ", round(ICs["AICc"],3)))
     }
     else{
-        print(paste0("CF type: one step ahead; CF value is: ",round(CF.objective,0)))
+        print(paste0("AIC weights were used to produce the combination of forecasts"))
+        print(paste0("Residuals sigma: ",round(sqrt(mean(errors^2)),3)))
     }
     if(intervals==TRUE){
         if(int.type=="p"){
@@ -1080,8 +1262,7 @@ if(silent==FALSE){
         print(paste0(int.w*100,"% ",int.type," intervals were constructed"))
     }
 #    print(paste0("Biased log-likelihood: ",round((llikelihood - n.param*h^trace),0)))
-    print(paste0("AIC: ",round(ICs["AIC"],3)," AICc: ", round(ICs["AICc"],3)))
-    if(holdout==T){
+    if(holdout==TRUE){
         print(paste0("MAPE: ",errormeasures["MAPE"]*100,"%"));
         print(paste0("MASE: ",errormeasures["MASE"]));
         print(paste0("MASALE: ",errormeasures["MASALE"]*100,"%"));
@@ -1097,7 +1278,7 @@ if(silent==FALSE){
          ylim=plot.range,xlab="Time", ylab="")
     lines(y.fit,col="purple",lwd=2,lty=2)
 
-    if(intervals==T){
+    if(intervals==TRUE){
         if(h>1){
             lines(y.low,col="darkgrey",lwd=3,lty=2)
             lines(y.high,col="darkgrey",lwd=3,lty=2)
@@ -1195,7 +1376,16 @@ if(silent==FALSE){
     par(mfrow=c(1,1), mar=c(5,4,4,2))
 }
 
-return(list(persistence=vecg,phi=phi,states=matxt,fitted=y.fit,forecast=y.for,
-            lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
-            x=data,x.holdout=y.holdout,ICs=ICs,CF=CF.objective,FI=FI,xreg=xreg,accuracy=errormeasures))
+    if(!any(unlist(strsplit(model,""))=="X")){
+        return(list(model=model,persistence=vecg,phi=phi,states=matxt,fitted=y.fit,
+                forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
+                errors=errors.mat,x=data,x.holdout=y.holdout,ICs=ICs,
+                CF=CF.objective,FI=FI,xreg=xreg,accuracy=errormeasures))
+    }
+    else{
+        return(list(model=model,fitted=y.fit,forecast=y.for,
+                    lower=y.low,upper=y.high,residuals=errors,
+                    x=data,x.holdout=y.holdout,ICs=IC.weights,
+                    xreg=xreg,accuracy=errormeasures))
+    }
 }
