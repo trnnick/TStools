@@ -11,7 +11,7 @@ Function constructs ETS model and returns forecast, fitted values, errors and ma
 es(data, model="ZZZ", persistence=NULL, phi=NULL,
     bounds=c("usual","admissible"), initial=NULL,
     initial.season=NULL, IC=c("AICc","AIC","BIC"),
-    trace=FALSE, CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
+    trace=FALSE, CF.type=c("TLV","GV","TV","hsteps","MSE","MAE","HAM"),
     intervals=FALSE, int.w=0.95,
     int.type=c("parametric","semiparametric","nonparametric"),
     xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
