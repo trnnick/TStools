@@ -157,26 +157,214 @@ arma::mat avalue(int freq, double(error), double gamma, double yfit, char E, cha
     return(a);
 }
 
-/* # initxt - function that initialises states of ETS */
+/* # initparams - function that initialises the basic parameters of ETS */
+// [[Rcpp::export]]
+RcppExport List initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEXP yt,
+                           SEXP damped, SEXP phi, SEXP smoothingparameters, SEXP initialstates, SEXP seasonalcoefs){
 
-/*
-# etsparam - function that returns all the necessary parameters for ETS:
-# number of components, lags, model frequency, states matrix, persistence vector,
-# phi value, which parameters to estimate.
-*/
+    char T = as<char>(Ttype);
+    char S = as<char>(Stype);
+    int freq = as<int>(datafreq);
+    int obs = as<int>(obsR);
+    NumericMatrix vyt(yt);
+    arma::mat matyt(vyt.begin(), vyt.nrow(), vyt.ncol(), false);
+    bool damping = as<bool>(damped);
+    double phivalue;
+    if(!Rf_isNull(phi)){
+        phivalue = as<double>(phi);
+    }
+    NumericMatrix smoothingparam(smoothingparameters);
+    arma::mat persistence(smoothingparam.begin(), smoothingparam.nrow(), smoothingparam.ncol(), false);
+    NumericMatrix initials(initialstates);
+    arma::mat initial(initials.begin(), initials.nrow(), initials.ncol(), false);
+    NumericMatrix seasonalc(seasonalcoefs);
+    arma::mat seascoef(seasonalc.begin(), seasonalc.nrow(), seasonalc.ncol(), false);
+
+    int ncomponents = 1;
+    int seasfreq = 1;
+
+/* # Define the number of components */
+    if(T!='N'){
+        ncomponents += 1;
+    }
+
+/* # Define the number of components and model frequency */
+    if(S!='N'){
+        ncomponents += 1;
+        seasfreq = freq;
+    }
+    
+    int obsused = std::min(12,obs);
+    arma::mat matrixxt(seasfreq, ncomponents, arma::fill::ones);
+    arma::mat vecg(ncomponents, 1, arma::fill::zeros);
+    bool estimphi = TRUE;
+
+/* # Define the initial states for level and trend components */
+    if(T=='N'){
+        matrixxt.cols(0,0).each_row() = initial.submat(0,2,0,2);
+    }
+    else if(T=='A'){
+        matrixxt.cols(0,0).each_row() = initial.submat(0,0,0,0);
+        matrixxt.cols(1,1).each_row() = initial.submat(0,1,0,1);
+    }
+    else if(T=='M'){
+/* # The initial matrix is filled with ones, that is why we don't need to fill in initial trend */
+        matrixxt.cols(0,0).each_row() = initial.submat(0,2,0,2);
+        matrixxt.cols(1,1).each_row() = initial.submat(0,3,0,3);
+    }
+
+/* # Define the initial states for seasonal component */
+    if(S!='N'){
+        if(S=='A'){
+            matrixxt.cols(ncomponents-1,ncomponents-1) = seascoef.cols(0,0);
+        }
+        else{
+            matrixxt.cols(ncomponents-1,ncomponents-1) = seascoef.cols(1,1);
+        }
+    }
+
+    matrixxt.resize(obs+seasfreq, ncomponents);
+    if(T=='M' | S=='M'){
+        vecg = persistence.submat(0,1,ncomponents-1,1);
+    }
+    else{
+        vecg = persistence.submat(0,0,ncomponents-1,0);
+    }
+
+    if(Rf_isNull(phi)){
+        if(damping==TRUE){
+            phivalue = 0.95;
+        }
+        else{
+            phivalue = 1.0;
+            estimphi = FALSE;
+        }
+    }
+    else{
+        if(damping==FALSE){
+            phivalue = 1.0;
+        }
+        estimphi = FALSE;
+    }
+
+    return List::create(Named("n.components") = ncomponents, Named("seasfreq") = seasfreq, Named("matxt") = matrixxt, Named("vecg") = vecg, Named("estimate.phi") = estimphi, Named("phi") = phivalue);
+}
 
 /*
 # etsmatrices - function that returns matF and matw.
 # Needs to be stand alone to change the damping parameter during the estimation.
+# Cvalues includes persistence, phi, initials, intials for seasons, xtreg coeffs.
 */
+// [[Rcpp::export]]
+RcppExport List etsmatrices(SEXP matxt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP ncomponentsR,
+                            SEXP seasfreq, SEXP Ttype, SEXP Stype, SEXP nexovars, SEXP matxtreg,
+                            SEXP estimpersistence, SEXP estimphi, SEXP estiminit, SEXP estiminitseason, SEXP estimxreg){
 
-/*
-# etsestims - function takes the vector of estimates (C from the CF) and returns phi, states, persistence and exogenous vars vectors.
-*/
+    NumericMatrix mxt(matxt);
+    arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol());
+    NumericMatrix vg(vecg);
+    arma::mat matg(vg.begin(), vg.nrow(), vg.ncol(), false);
+    double phivalue = as<double>(phi);
+    NumericMatrix Cv(Cvalues);
+    arma::rowvec C(Cv.begin(), Cv.ncol(), false);
+    int ncomponents = as<int>(ncomponentsR);
+    int freq = as<int>(seasfreq);
+    char T = as<char>(Ttype);
+    char S = as<char>(Stype);
+    int nexo = as<int>(nexovars);
+    NumericMatrix mxtreg(matxtreg);
+    arma::mat matrixxtreg(mxtreg.begin(), mxtreg.nrow(), mxtreg.ncol());
+    bool estimatepersistence = as<bool>(estimpersistence);
+    bool estimatephi = as<bool>(estimphi);
+    bool estimateinitial = as<bool>(estiminit);
+    bool estimateinitialseason = as<bool>(estiminitseason);
+    bool estimatexreg = as<bool>(estimxreg);
+
+    arma::mat matrixF(1,1,arma::fill::ones);
+    arma::mat matrixw(1,1,arma::fill::ones);
+
+    if(estimatepersistence==TRUE){
+        matg.cols(0,0) = C.cols(0,ncomponents-1).t();
+    }
+
+    if(estimatephi==TRUE){
+        phivalue = as_scalar(C.cols(ncomponents*estimatepersistence,ncomponents*estimatepersistence));
+    }
+
+    if(estimateinitial==TRUE){
+        matrixxt.cols(0,0).fill(as_scalar(C.cols(ncomponents*estimatepersistence + estimatephi,ncomponents*estimatepersistence + estimatephi).t()));
+        if(T!='N'){
+            matrixxt.cols(1,1).fill(as_scalar(C.cols(ncomponents*estimatepersistence + estimatephi + 1,ncomponents*estimatepersistence + estimatephi + 1).t()));
+        }
+    }
+
+    if(S!='N'){
+        if(estimateinitialseason==TRUE){
+            matrixxt.submat(0,ncomponents-1,freq-1,ncomponents-1) = C.cols(ncomponents*estimatepersistence + estimatephi + (ncomponents - 1)*estimateinitial,ncomponents*estimatepersistence + estimatephi + (ncomponents - 1)*estimateinitial + freq - 1).t();
+/* # Normalise the initial seasons */
+            if(S=='A'){
+                matrixxt.submat(0,ncomponents-1,freq-1,ncomponents-1) = matrixxt.submat(0,ncomponents-1,freq-1,ncomponents-1) - as_scalar(mean(matrixxt.submat(0,ncomponents-1,freq-1,ncomponents-1)));
+            }
+            else{
+                matrixxt.submat(0,ncomponents-1,freq-1,ncomponents-1) = exp(log(matrixxt.submat(0,ncomponents-1,freq-1,ncomponents-1)) - as_scalar(mean(log(matrixxt.submat(0,ncomponents-1,freq-1,ncomponents-1)))));
+            }
+        }
+    }
+
+    if(estimatexreg==TRUE){
+        matrixxtreg.rows(0,0) = C.cols(C.n_cols - nexo,C.n_cols - 1);
+        for(int i=1; i < matrixxtreg.n_rows; i=i+1){
+            matrixxtreg.rows(i,i) = matrixxtreg.rows(i-1,i-1);
+        }
+    }
+
+/* # The default values of matrices are set for ZNN  models */
+    if(S=='N'){
+        if(T!='N'){
+            matrixF.set_size(2,2);
+            matrixF(0,0) = 1.0;
+            matrixF(1,0) = 0.0;
+            matrixF(0,1) = phivalue;
+            matrixF(1,1) = phivalue;
+            
+            matrixw.set_size(1,2);
+            matrixw(0,0) = 1.0;
+            matrixw(0,1) = phivalue;
+        }
+    }
+    else{
+        if(T!='N'){
+            matrixF.set_size(3,3);
+            matrixF.fill(0.0);
+            matrixF(0,0) = 1.0;
+            matrixF(1,0) = 0.0;
+            matrixF(0,1) = phivalue;
+            matrixF(1,1) = phivalue;
+            matrixF(2,2) = 1.0;
+            
+            matrixw.set_size(1,3);
+            matrixw(0,0) = 1.0;
+            matrixw(0,1) = phivalue;
+            matrixw(0,2) = 1.0;
+        }
+        else{
+            matrixF.set_size(2,2);
+            matrixF.fill(0.0);
+            matrixF.diag().fill(1.0);
+
+            matrixw.set_size(1,2);
+            matrixw.fill(1.0);
+        }
+    }
+
+    return List::create(Named("matF") = matrixF, Named("matw") = matrixw, Named("vecg") = matg, 
+                              Named("phi") = phivalue, Named("matxt") = matrixxt, Named("matxtreg") = matrixxtreg);
+}
+
 
 /* # Function fits ETS model to the data */
 List fitter(arma::mat matrixxt, arma::mat  matrixF, arma::mat  matrixw, arma::mat  matyt,
-arma::mat  matg, char E, char T, char S, int freq, arma::mat matrixwex, arma::mat matrixxtreg) {
+arma::mat matg, char E, char T, char S, int freq, arma::mat matrixwex, arma::mat matrixxtreg) {
     int obs = matyt.n_rows;
     int freqtail = 0;
     int j;
@@ -588,7 +776,7 @@ int hor, char E, char T, char S, int freq, bool tr, std::string CFtype, int norm
             materrors = errorer(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, tr, matrixwex, matrixxtreg);
             if(CFtype=="GV"){
                 materrors.resize(matobs,hor);
-                materrors = materrors / normalize ;
+                materrors = materrors / normalize;
                 CFres = double(log(det(trans(materrors) * (materrors) / matobs)) + hor * log(matobs * pow(normalize,2)));
             }
             else if(CFtype=="TLV"){

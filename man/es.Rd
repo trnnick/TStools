@@ -9,9 +9,9 @@ Function constructs ETS model and returns forecast, fitted values, errors and ma
 }
 \usage{
 es(data, model="ZZZ", persistence=NULL, phi=NULL,
-    bounds=c("usual","admissible"),
-    initial=NULL, initial.season=NULL,
-    IC=c("AICc","AIC"), trace=FALSE, CF.type=c("TLV","GV","TV","hsteps","MAE","HAM"),
+    bounds=c("usual","admissible"), initial=NULL,
+    initial.season=NULL, IC=c("AICc","AIC","BIC"),
+    trace=FALSE, CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
     intervals=FALSE, int.w=0.95,
     int.type=c("parametric","semiparametric","nonparametric"),
     xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
@@ -37,7 +37,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{trace}{ If TRUE, the trace likelihood is used in the estimation with trace of the length \code{h}.
   }
-  \item{CF.type}{ Type of Cost Function used in trace optimization. Can be \code{GV} - Generalized Variance, \code{TLV} - Total Logarythmic Variation and \code{TV} - Total Variation, \code{hsteps} - optimisation using only h-steps ahead error. If \code{trace=FALSE}, \code{CF.type} can be \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error) or \code{HAM} (Half Absolute Moment).
+  \item{CF.type}{ Type of Cost Function used in trace optimization. If \code{trace=FALSE}, \code{CF.type} can be \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error) or \code{HAM} (Half Absolute Moment). In case of \code{trace=TRUE} it can be \code{GV} - Generalized Variance, \code{TLV} - Total Logarythmic Variation and \code{TV} - Total Variation, \code{hsteps} - optimisation using only h-steps ahead error. 
   }
   \item{intervals}{ If \code{TRUE}, the prediction interval is constructed.
   }
@@ -77,7 +77,7 @@ The details will be here soon.
     \item \code{errors} - trace forecast in-sample errors, returned as a matrix. In the case of trace forecasts this is the matrix used in optimisation. In non-trace estimations it is returned just for the information.
     \item \code{x} - the original data.
     \item \code{x.holdout} - the holdout part of the original data.
-    \item \code{ICs} - values of information criteria of the model. Includes AIC and AICc.
+    \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc and BIC.
     \item \code{CF} - Cost function value.
     \item \code{FI} - Fisher Information estimated in the optimal point.
     \item \code{xreg} - the provided vector or matrix of exogenous variables.
