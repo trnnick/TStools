@@ -39,6 +39,16 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             CF.type <- "TLV"
         }
     }
+    else(
+        if(CF.type!="MAE" & CF.type!="HAM" & CF.type!="MSE"){
+            if(CF.type!="TLV"){
+                message(paste0("Weird Cost Function defined: ",CF.type))
+                sowhat(CF.type)
+                message("Switching to 'MSE'")
+            }
+            CF.type <- "MSE"
+        }
+    )
 
 # Check if "bounds" parameter makes any sense
     if(bounds!="u" & bounds!="a"){
@@ -242,7 +252,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # Define matrix w for exogenous variables
             matwex <- as.matrix(xreg);
 # Fill in the initial values for exogenous coefs using OLS
-            matxtreg[1:datafreq,] <- rep(t(solve(t(mat.x[1:obs,]) %*% mat.x[1:obs,]) %*% t(mat.x[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],each=datafreq);
+            matxtreg[1:datafreq,] <- rep(t(solve(t(mat.x[1:obs,]) %*% mat.x[1:obs,],tol=1e-50) %*% t(mat.x[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],each=datafreq);
         }
         else{
             stop("Unknown format of xreg. Should be either vector or matrix. Aborting!",call.=F);
