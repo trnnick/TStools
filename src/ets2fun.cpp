@@ -173,6 +173,7 @@ RcppExport List initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEX
     if(!Rf_isNull(phi)){
         phivalue = as<double>(phi);
     }
+
     NumericMatrix smoothingparam(smoothingparameters);
     arma::mat persistence(smoothingparam.begin(), smoothingparam.nrow(), smoothingparam.ncol(), false);
     NumericMatrix initials(initialstates);
@@ -193,7 +194,7 @@ RcppExport List initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEX
         ncomponents += 1;
         seasfreq = freq;
     }
-    
+
     int obsused = std::min(12,obs);
     arma::mat matrixxt(seasfreq, ncomponents, arma::fill::ones);
     arma::mat vecg(ncomponents, 1, arma::fill::zeros);
@@ -224,11 +225,22 @@ RcppExport List initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEX
     }
 
     matrixxt.resize(obs+seasfreq, ncomponents);
-    if(T=='M' | S=='M'){
-        vecg = persistence.submat(0,1,ncomponents-1,1);
+    
+    if(persistence.n_rows < ncomponents){
+        if(T=='M' | S=='M'){
+            vecg = persistence.submat(0,1,persistence.n_rows-1,1);
+        }
+        else{
+            vecg = persistence.submat(0,0,persistence.n_rows-1,0);
+        }
     }
     else{
-        vecg = persistence.submat(0,0,ncomponents-1,0);
+        if(T=='M' | S=='M'){
+            vecg = persistence.submat(0,1,ncomponents-1,1);
+        }
+        else{
+            vecg = persistence.submat(0,0,ncomponents-1,0);
+        }
     }
 
     if(Rf_isNull(phi)){

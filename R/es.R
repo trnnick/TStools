@@ -452,10 +452,66 @@ IC.calc <- function(n.param=n.param,C,Etype=Etype){
 }
 
 #Function allows to estimate the coefficients of the simple quantile regression. Used in intervals construction.
-    quantfunc <- function(A){
-        ee <- ye - (A[1] + A[2]*xe + A[3]*xe^2)
-        return((1-quant)*sum(abs(ee[which(ee<0)]))+quant*sum(abs(ee[which(ee>=0)])))
+quantfunc <- function(A){
+    ee <- ye - (A[1] + A[2]*xe + A[3]*xe^2)
+    return((1-quant)*sum(abs(ee[which(ee<0)]))+quant*sum(abs(ee[which(ee>=0)])))
+}
+
+checker <- function(inherits=TRUE){
+### Check the length of initials and persistence vectors
+# Check the persistence vector length
+    if(!is.null(persistence)){
+        if(n.components != length(persistence)){
+            message("The length of persistence vector does not correspond to the chosen model!")
+            message("Values will be estimated")
+            assign("persistence",NULL,inherits=inherits)
+            assign("smoothingparameters",cbind(c(0.3,0.2,0.1),rep(0.05,3)),inherits=inherits)
+            assign("estimate.persistence",TRUE,inherits=inherits)
+            assign("basicparams",initparams(Ttype, Stype, datafreq, obs, as.matrix(y), damped, phi, smoothingparameters, initialstates, seasonalcoefs),inherits=TRUE)
+            assign("vecg",basicparams$vecg,inherits=inherits)
+        }
     }
+
+# Check the inital vector length
+    if(!is.null(initial)){
+        if(length(initial)>2 | (n.components - (Stype!="N"))!=length(initial)){
+            if(length(initial)>2){
+                message("The length of the initial value is wrong! It should not be greater than 2.")
+            }
+            else{
+                message("The length of initial state vector does not correspond to the chosen model!")
+            }
+            message("Values of initial vector will be estimated.")
+            initial <- NULL
+            if(Ttype!="N"){
+                initialstates <- matrix(NA,1,4);
+                initialstates[1,2] <- cov(y[1:min(12,obs)],c(1:min(12,obs)))/var(c(1:min(12,obs)))
+                initialstates[1,1] <- mean(y[1:min(12,obs)]) - initialstates[1,2] * (mean(c(1:min(12,obs))) - 1)
+                initialstates[1,3] <- mean(y[1:min(12,obs)])
+                initialstates[1,4] <- 1
+            }
+            else{
+                initialstates <- matrix(rep(mean(y[1:min(12,obs)]),4),nrow=1);
+            }
+                assign("estimate.initial",TRUE,inherits=inherits)
+                assign("initialstates",initialstates,inherits=inherits)
+                assign("basicparams",initparams(Ttype, Stype, datafreq, obs, as.matrix(y), damped, phi, smoothingparameters, initialstates, seasonalcoefs),inherits=TRUE)
+                assign("matxt",basicparams$matxt,inherits=inherits)
+        }
+    }
+
+# Check the seasonal inital vector length
+    if(!is.null(initial.season)){
+        if(frequency(data)!=length(initial.season)){
+            message("The length of seasonal initial states does not correspond to the frequency of the data!")
+            message("Values of initial seasonals will be estimated.")
+            seasonalcoefs <- decompose(ts(y[1:obs],frequency=datafreq),type="additive")$seasonal[1:datafreq]
+            seasonalcoefs <- cbind(seasonalcoefs,decompose(ts(y[1:obs],frequency=datafreq),type="multiplicative")$seasonal[1:datafreq])
+            assign("initial.season",NULL,inherits=inherits)
+            assign("seasonalcoefs",seasonalcoefs,inherits=inherits)
+        }
+    }
+}
 
 #################### Basic initialisation of ETS ####################
 # If initial values are provided, write them. If not, estimate them.
@@ -540,6 +596,17 @@ IC.calc <- function(n.param=n.param,C,Etype=Etype){
     else{
         mat.error <- matrix(NA,nrow=obs,ncol=1)
     }
+
+    basicparams <- initparams(Ttype, Stype, datafreq, obs, as.matrix(y),
+                              damped, phi, smoothingparameters, initialstates, seasonalcoefs)
+    n.components <- basicparams$n.components
+    seasfreq <- basicparams$seasfreq
+    matxt <- basicparams$matxt
+    vecg <- basicparams$vecg
+    estimate.phi <- basicparams$estimate.phi
+    phi <- basicparams$phi
+
+    checker(inherits=TRUE)
 
 ############ Start the estimation depending on the model ############
 # Fill in the vector of initial values and vector of constrains used in estimation
@@ -684,81 +751,36 @@ IC.calc <- function(n.param=n.param,C,Etype=Etype){
                 vecg <- basicparams$vecg
                 estimate.phi <- basicparams$estimate.phi
                 phi <- basicparams$phi
-
-                init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, seasfreq, Ttype, Stype, n.exovars, matxtreg,
-                                        estimate.persistence, estimate.phi, estimate.initial, estimate.initial.season, estimate.xreg);
-                vecg <- init.ets$vecg
-                phi <- init.ets$phi
-                matxt <- init.ets$matxt
-                matxtreg <- init.ets$matxtreg
-                matF <- init.ets$matF
-                matw <- init.ets$matw
             }
         }
         else{
-# seasfreq is the model frequency (if the model is seasonal, seasfreq==datafreq)
-            basicparams <- initparams(Ttype, Stype, datafreq, obs, as.matrix(y),
-                                      damped, phi, smoothingparameters, initialstates, seasonalcoefs)
-            n.components <- basicparams$n.components
-            seasfreq <- basicparams$seasfreq
-            matxt <- basicparams$matxt
-            vecg <- basicparams$vecg
-            estimate.phi <- basicparams$estimate.phi
-            phi <- basicparams$phi
-
-### Check the length of initials and persistence vectors
-# Check the persistence vector length
-            if(!is.null(persistence)){
-                if(n.components != length(persistence)){
-                    message("The length of persistence vector does not correspond to the chosen model!")
-                    message("Values will be estimated")
-                    persistence <- NULL
-                }
-            }
-
-# Check the inital vector length
-            if(!is.null(initial)){
-                if(length(initial)>2){
-                    message("The length of the initial value is wrong! It should not be greater than 2.")
-                    message("Values of initial vector will be estimated.")
-                    initial <- NULL
-                }
-                if((n.components - (Stype!="N"))!=length(initial)){
-                    message("The length of initial state vector does not correspond to the chosen model!")
-                    message("Values of initial vector will be estimated.")
-                    initial <- NULL
-                }
-            }
-
-# Check the seasonal inital vector length
-            if(!is.null(initial.season)){
-                if(frequency(data)!=length(initial.season)){
-                    message("The length of seasonal initial states does not correspond to the frequency of the data!")
-                    message("Values of initial seasonals will be estimated.")
-                    initial.season <- NULL
-                }
-            }
-
             Cs <- C.values(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,matxtreg)
             C <- Cs$C
             C.upper <- Cs$C.upper
             C.lower <- Cs$C.lower
+
             res <- nloptr::nloptr(C, CF, lb=C.lower, ub=C.upper,
                                   opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000))
             CF.objective <- res$objective
             C <- res$solution
-
-            init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, seasfreq, Ttype, Stype, n.exovars, matxtreg,
-                            estimate.persistence, estimate.phi, estimate.initial, estimate.initial.season, estimate.xreg);
-            vecg <- init.ets$vecg
-            phi <- init.ets$phi
-            matxt <- init.ets$matxt
-            matxtreg <- init.ets$matxtreg
-            matF <- init.ets$matF
-            matw <- init.ets$matw
         }
     }
+    else{
+            Cs <- C.values(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,matxtreg)
+            C <- Cs$C
+    }
 
+    if(all(unlist(strsplit(model,""))!="X")){
+        init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, seasfreq, Ttype, Stype, n.exovars, matxtreg,
+                                estimate.persistence, estimate.phi, estimate.initial, estimate.initial.season, estimate.xreg);
+        vecg <- init.ets$vecg
+        phi <- init.ets$phi
+        matxt <- init.ets$matxt
+        matxtreg <- init.ets$matxtreg
+        matF <- init.ets$matF
+        matw <- init.ets$matw
+    }
+    
     if(!any(unlist(strsplit(model,""))=="X")){
         if(damped==TRUE){
             model <- paste0(Etype,Ttype,"d",Stype)
