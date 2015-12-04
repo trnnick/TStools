@@ -673,31 +673,31 @@ arma::mat errorer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma
 int hor, char E, char T, char S, int freq, bool tr, arma::mat matrixwex, arma::mat matrixxtreg) {
     int obs = matyt.n_rows;
     int hh = 0;
-    arma::mat materrors;
+    arma::mat materrors(obs, hor);
 
-    if(tr==true){
-        materrors.set_size(obs, hor);
+//    if(tr==true){
+//        materrors.set_size(obs, hor);
         materrors.fill(NA_REAL);
-    }
+/*    }
     else{
         materrors.set_size(obs, 1);
     }
 
-    if(tr==true){
+    if(tr==true){ */
         for(int i = 0; i < obs; i=i+1){
             hh = std::min(hor, obs-i);
             materrors.submat(i, 0, i, hh-1) = trans(errorvf(matyt.rows(i, i+hh-1),
                 forecaster(matrixxt.rows(i,i+freq-1), matrixF, matrixw, hh, T, S, freq, matrixwex.rows(i, i+hh-1),
                     matrixxtreg.rows(i, i+hh-1)), E));
         }
-    }
+/*    }
     else{
 	    for(int i = 0; i < obs; i=i+1){
 	    materrors.row(i) = trans(errorvf(matyt.row(i),
             forecaster(matrixxt.rows(i,i+freq-1), matrixF, matrixw, 1, T, S, freq, matrixwex.rows(i, i+hh-1),
                 matrixxtreg.rows(i, i+hh-1)), E));
 	    }
-    }
+    } */
     return materrors;
 }
 
@@ -730,6 +730,10 @@ SEXP seasfreq, SEXP trace, SEXP matwex, SEXP matxtreg){
 /* # Function returns the chosen Cost Function based on the chosen model and produced errors */
 double optimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat matyt, arma::mat matg,
 int hor, char E, char T, char S, int freq, bool tr, std::string CFtype, int normalize, arma::mat matrixwex, arma::mat matrixxtreg){
+// # Make decomposition functions shut up!
+    std::ostream nullstream(0);
+    arma::set_stream_err2(nullstream);
+  
     int obs = matyt.n_rows;
     double CFres = 0;
     int matobs = obs - hor + 1;
@@ -750,7 +754,12 @@ int hor, char E, char T, char S, int freq, bool tr, std::string CFtype, int norm
             materrors.elem(arma::find_nonfinite(materrors)).fill(1e10);
             if(CFtype=="GV"){
                 materrors.resize(matobs,hor);
-                CFres = double(log(arma::det(arma::trans(materrors) * materrors / double(matobs))));
+                try{
+                    CFres = double(log(arma::prod(eig_sym(trans(materrors) * (materrors) / matobs))));
+                }
+                catch(const std::runtime_error){
+                    CFres = double(log(arma::det(arma::trans(materrors) * materrors / double(matobs))));
+                }
                 CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
             }
             else if(CFtype=="TLV"){
@@ -788,8 +797,12 @@ int hor, char E, char T, char S, int freq, bool tr, std::string CFtype, int norm
             materrors = errorer(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, tr, matrixwex, matrixxtreg);
             if(CFtype=="GV"){
                 materrors.resize(matobs,hor);
-                materrors = materrors / normalize;
-                CFres = double(log(det(trans(materrors) * (materrors) / matobs)) + hor * log(matobs * pow(normalize,2)));
+                try{
+                    CFres = double(log(arma::prod(eig_sym(trans(materrors / normalize) * (materrors / normalize) / matobs))) + hor * log(pow(normalize,2)));
+                }
+                catch(const std::runtime_error){
+                    CFres = double(log(arma::det(arma::trans(materrors / normalize) * (materrors / normalize) / matobs)) + hor * log(pow(normalize,2)));
+                }
             }
             else if(CFtype=="TLV"){
                 for(int i=0; i<hor; i=i+1){

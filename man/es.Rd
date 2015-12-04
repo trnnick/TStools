@@ -12,7 +12,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
     bounds=c("usual","admissible"), initial=NULL,
     initial.season=NULL, IC=c("AICc","AIC","BIC"),
     trace=FALSE, CF.type=c("TLV","GV","TV","hsteps","MSE","MAE","HAM"),
-    intervals=FALSE, int.w=0.95,
+    FI=FALSE, intervals=FALSE, int.w=0.95,
     int.type=c("parametric","semiparametric","nonparametric"),
     xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
     ...)
@@ -38,6 +38,8 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   \item{trace}{ If TRUE, the trace likelihood is used in the estimation with trace of the length \code{h}.
   }
   \item{CF.type}{ Type of Cost Function used in trace optimization. If \code{trace=FALSE}, \code{CF.type} can be \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error) or \code{HAM} (Half Absolute Moment). In case of \code{trace=TRUE} it can be \code{GV} - Generalized Variance, \code{TLV} - Total Logarythmic Variation and \code{TV} - Total Variation, \code{hsteps} - optimisation using only h-steps ahead error. 
+  }
+  \item{FI}{ If \code{TRUE}, Fisher Information is calculated and produced in the output.
   }
   \item{intervals}{ If \code{TRUE}, the prediction interval is constructed.
   }

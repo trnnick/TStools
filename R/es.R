@@ -2,7 +2,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                bounds=c("usual","admissible"), initial=NULL,
                initial.season=NULL, IC=c("AICc","AIC","BIC"),
                trace=FALSE, CF.type=c("TLV","GV","TV","hsteps","MSE","MAE","HAM"),
-               intervals=FALSE, int.w=0.95,
+               FI=FALSE, intervals=FALSE, int.w=0.95,
                int.type=c("parametric","semiparametric","nonparametric"),
                xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
                ...){
@@ -144,12 +144,37 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     }
 
 ### Check all the parameters for the possible errors.
-    if(!is.null(persistence) & length(persistence)>3){
-        message("The length of persistence vector is wrong! It should not be greater than 3.")
-        message("Changing to the estimation of persistence vector values.")
-        persistence <- NULL
+    if(!is.null(persistence)){
+        if(!is.numeric(persistence) | !is.vector(persistence)){
+            message("The persistence is not a numeric vector!")
+            message("Changing to the estimation of persistence vector values.")
+            persistence <- NULL
+        }
+        else{
+            if(length(persistence)>3){
+                message("The length of persistence vector is wrong! It should not be greater than 3.")
+                message("Changing to the estimation of persistence vector values.")
+                persistence <- NULL
+            }
+        }
     }
 
+### Check if the meaningfull initials are passed
+    if(!is.null(initial)){
+        if(!is.numeric(initial) | !is.vector(initial)){
+            message("The initial vector is not numeric!")
+            message("Values of initial vector will be estimated.")
+            initial <- NULL
+        }
+        else{
+            if(length(initial)>2){
+                message("The length of initial vector is wrong! It should not be greater than 2.")
+                message("Values of initial vector will be estimated.")
+                initial <- NULL
+            }
+        }
+    }
+    
 ### Check the error type
     if(Etype!="Z" & Etype!="A" & Etype!="M"){
         message("Wrong error type! Should be 'Z', 'A' or 'M'.")
@@ -164,7 +189,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         Ttype <- "Z"
     }
 
-### Check the seasonaity type
+### Check the seasonality type
     if(Stype!="Z" & Stype!="N" & Stype!="A" & Stype!="M"){
         message("Wrong seasonality type! Should be 'Z', 'N', 'A' or 'M'.")
         if(datafreq==1){
@@ -474,13 +499,8 @@ checker <- function(inherits=TRUE){
 
 # Check the inital vector length
     if(!is.null(initial)){
-        if(length(initial)>2 | (n.components - (Stype!="N"))!=length(initial)){
-            if(length(initial)>2){
-                message("The length of the initial value is wrong! It should not be greater than 2.")
-            }
-            else{
-                message("The length of initial state vector does not correspond to the chosen model!")
-            }
+        if((n.components - (Stype!="N"))!=length(initial)){
+            message("The length of initial state vector does not correspond to the chosen model!")
             message("Values of initial vector will be estimated.")
             initial <- NULL
             if(Ttype!="N"){
@@ -493,10 +513,10 @@ checker <- function(inherits=TRUE){
             else{
                 initialstates <- matrix(rep(mean(y[1:min(12,obs)]),4),nrow=1);
             }
-                assign("estimate.initial",TRUE,inherits=inherits)
-                assign("initialstates",initialstates,inherits=inherits)
-                assign("basicparams",initparams(Ttype, Stype, datafreq, obs, as.matrix(y), damped, phi, smoothingparameters, initialstates, seasonalcoefs),inherits=TRUE)
-                assign("matxt",basicparams$matxt,inherits=inherits)
+            assign("estimate.initial",TRUE,inherits=inherits)
+            assign("initialstates",initialstates,inherits=inherits)
+            assign("basicparams",initparams(Ttype, Stype, datafreq, obs, as.matrix(y), damped, phi, smoothingparameters, initialstates, seasonalcoefs),inherits=TRUE)
+            assign("matxt",basicparams$matxt,inherits=inherits)
         }
     }
 
@@ -706,15 +726,18 @@ checker <- function(inherits=TRUE){
                 C.upper <- Cs$C.upper
                 C.lower <- Cs$C.lower
 
+#                res <- nlminb(C, CF, lower=C.lower, upper=C.upper);
+#                C <- res$par;
                 res <- nloptr::nloptr(C, CF, lb=C.lower, ub=C.upper,
-                                      opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000))
+                                      opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
+                C <- res$solution;
 
                 n.param <- n.components + damped + (n.components - (Stype!="N")) + seasfreq*(Stype!="N")
 
                 IC.values <- IC.calc(n.param=n.param,C=res$solution,Etype=Etype)
                 ICs <- IC.values$ICs
 
-                results[[j]] <- c(ICs,Etype,Ttype,Stype,damped,res$objective,res$solution)
+                results[[j]] <- c(ICs,Etype,Ttype,Stype,damped,res$objective,C)
             }
             if(silent==FALSE){
                 cat("... Done! \n")
@@ -759,10 +782,12 @@ checker <- function(inherits=TRUE){
             C.upper <- Cs$C.upper
             C.lower <- Cs$C.lower
 
+#            res <- nlminb(C, CF, lower=C.lower, upper=C.upper);
+#            C <- res$par;
             res <- nloptr::nloptr(C, CF, lb=C.lower, ub=C.upper,
                                   opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000))
-            CF.objective <- res$objective
             C <- res$solution
+            CF.objective <- res$objective
         }
     }
     else{
@@ -781,7 +806,7 @@ checker <- function(inherits=TRUE){
         matw <- init.ets$matw
     }
     
-    if(!any(unlist(strsplit(model,""))=="X")){
+    if(all(unlist(strsplit(model,""))!="X")){
         if(damped==TRUE){
             model <- paste0(Etype,Ttype,"d",Stype)
         }
@@ -863,7 +888,12 @@ checker <- function(inherits=TRUE){
             n.param <- n.param + n.exovars
         }
 
-        FI <- numDeriv::hessian(Likelihood.value,C)
+        if(FI==TRUE){
+            FI <- numDeriv::hessian(Likelihood.value,C)
+        }
+        else{
+            FI <- NULL
+        }
 
 # Calculate IC values
         IC.values <- IC.calc(n.param=n.param,C=C,Etype=Etype)
@@ -1043,7 +1073,7 @@ if(silent==FALSE){
     
 # Print time elapsed on the construction
     print(paste0("Time elapsed: ",round(as.numeric(Sys.time() - start.time,units="secs"),2)," seconds"))
-    if(!any(unlist(strsplit(model,""))=="X")){
+    if(all(unlist(strsplit(model,""))!="X")){
         print(paste0("Model constructed: ",model))
         print(paste0("Persistence vector: ", paste(round(vecg,3),collapse=", ")))
         if(damped==TRUE){
@@ -1196,8 +1226,8 @@ if(silent==FALSE){
     par(mfrow=c(1,1), mar=c(5,4,4,2))
 }
 
-    if(!any(unlist(strsplit(model,""))=="X")){
-        return(list(model=model,persistence=vecg,phi=phi,states=matxt,fitted=y.fit,
+    if(all(unlist(strsplit(model,""))!="X")){
+        return(list(model=model,persistence=as.vector(vecg),phi=phi,states=matxt,fitted=y.fit,
                 forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                 errors=errors.mat,x=data,x.holdout=y.holdout,ICs=ICs,
                 CF=CF.objective,FI=FI,xreg=xreg,accuracy=errormeasures))
