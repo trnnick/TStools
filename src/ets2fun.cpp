@@ -159,7 +159,7 @@ arma::mat avalue(int freq, double(error), double gamma, double yfit, char E, cha
 
 /* # initparams - function that initialises the basic parameters of ETS */
 // [[Rcpp::export]]
-RcppExport List initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEXP yt,
+RcppExport SEXP initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEXP yt,
                            SEXP damped, SEXP phi, SEXP smoothingparameters, SEXP initialstates, SEXP seasonalcoefs){
 
     char T = as<char>(Ttype);
@@ -259,7 +259,7 @@ RcppExport List initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEX
         estimphi = FALSE;
     }
 
-    return List::create(Named("n.components") = ncomponents, Named("seasfreq") = seasfreq, Named("matxt") = matrixxt, Named("vecg") = vecg, Named("estimate.phi") = estimphi, Named("phi") = phivalue);
+    return wrap(List::create(Named("n.components") = ncomponents, Named("seasfreq") = seasfreq, Named("matxt") = matrixxt, Named("vecg") = vecg, Named("estimate.phi") = estimphi, Named("phi") = phivalue));
 }
 
 /*
@@ -268,7 +268,7 @@ RcppExport List initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEX
 # Cvalues includes persistence, phi, initials, intials for seasons, xtreg coeffs.
 */
 // [[Rcpp::export]]
-RcppExport List etsmatrices(SEXP matxt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP ncomponentsR,
+RcppExport SEXP etsmatrices(SEXP matxt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP ncomponentsR,
                             SEXP seasfreq, SEXP Ttype, SEXP Stype, SEXP nexovars, SEXP matxtreg,
                             SEXP estimpersistence, SEXP estimphi, SEXP estiminit, SEXP estiminitseason, SEXP estimxreg){
 
@@ -369,8 +369,8 @@ RcppExport List etsmatrices(SEXP matxt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
         }
     }
 
-    return List::create(Named("matF") = matrixF, Named("matw") = matrixw, Named("vecg") = matg, 
-                              Named("phi") = phivalue, Named("matxt") = matrixxt, Named("matxtreg") = matrixxtreg);
+    return wrap(List::create(Named("matF") = matrixF, Named("matw") = matrixw, Named("vecg") = matg, 
+                              Named("phi") = phivalue, Named("matxt") = matrixxt, Named("matxtreg") = matrixxtreg));
 }
 
 
@@ -565,7 +565,7 @@ arma::mat matg, char E, char T, char S, int freq, arma::mat matrixwex, arma::mat
 
 /* # Wrapper for fitter */
 // [[Rcpp::export]]
-RcppExport List fitterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
+RcppExport SEXP fitterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
 SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP matwex, SEXP matxtreg) {
     NumericMatrix mxt(matxt);
     arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol());
@@ -586,7 +586,7 @@ SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP matwex, SEXP matxtreg) {
     NumericMatrix mxtreg(matxtreg);
     arma::mat matrixxtreg(mxtreg.begin(), mxtreg.nrow(), mxtreg.ncol());
     
-    return fitter(matrixxt, matrixF, matrixw, matyt, matg, E, T, S, freq, matrixwex, matrixxtreg);
+    return wrap(fitter(matrixxt, matrixF, matrixw, matyt, matg, E, T, S, freq, matrixwex, matrixxtreg));
 }
 
 /* # Function produces the point forecasts for the specified model */
@@ -648,7 +648,7 @@ int hor, char T, char S, int freq, arma::mat matrixwex, arma::mat matrixxtreg) {
 
 /* # Wrapper for forecaster */
 // [[Rcpp::export]]
-RcppExport arma::mat forecasterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP h,
+RcppExport SEXP forecasterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP h,
 SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP matwex, SEXP matxtreg){
     NumericMatrix mxt(matxt);
     arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol(), false);
@@ -665,7 +665,7 @@ SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP matwex, SEXP matxtreg){
     NumericMatrix mxtreg(matxtreg);
     arma::mat matrixxtreg(mxtreg.begin(), mxtreg.nrow(), mxtreg.ncol());
     
-    return forecaster(matrixxt, matrixF, matrixw, hor, T, S, freq, matrixwex, matrixxtreg);
+    return wrap(forecaster(matrixxt, matrixF, matrixw, hor, T, S, freq, matrixwex, matrixxtreg));
 }
 
 /* # Function produces matrix of errors based on trace forecast */
@@ -703,7 +703,7 @@ int hor, char E, char T, char S, int freq, bool tr, arma::mat matrixwex, arma::m
 
 /* # Wrapper for errorer */
 // [[Rcpp::export]]
-RcppExport arma::mat errorerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype,
+RcppExport SEXP errorerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype,
 SEXP seasfreq, SEXP trace, SEXP matwex, SEXP matxtreg){
     NumericMatrix mxt(matxt);
     arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol(), false);
@@ -724,7 +724,7 @@ SEXP seasfreq, SEXP trace, SEXP matwex, SEXP matxtreg){
     NumericMatrix mxtreg(matxtreg);
     arma::mat matrixxtreg(mxtreg.begin(), mxtreg.nrow(), mxtreg.ncol());
 
-    return errorer(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, tr, matrixwex, matrixxtreg);
+    return wrap(errorer(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, tr, matrixwex, matrixxtreg));
 }
 
 /* # Function returns the chosen Cost Function based on the chosen model and produced errors */
