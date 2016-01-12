@@ -57,11 +57,11 @@ sma <- function(x, order=NULL, h=10, optimize=FALSE,
       trn.sma <- rep(NA,n);
 
       for(j in 1:(n - i)){
-          trn.sma[j + i] <- mean(x[(max.order+j):(i + j - 1)]);
+          trn.sma[j + i] <- mean(x[(j):(i + j - 1)]);
       }
 
 # Calculate residuals
-      errs <- na.omit(x[1:n] - trn.sma);
+      errs <- na.omit(x[max.order+1:n] - trn.sma[max.order+1:n]);
       MSE <- mean(errs^2);
 
       if(i == min.order){
