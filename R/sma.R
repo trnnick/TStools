@@ -17,6 +17,10 @@ sma <- function(x, order=NULL, h=10, optimize=FALSE,
     stop ("The forecasting horizon should be a non-negative integer", call.=FALSE)
   }
 
+  if(is.null(order) & optimize==FALSE){
+    optimize <- TRUE;
+  }
+  
 # Define n.all, the overal number of observations (in-sample + holdout)
   n.all <- length(x) + (1 - holdout)*h
 
