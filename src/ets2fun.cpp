@@ -836,7 +836,7 @@ int hor, char E, char T, char S, int freq, bool tr, std::string CFtype, int norm
 
 /* # Wrapper for optimiser */
 // [[Rcpp::export]]
-RcppExport double optimizerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
+RcppExport SEXP optimizerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
 SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP trace, SEXP CFt, SEXP normalizer, SEXP matwex, SEXP matxtreg) {
     NumericMatrix mxt(matxt);
     arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol());
@@ -861,13 +861,13 @@ SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP trace, SEXP CFt,
     NumericMatrix mxtreg(matxtreg);
     arma::mat matrixxtreg(mxtreg.begin(), mxtreg.nrow(), mxtreg.ncol());
     
-    return optimizer(matrixxt,matrixF,matrixw,matyt,matg,hor,E,T,S,freq,tr,CFtype,normalize,matrixwex,matrixxtreg);
+    return wrap(optimizer(matrixxt,matrixF,matrixw,matyt,matg,hor,E,T,S,freq,tr,CFtype,normalize,matrixwex,matrixxtreg));
 }
 
 /* # Function is used in cases when the persistence vector needs to be estimated.
 # If bounds are violated, it returns a state vector with zeroes. */
 // [[Rcpp::export]]
-RcppExport double costfunc(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
+RcppExport SEXP costfunc(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
 SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP trace, SEXP CFt,
 SEXP normalizer, SEXP matwex, SEXP matxtreg, SEXP bounds, SEXP phi, SEXP Theta) {
 /* Function is needed to implement constrains on smoothing parameters */
@@ -977,7 +977,7 @@ SEXP normalizer, SEXP matwex, SEXP matxtreg, SEXP bounds, SEXP phi, SEXP Theta) 
         }
     }
 
-    return optimizer(matrixxt,matrixF,matrixw,matyt,matg,hor,E,T,S,freq,tr,CFtype,normalize,matrixwex,matrixxtreg);
+    return wrap(optimizer(matrixxt,matrixF,matrixw,matyt,matg,hor,E,T,S,freq,tr,CFtype,normalize,matrixwex,matrixxtreg));
 }
 
 /*
