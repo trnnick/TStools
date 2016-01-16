@@ -1,6 +1,6 @@
 sma <- function(x, order=NULL, h=10, optimize=FALSE,
                 min.order=1, max.order=12, holdout=FALSE,
-                silent=FALSE, legend=TRUE) {
+                silent=FALSE, legend=FALSE) {
 # This function computes a one-step-ahead simple moving average for a time series and returns the forecasts.
 # If optimize = TRUE then the best moving average order is determined by minimizing the Mean Squared Error on the training set.
 
