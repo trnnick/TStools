@@ -1,6 +1,6 @@
 sma <- function(x, order=NULL, h=10, optimize=FALSE,
                 min.order=1, max.order=12, holdout=FALSE,
-                silent=FALSE, legend=FALSE) {
+                silent=FALSE, legend=TRUE) {
 # This function computes a one-step-ahead simple moving average for a time series and returns the forecasts.
 # If optimize = TRUE then the best moving average order is determined by minimizing the Mean Squared Error on the training set.
 
@@ -122,10 +122,14 @@ sma <- function(x, order=NULL, h=10, optimize=FALSE,
     
     plot.range <- range(min(x[!is.na(x)],trn.sma[!is.na(trn.sma)],tst.frcst[!is.na(tst.frcst)]),
                         max(x[!is.na(x)],trn.sma[!is.na(trn.sma)],tst.frcst[!is.na(tst.frcst)]))
+    def.par <- par(no.readonly = TRUE)
 
-    par(mfrow=c(1,1), mar=c(5,3,2,1))
+    if(legend==TRUE){
+      layout(matrix(c(1,2),2,1),heights=c(0.86,0.14))
+    }
+    par(mar=c(3,3,2,1))
     plot(x,type="l",xlim=range(time(x)[1],time(tst.frcst)[h]),
-         ylim=plot.range,xlab="Time", ylab="")
+         ylim=plot.range,xlab="", ylab="")
     lines(trn.sma,col="purple",lwd=2,lty=2)
     
     if(h>1){
@@ -133,39 +137,45 @@ sma <- function(x, order=NULL, h=10, optimize=FALSE,
 
       if(legend==TRUE){
 # Define where to position the legend
-        if(mean(c(trn.sma[!is.na(trn.sma)],tst.frcst)[1:round(n.all/3,0)])<(plot.range[2]+plot.range[1])/2){
-          leg.place = "topleft"
-        }
-        else{
-          leg.place = "bottomleft"
-        }
+#        if(mean(c(trn.sma[!is.na(trn.sma)],tst.frcst)[1:round(n.all/3,0)])<(plot.range[2]+plot.range[1])/2){
+        leg.place = "bottom"
+#        }
+#        else{
+#          leg.place = "bottom"
+#        }
 
+        par(cex=0.75,mar=rep(0.1,4),bty="n",xaxt="n",yaxt="n")
+        plot(0,0,col="white")
         legend(x=leg.place,
                legend=c("Series","Fitted values","Point forecast","Forecast origin"),
                col=c("black","purple","blue","red"),
                lwd=c(1,2,2,2),
-               lty=c(1,2,1,1))
+               lty=c(1,2,1,1),ncol=2)
       }
     }
     else{
       points(tst.frcst,col="blue",lwd=2,pch=4)
       if(legend==TRUE){
 # Define where to position the legend
-        if(mean(c(trn.sma[!is.na(trn.sma)],tst.frcst)[1:round(n.all/3,0)])<(plot.range[2]+plot.range[1])/2){
-          leg.place = "topleft"
-        }
-        else{
-          leg.place = "bottomleft"
-        }
+#        if(mean(c(trn.sma[!is.na(trn.sma)],tst.frcst)[1:round(n.all/3,0)])<(plot.range[2]+plot.range[1])/2){
+#          leg.place = "topleft"
+#        }
+#        else{
+#          leg.place = "bottomleft"
+#        }
+        leg.place = "bottom"
 
+        par(cex=0.75,mar=rep(0.1,4),bty="n",xaxt="n",yaxt="n")
+        plot(0,0,col="white")
         legend(x=leg.place,
                legend=c("Series","Fitted values","Point forecast","Forecast origin"),
                col=c("black","purple","blue","red"),
                lwd=c(1,2,2,2),
                lty=c(1,2,NA,1),
-               pch=c(NA,NA,4,NA))
+               pch=c(NA,NA,4,NA),ncol=2)
       }
     }
+    par(def.par)
   }
 
   return(list(order = order, fitted = trn.sma, forecast = tst.frcst));
