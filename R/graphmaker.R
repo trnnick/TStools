@@ -17,9 +17,6 @@ graphmaker <- function(actuals, forecast, fitted=NULL,
     if(is.null(fitted)){
         fitted <- NA;
     }
-#    if(is.null(title)){
-#      title <- "";
-#    }
     h <- length(forecast)
 
 # Write down the default values of par
