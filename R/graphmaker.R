@@ -1,4 +1,6 @@
-graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,int.w=NULL,legend=TRUE){
+graphmaker <- function(actuals, forecast, fitted=NULL,
+                       lower=NULL, upper=NULL, int.w=NULL,
+                       legend=TRUE, title=NULL){
 # Function constructs the universal linear graph for any model
 ##### Make legend change if the fitted is provided or not!
     if(!is.null(lower) | !is.null(upper)){
@@ -15,6 +17,9 @@ graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,int.w=
     if(is.null(fitted)){
         fitted <- NA;
     }
+#    if(is.null(title)){
+#      title <- "";
+#    }
     h <- length(forecast)
 
 # Write down the default values of par
@@ -34,8 +39,8 @@ graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,int.w=
         par(mar=c(3,3,2,1));
     }
 
-    plot(actuals,type="l",xlim=range(time(actuals)[1],time(forecast)[h]),
-         ylim=plot.range,xlab="", ylab="");
+    plot(actuals, type="l", xlim=range(time(actuals)[1],time(forecast)[h]),
+         ylim=plot.range, xlab="", ylab="", main=title);
     if(!all(is.na(fitted))){
         lines(fitted,col="purple",lwd=2,lty=2);
     }

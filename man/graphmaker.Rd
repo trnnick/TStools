@@ -7,7 +7,9 @@
   The function makes a standard linear graph using at least actuals, forecasts.
 }
 \usage{
-  graphmaker(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,int.w=NULL,legend=TRUE)
+  graphmaker(actuals, forecast, fitted=NULL,
+             lower=NULL, upper=NULL, int.w=NULL,
+             legend=TRUE, title=NULL)
 }
 \arguments{
   \item{actuals}{The vector of actual series.
@@ -23,6 +25,8 @@
   \item{int.w}{The width of the prediction interval.
 }
   \item{legend}{If \code{TRUE}, the legend is drawn.
+}
+  \item{title}{Title of the produced plot. If NULL, no title is printed.
 }
 }
 \details{
