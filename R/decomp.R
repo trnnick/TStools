@@ -164,6 +164,8 @@ decomp <- function(y,m=NULL,s=NULL,trend=NULL,outplot=c(FALSE,TRUE),
   
   # Produce plots
   if (outplot == TRUE){
+    # Write down the default values of par
+    def.par <- par(no.readonly = TRUE);
     par(mfrow=c(4,1),mar=c(0,2,0,0),oma=c(2,2,2,2))
     
     # Series
@@ -212,7 +214,8 @@ decomp <- function(y,m=NULL,s=NULL,trend=NULL,outplot=c(FALSE,TRUE),
       polygon(c(n+1,n+1,n+h,n+h),c(yminmax.i,yminmax.i[2:1]),border=NA,col="gray93")
     }
     lines(1:n,rep(0,n),lty=2,col="grey")
-    
+   
+    par(def.par) 
   }
   
   return(list(trend=trend,season=i.season,irregular=resid,
