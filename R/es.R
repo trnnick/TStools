@@ -57,6 +57,47 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         bounds <- "u";
     }
 
+    if(!is.character(model)){
+        stop(paste0("Something strange is provided instead of character object in model: ",
+                    paste0(model,collapse=",")),call.=FALSE);
+    }
+
+# Predefine models pool for a model selection
+    models.pool <- NULL;
+# Deal with the list of models. Check what has been provided. Stop if there is a mistake.
+    if(length(model)>1){
+        if(any(nchar(model)>4)){
+            stop(paste0("You have defined a strange model(s) in the pool: ",
+                           paste0(model[nchar(model)>4],collapse=",")),call.=FALSE);
+        }
+        else if(any(substr(model,1,1)!="A" & substr(model,1,1)!="M")){
+            stop(paste0("You have defined a strange model(s) in the pool: ",
+                           paste0(model[substr(model,1,1)!="A" & substr(model,1,1)!="M"],collapse=",")),call.=FALSE);
+        }
+        else if(any(substr(model,2,2)!="N" & substr(model,2,2)!="A" &
+                    substr(model,2,2)!="M")){
+            stop(paste0("You have defined a strange model(s) in the pool: ",
+                           paste0(model[substr(model,2,2)!="N" & substr(model,2,2)!="A" &
+                                 substr(model,2,2)!="M"],collapse=",")),call.=FALSE);
+        }
+        else if(any(substr(model,3,3)!="N" & substr(model,3,3)!="A" &
+                    substr(model,3,3)!="M" & substr(model,3,3)!="d")){
+            stop(paste0("You have defined a strange model(s) in the pool: ",
+                           paste0(model[substr(model,3,3)!="N" & substr(model,3,3)!="A" &
+                                 substr(model,3,3)!="M" & substr(model,3,3)!="d"],collapse=",")),call.=FALSE);
+        }
+        else if(any(nchar(model)==4 & substr(model,4,4)!="N" &
+                    substr(model,4,4)!="A" & substr(model,4,4)!="M")){
+            stop(paste0("You have defined a strange model(s) in the pool: ",
+                           paste0(model[nchar(model)==4 & substr(model,4,4)!="N" &
+                                 substr(model,4,4)!="A" & substr(model,4,4)!="M"],collapse=",")),call.=FALSE);
+        }
+        else{
+            models.pool <- model;
+        }
+        model <- "ZZZ";
+    }
+
 # If chosen model is "AAdN" or anything like that, we are taking the appropriate values
     if(nchar(model)==4){
         Etype <- substring(model,1,1);
@@ -87,14 +128,14 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         damped <- TRUE;
     }
 
-    if(any(unlist(strsplit(model,""))=="X")){
-        if(Etype=="X"){
+    if(any(unlist(strsplit(model,""))=="C")){
+        if(Etype=="C"){
             Etype <- "Z";
         }
-        if(Ttype=="X"){
+        if(Ttype=="C"){
             Ttype <- "Z";
         }
-        if(Stype=="X"){
+        if(Stype=="C"){
             Stype <- "Z";
         }
     }
@@ -602,49 +643,54 @@ checker <- function(inherits=TRUE){
 
 # Number of observations in the mat.error matrix excluding NAs.
         errors.mat.obs <- obs - h + 1;
-##### If auto selection is used (for model="ZZZ" or model="XXX"), then let's start misbehaving...
-        if(any(unlist(strsplit(model,""))=="X") | (Etype=="Z" | Ttype=="Z" | Stype=="Z")){
+##### If auto selection is used (for model="ZZZ" or model="CCC"), then let's start misbehaving...
+        if(any(unlist(strsplit(model,""))=="C") | (Etype=="Z" | Ttype=="Z" | Stype=="Z")){
 # Produce the data for AIC weights
             
-            # Define the pool of models to select from
-            if(any(y<=0)){
-                if(silent==FALSE){
-                    message("Only additive models are allowed with the negative data.");
-                }
-                errors.pool <- c("A");
-                trends.pool <- c("N","A","Ad");
-                season.pool <- c("N","A");
+            if(!is.null(models.pool)){
+                models.number <- length(models.pool);
             }
             else{
-                errors.pool <- c("A","M");
-                trends.pool <- c("N","A","Ad","M","Md");
-                season.pool <- c("N","A","M");
-            }
-
-            if(Etype!="Z"){
-                errors.pool <- Etype;
-            }
-
-            if(Ttype!="Z"){
-                if(damped==TRUE){
-                    trends.pool <- paste0(Ttype,"d");
+# Define the pool of models in case of "ZZZ" or "CCC" to select from
+                if(any(y<=0)){
+                    if(silent==FALSE){
+                        message("Only additive models are allowed with the negative data.");
+                    }
+                    errors.pool <- c("A");
+                    trends.pool <- c("N","A","Ad");
+                    season.pool <- c("N","A");
                 }
                 else{
-                    trends.pool <- Ttype;
+                    errors.pool <- c("A","M");
+                    trends.pool <- c("N","A","Ad","M","Md");
+                    season.pool <- c("N","A","M");
                 }
-            }
 
-            if(Stype!="Z"){
-                season.pool <- Stype;
+                if(Etype!="Z"){
+                    errors.pool <- Etype;
+                }
+
+                if(Ttype!="Z"){
+                    if(damped==TRUE){
+                        trends.pool <- paste0(Ttype,"d");
+                    }
+                    else{
+                        trends.pool <- Ttype;
+                    }
+                }
+
+                if(Stype!="Z"){
+                    season.pool <- Stype;
+                }
+
+                models.number <- (length(errors.pool)*length(trends.pool)*length(season.pool));
+                models.pool <- paste0(rep(errors.pool,each=length(trends.pool)*length(season.pool)),
+                                      trends.pool,
+                                      rep(season.pool,each=length(trends.pool)));
             }
 
 # Number of observations in the mat.error matrix excluding NAs.
             errors.mat.obs <- obs - h + 1;
-
-            models.number <- (length(trends.pool)*length(season.pool)*length(errors.pool));
-            models.pool <- array(c(1:models.number),
-                                 c(length(trends.pool),length(season.pool),length(errors.pool)),
-                                 dimnames=list(trends.pool,season.pool,errors.pool));
 
             results <- as.list(c(1:models.number));
 
@@ -653,30 +699,23 @@ checker <- function(inherits=TRUE){
             }
 # Start cycle of models
             for(j in 1:models.number){
+                    current.model <- models.pool[j];
+                    Etype <- substring(current.model,1,1);
+                    Ttype <- substring(current.model,2,2);
+                    if(nchar(current.model)==4){
+                        damped <- TRUE;
+                        phi <- NULL;
+                        Stype <- substring(current.model,4,4);
+                    }
+                    else{
+                        damped <- FALSE;
+                        phi <- 1;
+                        Stype <- substring(current.model,3,3);
+                    }
 
-                Ttype <- dimnames(models.pool)[[1]][which(models.pool==j,arr.ind=TRUE)[1]];
-                if(nchar(Ttype)==2){
-                    Ttype <- substring(Ttype,1,1);
-                    damped <- TRUE;
-                    phi <- NULL;
-                }
-                else{
-                    damped <- FALSE;
-                    phi <- 1;
-                }
-        
-                Stype <- dimnames(models.pool)[[2]][which(models.pool==j,arr.ind=TRUE)[2]];
-                Etype <- dimnames(models.pool)[[3]][which(models.pool==j,arr.ind=TRUE)[3]];
-
-                if(damped==TRUE){
-                    current.model <- paste0(Etype,Ttype,"d",Stype);
-                }
-                else{
-                    current.model <- paste0(Etype,Ttype,Stype);
-                }
                 if(silent==FALSE){
                     cat(paste0(current.model," "));
-                }        
+                }
 
                 basicparams <- initparams(Ttype, Stype, datafreq, obs, as.matrix(y),
                                           damped, phi, smoothingparameters, initialstates, seasonalcoefs);
@@ -727,7 +766,7 @@ checker <- function(inherits=TRUE){
 
             IC.selection[is.nan(IC.selection)] <- 1E100;
 
-            if(any(unlist(strsplit(model,""))=="X")){
+            if(any(unlist(strsplit(model,""))=="C")){
                 IC.selection <- IC.selection/(h^trace);
                 IC.weights <- exp(-0.5*(IC.selection-min(IC.selection)))/sum(exp(-0.5*(IC.selection-min(IC.selection))));
             }
@@ -772,7 +811,7 @@ checker <- function(inherits=TRUE){
             C <- Cs$C;
     }
 
-    if(all(unlist(strsplit(model,""))!="X")){
+    if(all(unlist(strsplit(model,""))!="C")){
         init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, seasfreq, Ttype, Stype, n.exovars, matxtreg,
                                 estimate.persistence, estimate.phi, estimate.initial, estimate.initial.season, estimate.xreg);
         vecg <- init.ets$vecg;
@@ -783,7 +822,7 @@ checker <- function(inherits=TRUE){
         matw <- init.ets$matw;
     }
     
-    if(all(unlist(strsplit(model,""))!="X")){
+    if(all(unlist(strsplit(model,""))!="C")){
         if(damped==TRUE){
             model <- paste0(Etype,Ttype,"d",Stype);
         }
@@ -1054,7 +1093,7 @@ checker <- function(inherits=TRUE){
 if(silent==FALSE){
 # Print time elapsed on the construction
     print(paste0("Time elapsed: ",round(as.numeric(Sys.time() - start.time,units="secs"),2)," seconds"));
-    if(all(unlist(strsplit(model,""))!="X")){
+    if(all(unlist(strsplit(model,""))!="C")){
         print(paste0("Model constructed: ",model));
         print(paste0("Persistence vector: ", paste(round(vecg,3),collapse=", ")));
         if(damped==TRUE){
@@ -1112,16 +1151,16 @@ if(silent==FALSE){
     }
 }
 
-    if(all(unlist(strsplit(model,""))!="X")){
+    if(all(unlist(strsplit(model,""))!="C")){
         return(list(model=model,persistence=as.vector(vecg),phi=phi,states=matxt,fitted=y.fit,
                     forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
-                    errors=errors.mat,x=data,x.holdout=y.holdout,ICs=ICs,
+                    errors=errors.mat,actuals=data,holdout=y.holdout,ICs=ICs,
                     CF=CF.objective,FI=FI,xreg=xreg,accuracy=errormeasures));
     }
     else{
         return(list(model=model,fitted=y.fit,forecast=y.for,
                     lower=y.low,upper=y.high,residuals=errors,
-                    x=data,x.holdout=y.holdout,ICs=IC.weights,
+                    actuals=data,holdout=y.holdout,ICs=IC.weights,
                     xreg=xreg,accuracy=errormeasures));
     }
 }
