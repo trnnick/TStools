@@ -609,12 +609,7 @@ checker <- function(inherits=TRUE){
     y.fit <- rep(NA,obs);
     errors <- rep(NA,obs);
 
-    if(trace==TRUE & CF.type=="GV"){
-        normalizer <- mean(abs(diff(y[1:obs])));
-    }
-    else{
-        normalizer <- 0;
-    }
+    normalizer <- mean(abs(diff(y[1:obs])));
 
 # If we use trace, define matrix of errors.
     if(trace==TRUE){
