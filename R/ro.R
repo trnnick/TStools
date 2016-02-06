@@ -136,11 +136,14 @@ ro <- function(data,h=1,origins=1,call,value=NULL,
   else{
 ##### Use foreach for the loop #####
 # But first find out the environment of the "call" function
-    callenvir <- environment(get(substring(call,1,which(strsplit(call, "")[[1]]=="(")[1]-1)));
+#    callenvir <- environment(get(substring(call,1,which(strsplit(call, "")[[1]]=="(")[1]-1)));
 #    callenvir <- globalenv();
+    callpackages <- search();
+    callpackages <- callpackages[c(-1,-length(callpackages))];
 
     if(co==FALSE){
-      forecasts <- foreach::`%dopar%`(foreach::foreach(i=1:origins, .export=ls(envir=callenvir)),{
+#      forecasts <- foreach::`%dopar%`(foreach::foreach(i=1:origins, .export=ls(envir=callenvir)),{
+      forecasts <- foreach::`%dopar%`(foreach::foreach(i=1:origins, .packages=callpackages),{
 # Adjust forecasting horizon to not exeed the sample size
         h <- min(hh,obs - (in.sample+i-1));
 # Make the in-sample
@@ -161,7 +164,8 @@ ro <- function(data,h=1,origins=1,call,value=NULL,
       })
     }
     else{
-      forecasts <- foreach::`%dopar%`(foreach::foreach(i=1:origins, .export=ls(envir=callenvir)),{
+#      forecasts <- foreach::`%dopar%`(foreach::foreach(i=1:origins, .export=ls(envir=callenvir)),{
+      forecasts <- foreach::`%dopar%`(foreach::foreach(i=1:origins, .packages=callpackages),{
 # Make the in-sample
         if(ci==FALSE){
           data <- ts(y[1:(in.sample-h+i-1)],start=data.start,frequency=data.freq)
