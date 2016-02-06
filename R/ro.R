@@ -135,11 +135,21 @@ ro <- function(data,h=1,origins=1,call,value=NULL,
   }
   else{
 ##### Use foreach for the loop #####
-# But first find out the environment of the "call" function
+# But first make the list of the needed packages to pass to doParallel
 #    callenvir <- environment(get(substring(call,1,which(strsplit(call, "")[[1]]=="(")[1]-1)));
 #    callenvir <- globalenv();
     callpackages <- search();
     callpackages <- callpackages[c(-1,-length(callpackages))];
+    callpackages <- callpackages[substring(callpackages,1,7)=="package"];
+    callpackages <- substring(callpackages,9,nchar(callpackages));
+    callpackages <- callpackages[callpackages!="timeDate"];
+    callpackages <- callpackages[callpackages!="zoo"];
+    callpackages <- callpackages[callpackages!="stats"];
+    callpackages <- callpackages[callpackages!="graphics"];
+    callpackages <- callpackages[callpackages!="grDevices"];
+    callpackages <- callpackages[callpackages!="utils"];
+    callpackages <- callpackages[callpackages!="datasets"];
+    callpackages <- callpackages[callpackages!="methods"];
 
     if(co==FALSE){
 #      forecasts <- foreach::`%dopar%`(foreach::foreach(i=1:origins, .export=ls(envir=callenvir)),{
