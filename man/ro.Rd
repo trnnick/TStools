@@ -8,7 +8,7 @@ This function makes rolling origin using the \code{data} and \code{call} passed 
 Currently function can do all of that in parallel, but it needs \code{foreach} and either \code{doMC} (Linux only), \code{doParallel} or \code{doSNOW} packages installed.
 }
 \usage{
-  ro(data,h=1,origins=1,call,value=NULL,
+  ro(data,h=10,origins=10,call,value=NULL,
      ci=FALSE,co=FALSE,silent=FALSE,parallel=FALSE)
 }
 \arguments{

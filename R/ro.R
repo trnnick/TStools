@@ -1,4 +1,4 @@
-ro <- function(data,h=1,origins=1,call,value=NULL,
+ro <- function(data,h=10,origins=10,call,value=NULL,
                ci=FALSE,co=FALSE,silent=FALSE,parallel=FALSE){
 # Function makes Rolling Origin for the data using the call
 #    Copyright (C) 2015  Yves Sagaert & Ivan Svetunkov
