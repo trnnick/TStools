@@ -806,6 +806,7 @@ checker <- function(inherits=TRUE){
             C <- Cs$C;
     }
 
+# If we do not combine models, then go ahead
     if(all(unlist(strsplit(model,""))!="C")){
         init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, seasfreq, Ttype, Stype, n.exovars, matxtreg,
                                 estimate.persistence, estimate.phi, estimate.initial, estimate.initial.season, estimate.xreg);
@@ -815,9 +816,7 @@ checker <- function(inherits=TRUE){
         matxtreg <- init.ets$matxtreg;
         matF <- init.ets$matF;
         matw <- init.ets$matw;
-    }
-    
-    if(all(unlist(strsplit(model,""))!="C")){
+
         if(damped==TRUE){
             model <- paste0(Etype,Ttype,"d",Stype);
         }
@@ -939,6 +938,13 @@ checker <- function(inherits=TRUE){
         }
         else{
             colnames(matxt) <- c(component.names);
+        }
+
+# Write down the initials. Done especially for Nikos and issue #10
+        initial <- matxt[seasfreq,1:(n.components - (Stype!="N"))]
+
+        if(Stype!="N"){
+          initial.season <- matxt[1:seasfreq,n.components]
         }
     }
     else{
@@ -1147,7 +1153,8 @@ if(silent==FALSE){
 }
 
     if(all(unlist(strsplit(model,""))!="C")){
-        return(list(model=model,persistence=as.vector(vecg),phi=phi,states=matxt,fitted=y.fit,
+        return(list(model=model,persistence=as.vector(vecg),phi=phi,states=matxt,
+                    initial=initial,initial.season=initial.season,fitted=y.fit,
                     forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                     errors=errors.mat,actuals=data,holdout=y.holdout,ICs=ICs,
                     CF=CF.objective,FI=FI,xreg=xreg,accuracy=errormeasures));

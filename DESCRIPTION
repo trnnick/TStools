@@ -1,8 +1,8 @@
 Package: TStools
 Type: Package
 Title: Time Series Analysis Tools and Functions
-Version: 1.77
-Date: 2016-01-21
+Version: 1.78
+Date: 2016-02-29
 Author: Nikolaos Kourentzes and Ivan Svetunkov
 Maintainer: Ivan Svetunkov <i.svetunkov@lancaster.ac.uk>
 Description: Here in this magnificent world of fascinating R functions we introduce set of species created in order to help in time series modelling, analysis and in forecasting.
