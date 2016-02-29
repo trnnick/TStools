@@ -1,12 +1,13 @@
 ro <- function(data,h=10,origins=10,call,value=NULL,
                ci=FALSE,co=FALSE,silent=FALSE,parallel=FALSE){
 # Function makes Rolling Origin for the data using the call
-#    Copyright (C) 2015  Yves Sagaert & Ivan Svetunkov
+#    Copyright (C) 2016  Yves Sagaert & Ivan Svetunkov
+# Names of variables ivan41 and yves14 are given in order not to mess with the possible inner loops of "for(i in 1:n)" type.
   l.value <- length(value);
   if(!is.null(value)){
-    for(i3ish47 in 1:l.value){
-      if(substring(value[i3ish47],1,1)!="$"){
-        value[i3ish47] <- paste0("$",value[i3ish47])
+    for(ivan41 in 1:l.value){
+      if(substring(value[ivan41],1,1)!="$"){
+        value[ivan41] <- paste0("$",value[ivan41])
       }
     }
   }
@@ -87,48 +88,48 @@ ro <- function(data,h=10,origins=10,call,value=NULL,
 ##### Start the main loop #####
   if(parallel==FALSE){
     if(co==FALSE){
-      for(i3ish47 in 1:origins){
+      for(ivan41 in 1:origins){
 # Adjust forecasting horizon to not exeed the sample size
-        h <- min(hh,obs - (in.sample+i3ish47-1))
+        h <- min(hh,obs - (in.sample+ivan41-1))
 # Make the in-sample
         if(ci==FALSE){
-          data <- ts(y[1:(in.sample-h+i3ish47-1)],start=data.start,frequency=data.freq)
+          data <- ts(y[1:(in.sample-h+ivan41-1)],start=data.start,frequency=data.freq)
         }
         else{
-          data <- ts(y[i3ish47:(in.sample-h+i3ish47-1)],start=data.start,frequency=data.freq)
+          data <- ts(y[ivan41:(in.sample-h+ivan41-1)],start=data.start,frequency=data.freq)
         }
 # Evaluate the call string and save to object o.m.
         o.m <- eval(parse(text=call))
 # Save the forecast and the corresponding actuals in matrices
-        for(j3ish47 in 1:l.value){
-          forecasts[[(i3ish47-1)*l.value+j3ish47]] <- eval(parse(text=paste0("o.m",value[j3ish47])))
+        for(yves14 in 1:l.value){
+          forecasts[[(ivan41-1)*l.value+yves14]] <- eval(parse(text=paste0("o.m",value[yves14])))
         }
-        actuals[1:h,i3ish47] <- y[(in.sample+i3ish47):(in.sample+i3ish47+h-1)]
+        actuals[1:h,ivan41] <- y[(in.sample+ivan41):(in.sample+ivan41+h-1)]
         if(silent==FALSE){
-          cat(paste(rep("\b",nchar(i3ish47)),collapse=""))
-          cat(i3ish47)
+          cat(paste(rep("\b",nchar(ivan41)),collapse=""))
+          cat(ivan41)
         }
       }
     }
     else{
-      for (i3ish47 in 1:origins){
+      for (ivan41 in 1:origins){
 # Make the in-sample
         if(ci==FALSE){
-          data <- ts(y[1:(in.sample-h+i3ish47-1)],start=data.start,frequency=data.freq)
+          data <- ts(y[1:(in.sample-h+ivan41-1)],start=data.start,frequency=data.freq)
         }
         else{
-          data <- ts(y[i3ish47:(in.sample-h+i3ish47-1)],start=data.start,frequency=data.freq)
+          data <- ts(y[ivan41:(in.sample-h+ivan41-1)],start=data.start,frequency=data.freq)
         }
 # Evaluate the call string and save to object o.m.
         o.m <- eval(parse(text=call))
 # Save the forecast and the corresponding actuals in matrices
-        for(j3ish47 in 1:l.value){
-          forecasts[[(i3ish47-1)*l.value+j3ish47]] <- eval(parse(text=paste0("o.m",value[j3ish47])))
+        for(yves14 in 1:l.value){
+          forecasts[[(ivan41-1)*l.value+yves14]] <- eval(parse(text=paste0("o.m",value[yves14])))
         }
-        actuals[,i3ish47] <- y[(in.sample+i3ish47-h+1):(in.sample+i3ish47)]
+        actuals[,ivan41] <- y[(in.sample+ivan41-h+1):(in.sample+ivan41)]
         if(silent==FALSE){
-          cat(paste(rep("\b",nchar(i3ish47)),collapse=""))
-          cat(i3ish47)
+          cat(paste(rep("\b",nchar(ivan41)),collapse=""))
+          cat(ivan41)
         }
       }
     }
@@ -151,40 +152,40 @@ ro <- function(data,h=10,origins=10,call,value=NULL,
     callpackages <- callpackages[callpackages!="methods"];
 
     if(co==FALSE){
-      forecasts <- foreach::`%dopar%`(foreach::foreach(i3ish47=1:origins, .packages=callpackages, .export=ls(envir=callenvir)),{
+      forecasts <- foreach::`%dopar%`(foreach::foreach(ivan41=1:origins, .packages=callpackages, .export=ls(envir=callenvir)),{
 # Adjust forecasting horizon to not exeed the sample size
-        h <- min(hh,obs - (in.sample+i3ish47-1));
+        h <- min(hh,obs - (in.sample+ivan41-1));
 # Make the in-sample
         if(ci==FALSE){
-          data <- ts(y[1:(in.sample-h+i3ish47-1)],start=data.start,frequency=data.freq);
+          data <- ts(y[1:(in.sample-h+ivan41-1)],start=data.start,frequency=data.freq);
         }
         else{
-          data <- ts(y[i3ish47:(in.sample-h+i3ish47-1)],start=data.start,frequency=data.freq);
+          data <- ts(y[ivan41:(in.sample-h+ivan41-1)],start=data.start,frequency=data.freq);
         }
 # Evaluate the call string and save to object o.m.
         o.m <- eval(parse(text=call));
 # Save the forecast and the corresponding actuals in matrices
-        for(j3ish47 in 1:l.value){
-          forecasts[[j3ish47]] <- eval(parse(text=paste0("o.m",value[j3ish47])));
+        for(yves14 in 1:l.value){
+          forecasts[[yves14]] <- eval(parse(text=paste0("o.m",value[yves14])));
         }
 
         return(forecasts);
       })
     }
     else{
-      forecasts <- foreach::`%dopar%`(foreach::foreach(i3ish47=1:origins, .packages=callpackages, .export=ls(envir=callenvir)),{
+      forecasts <- foreach::`%dopar%`(foreach::foreach(ivan41=1:origins, .packages=callpackages, .export=ls(envir=callenvir)),{
 # Make the in-sample
         if(ci==FALSE){
-          data <- ts(y[1:(in.sample-h+i3ish47-1)],start=data.start,frequency=data.freq)
+          data <- ts(y[1:(in.sample-h+ivan41-1)],start=data.start,frequency=data.freq)
         }
         else{
-          data <- ts(y[i3ish47:(in.sample-h+i3ish47-1)],start=data.start,frequency=data.freq)
+          data <- ts(y[ivan41:(in.sample-h+ivan41-1)],start=data.start,frequency=data.freq)
         }
 # Evaluate the call string and save to object o.m.
         o.m <- eval(parse(text=call))
 # Save the forecast and the corresponding actuals in matrices
-        for(j3ish47 in 1:l.value){
-          forecasts[[j3ish47]] <- eval(parse(text=paste0("o.m",value[j3ish47])))
+        for(yves14 in 1:l.value){
+          forecasts[[yves14]] <- eval(parse(text=paste0("o.m",value[yves14])))
         }
 
         return(forecasts);
@@ -201,13 +202,13 @@ ro <- function(data,h=10,origins=10,call,value=NULL,
 
 # Form matrix of actuals in a different loop...
     if(co==FALSE){
-      for (i3ish47 in 1:origins){
-        actuals[1:h,i3ish47] <- y[(in.sample+i3ish47):(in.sample+i3ish47+h-1)]
+      for (ivan41 in 1:origins){
+        actuals[1:h,ivan41] <- y[(in.sample+ivan41):(in.sample+ivan41+h-1)]
       }
     }
     else{
-      for (i3ish47 in 1:origins){
-        actuals[,i3ish47] <- y[(in.sample+i3ish47-h+1):(in.sample+i3ish47)]
+      for (ivan41 in 1:origins){
+        actuals[,ivan41] <- y[(in.sample+ivan41-h+1):(in.sample+ivan41)]
       }
     }
   }
@@ -235,15 +236,15 @@ ro <- function(data,h=10,origins=10,call,value=NULL,
     value.start <- 1;
   }
 
-  for(i3ish47 in value.start:l.value){
-    stuff.max.length <- max(length(forecasts[[i3ish47]]),length(forecasts[[l.value*(origins-1)+i3ish47]]))
+  for(ivan41 in value.start:l.value){
+    stuff.max.length <- max(length(forecasts[[ivan41]]),length(forecasts[[l.value*(origins-1)+ivan41]]))
     stuff <- matrix(NA,nrow=stuff.max.length,ncol=origins)
     colnames(stuff) <- colnames(actuals)
-    for(j3ish47 in 1:origins){
-      stuff.length <- length(forecasts[[(j3ish47-1)*l.value+i3ish47]])
-      stuff[1:stuff.length,j3ish47] <- forecasts[[(j3ish47-1)*l.value+i3ish47]]
+    for(yves14 in 1:origins){
+      stuff.length <- length(forecasts[[(yves14-1)*l.value+ivan41]])
+      stuff[1:stuff.length,yves14] <- forecasts[[(yves14-1)*l.value+ivan41]]
     }
-    returned.list[[i3ish47+1]] <- stuff
+    returned.list[[ivan41+1]] <- stuff
   }
 
   names(returned.list) <- c("actuals",value)
