@@ -61,9 +61,38 @@ ro(x,h=5,origins=5,ourcall,ourvalue,ci=TRUE)
 ourvalue <- c("$mean","lower[,1]","upper[,1]","lower[,2]","upper[,2]")
 ro(x,h=5,origins=20,ourcall,ourvalue,ci=TRUE,co=TRUE)
 
+
+#### A more complicated example using the for loop and
+#### first 5 series from M3-competition data
+
+library(Mcomp)
+## Make a subset from M3 data
+M3.yearly <- subset(M3,1)
+
+## Form an array for the forecasts we will produce
+M3.forecasts <- array(NA,c(6,4,5))
+
+## Define models that need to be used for each series
+ourmodels <- c("AAN","ANN","MNN","MMN","MNN")
+
+## This call uses specific models for each time series
+ourcall <- "forecast(ets(data),model='ourmodels[i]',h=h)"
+ourvalue <- "mean"
+
+## Start the loop. The important thing here is to use the same variable i as in ourcall.
+for(i in 1:5){
+    ourdata <- ts(c(M3.yearly[[i]]$x,M3.yearly[[i]]$xx))
+    M3.forecasts[,,i] <- ro(data=ourdata,h=6,origins=4,call=ourcall,
+                            value=ourvalue,co=TRUE,silent=TRUE)$mean
+}
+
+## M3.forecasts arary now contains rolling origin forecasts from specific
+## models for first 5 time series in M3 yearly data.
+M3.forecasts
+
 #### The following code will give exactly the same result as above,
 #### but computed in parallel using all but 1 core of CPU:
-#ro(x,h=5,origins=20,ourcall,ourvalue,ci=TRUE,co=TRUE,parallel=TRUE)
+# ro(x,h=5,origins=20,ourcall,ourvalue,ci=TRUE,co=TRUE,parallel=TRUE)
 }
 \keyword{ Rolling origin }
 \keyword{ Forecasting }
