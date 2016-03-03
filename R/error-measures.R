@@ -42,3 +42,12 @@ GMRAE <-function(actual,forecast,etalon,round=3){
     result <- round(exp(mean(log(abs(actual-forecast)/abs(actual-etalon)),na.rm=TRUE)),round);
     return(result);
 }
+
+hm <- function(x,C=mean(x),digits=5,...)
+{
+# This function calculates half moment
+
+    x <- x[!is.na(x)];
+    result <- round(mean(sqrt(as.complex(x-C)),...),digits=digits);
+    return(result);
+}

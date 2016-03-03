@@ -6,7 +6,9 @@ graphmaker <- function(actuals, forecast, fitted=NULL,
     if(!is.null(lower) | !is.null(upper)){
         intervals <- TRUE;
         if(is.null(int.w)){
-          message("The width of prediction intervals is not provided to graphmaker!");
+            message("The width of prediction intervals is not provided to graphmaker!");
+            message("Assuming 95%.");
+            int.w <- 0.95;
         }
     }
     else{
