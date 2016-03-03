@@ -3,7 +3,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                initial.season=NULL, IC=c("AICc","AIC","BIC"),
                trace=FALSE, CF.type=c("TLV","GV","TV","hsteps","MSE","MAE","HAM"),
                FI=FALSE, intervals=FALSE, int.w=0.95,
-               int.type=c("parametric","semiparametric","nonparametric"),
+               int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
                ...){
 
@@ -16,7 +16,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
     int.type <- substring(int.type[1],1,1);
 # Check the provided type of interval
-    if(int.type!="p" & int.type!="s" & int.type!="n"){
+    if(int.type!="p" & int.type!="s" & int.type!="n" & int.type!="a"){
         message(paste0("The wrong type of interval chosen: '",int.type, "'. Switching to 'semiparametric'."));
         int.type <- "s";
     }
@@ -858,7 +858,7 @@ checker <- function(inherits=TRUE){
                     y.high <- ts(y.for*(1 + qt(1-(1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var)),start=start(y.for),frequency=frequency(data));
                 }
             }
-            else{
+            else if(int.type=="n"){
                 ye <- errors.mat;
                 xe <- matrix(c(1:h),byrow=TRUE,ncol=h,nrow=nrow(errors.mat));
                 xe <- xe[!is.na(ye)];
@@ -877,6 +877,17 @@ checker <- function(inherits=TRUE){
                     y.low <- ts(y.for*(1 + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2),start=start(y.for),frequency=frequency(data));
                     y.high <- ts(y.for*(1 + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2),start=start(y.for),frequency=frequency(data));
                 }
+            }
+            else if(int.type=="a"){
+                y.int <- intervals(errors.mat,ev=apply(errors.mat,2,median,na.rm=TRUE),int.type="a");
+                    if(Etype=="A"){
+                        y.low <- ts(y.for + y.int$lower,start=start(y.for),frequency=frequency(data));
+                        y.high <- ts(y.for + y.int$upper,start=start(y.for),frequency=frequency(data));
+                    }
+                    else{
+                        y.low <- ts(y.for*(1 + y.int$lower),start=start(y.for),frequency=frequency(data));
+                        y.high <- ts(y.for*(1 + y.int$upper),start=start(y.for),frequency=frequency(data));
+                    }
             }
         }
         else{
@@ -1020,7 +1031,7 @@ checker <- function(inherits=TRUE){
                         y.high <- ts(y.for*(1 + qt(1-(1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var)),start=start(y.for),frequency=datafreq);
                     }
                 }
-                else{
+                else if(int.type=="n"){
                     ye <- errors.mat;
                     xe <- matrix(c(1:h),byrow=TRUE,ncol=h,nrow=nrow(errors.mat));
                     xe <- xe[!is.na(ye)];
@@ -1038,6 +1049,17 @@ checker <- function(inherits=TRUE){
                     else{
                         y.low <- ts(y.for*(1 + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2),start=start(y.for),frequency=frequency(data));
                         y.high <- ts(y.for*(1 + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2),start=start(y.for),frequency=frequency(data));
+                    }
+                }
+                else if(int.type=="a"){
+                    y.int <- intervals(errors.mat,ev=apply(errors.mat,2,median,na.rm=TRUE),int.type="a");
+                    if(Etype=="A"){
+                        y.low <- ts(y.for + y.int$lower,start=start(y.for),frequency=frequency(data));
+                        y.high <- ts(y.for + y.int$upper,start=start(y.for),frequency=frequency(data));
+                    }
+                    else{
+                        y.low <- ts(y.for*(1 + y.int$lower),start=start(y.for),frequency=frequency(data));
+                        y.high <- ts(y.for*(1 + y.int$upper),start=start(y.for),frequency=frequency(data));
                     }
                 }
             }
@@ -1129,6 +1151,9 @@ if(silent==FALSE){
         }
         if(int.type=="n"){
             int.type <- "nonparametric";
+        }
+        if(int.type=="a"){
+            int.type <- "asymmetric";
         }
         print(paste0(int.w*100,"% ",int.type," intervals were constructed"));
         graphmaker(actuals=data,forecast=y.for,fitted=y.fit,

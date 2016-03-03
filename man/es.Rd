@@ -13,7 +13,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
     initial.season=NULL, IC=c("AICc","AIC","BIC"),
     trace=FALSE, CF.type=c("TLV","GV","TV","hsteps","MSE","MAE","HAM"),
     FI=FALSE, intervals=FALSE, int.w=0.95,
-    int.type=c("parametric","semiparametric","nonparametric"),
+    int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
     xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
     ...)
 }
@@ -47,7 +47,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{int.w}{ Defines the width of the prediction interval.
   }
-  \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} uses the state-space structure of ETS, \code{semiparametric} is based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} uses the values from a quantile regression on the error matrix (see Taylor and Bunn, 1999). PARTLY IMPLEMENTED - NO PARAMETRIC INTERVALS YET!
+  \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} uses the state-space structure of ETS, \code{semiparametric} is based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} uses the values from a quantile regression on the error matrix (see Taylor and Bunn, 1999).  \code{asymmetric} are based on half moment. PARTLY IMPLEMENTED - NO PARAMETRIC INTERVALS YET!
   }
   \item{xreg}{ The vector / matrix / dataframe of exogenous variables.
   }
