@@ -1,6 +1,7 @@
 .Rproj.user
-.Rhistory
-.RData
+*.Rhistory
+*.RData
 .directory
 R/.directory
 man/.directory
+*.Rproj
