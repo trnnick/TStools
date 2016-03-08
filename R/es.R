@@ -167,7 +167,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     }
     datafreq <- frequency(data);
 
-### Check the length of the provided data. Say bad words if:
+## Check the length of the provided data. Say bad words if:
 # 1. Seasonal model, <=2 seasons of data and no initial seasonals.
 # 2. Seasonal model, <=1 season of data, no initial seasonals and no persistence.
     if((Stype!="N" & (obs <= 2*datafreq) & is.null(initial.season)) | (Stype!="N" & (obs <= datafreq) & is.null(initial.season) & is.null(persistence))){
