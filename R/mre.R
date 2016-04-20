@@ -82,8 +82,6 @@ mre <- function(e,op=c("mean","sum","gm")){
 #
 # Nikolaos Kourentzes, 2014 <nikolaos@kourentzes.com>
 
-  e <- runif(10,-10,10)
-  
   op <- op[1]
   
   e <- as.complex(e)
