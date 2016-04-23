@@ -99,11 +99,11 @@ sma <- function(x, order=NULL, h=10, optimize=FALSE,
 
   if(holdout==TRUE){
     x.holdout <- ts(x[(n+1):n.all],start=start(tst.frcst),frequency=frequency(x));
-    errormeasures <- c(MAPE(as.vector(x.holdout),as.vector(tst.frcst),round=5),
+    errormeasures <- c(MAPE(as.vector(x.holdout),as.vector(tst.frcst),digits=5),
                        MASE(as.vector(x.holdout),as.vector(tst.frcst),mean(abs(diff(as.vector(x)[1:n])))),
                        MASE(as.vector(x.holdout),as.vector(tst.frcst),mean(abs(as.vector(x)[1:n]))),
-                       MPE(as.vector(x.holdout),as.vector(tst.frcst),round=5),
-                       SMAPE(as.vector(x.holdout),as.vector(tst.frcst),round=5));
+                       MPE(as.vector(x.holdout),as.vector(tst.frcst),digits=5),
+                       SMAPE(as.vector(x.holdout),as.vector(tst.frcst),digits=5));
     names(errormeasures) <- c("MAPE","MASE","MASALE","MPE","SMAPE");
   }
   else{

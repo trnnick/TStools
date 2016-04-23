@@ -9,27 +9,28 @@ Function constructs ETS model and returns forecast, fitted values, errors and ma
 }
 \usage{
 es(data, model="ZZZ", persistence=NULL, phi=NULL,
-    bounds=c("usual","admissible"), initial=NULL,
-    initial.season=NULL, IC=c("AICc","AIC","BIC"),
-    trace=FALSE, CF.type=c("TLV","GV","TV","hsteps","MSE","MAE","HAM"),
-    FI=FALSE, intervals=FALSE, int.w=0.95,
-    int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-    xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
-    ...)
+   initial=NULL, initial.season=NULL, IC=c("AICc","AIC","BIC"),
+   persistenceX=NULL, transitionX=NULL,
+   CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
+   FI=FALSE, intervals=FALSE, int.w=0.95,
+   int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
+   bounds=c("usual","admissible","none"), holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
+   xreg=NULL, go.wild=FALSE, intermittent=FALSE, ...)
+
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{data}{ The vector or ts object, containing the data needed to be forecasted.
   }
   \item{model}{ The type of ETS model. Can consist of 3 or 4 chars: \code{ANN}, \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA}, \code{MAdM} etc. \code{ZZZ} means that the model will be selected based on the chosen IC type. If \code{model="CCC"}, then all the models are estimated and the combination of their forecasts using AIC weights if produced (Kolassa, 2011). This can also be regulated. For example, \code{model="CCN"} will combine forecasts of all the non-seasonal models.
-  
+
   The parameter \code{model} can also be a vector of names of models for a finer tuning (pool of models). For example, \code{model=c("ANN","AAA")} will estimate only two models and select the best of them.
+
+  Keep in mind that when model selection or combination is selected, the optimiser may return not as accurate estimates of parameters as when individual model is selected. This may happen because of the decreased precision of optimiser, which is done intentionally to speed up the optimisation process. Furthermore, model selection uses Branch and Bound method and may skip some models that could have slightly smaller information criteria.
   }
   \item{persistence}{ The vector of smoothing parameters. If \code{NULL}, the parameters are estimated.
   }
   \item{phi}{ The value of damping parameter. If \code{NULL} then the parameter is estimated.
-  }
-  \item{bounds}{ What type of bouds to use for the smoothing parameters.
   }
   \item{initial}{ The vector of initial values for level and trend. If \code{NULL}, it is estimated in the optimization.
   }
@@ -37,9 +38,11 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{IC}{ The information criterion to use in the model selection.
   }
-  \item{trace}{ If TRUE, the trace likelihood is used in the estimation with trace of the length \code{h}.
+  \item{persistenceX}{ Persistence vector \eqn{g_X}, containing smoothing parameters for exogenous variables. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
-  \item{CF.type}{ Type of Cost Function used in trace optimization. If \code{trace=FALSE}, \code{CF.type} can be \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error) or \code{HAM} (Half Absolute Moment). In case of \code{trace=TRUE} it can be \code{GV} - Generalized Variance, \code{TLV} - Total Logarythmic Variation and \code{TV} - Total Variation, \code{hsteps} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="GV"}, then model selection is done using \code{MSE} or \code{GV} respectively.
+  \item{transitionX}{ Transition matrix \eqn{F_x} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
+  }
+  \item{CF.type}{ Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{GV} - Generalized Variance, \code{trace} - Total Logarithmic Variation, \code{TV} - Total Variation and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="GV"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{GV} respectively.
   }
   \item{FI}{ If \code{TRUE}, Fisher Information is calculated and produced in the output.
   }
@@ -47,9 +50,19 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{int.w}{ Defines the width of the prediction interval.
   }
-  \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} uses the state-space structure of ETS, \code{semiparametric} is based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} uses the values from a quantile regression on the error matrix (see Taylor and Bunn, 1999).  \code{asymmetric} are based on half moment. PARTLY IMPLEMENTED - NO PARAMETRIC INTERVALS YET!
+  \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word.
+
+  \itemize{
+    \item \code{parametric} use the state-space structure of ETS. For multiplicative models they are approximated using the same function as for additive. As a result they are a bit wider than should be but are still efficient. In case of mixed models this is done using simulations, which may take longer time than for the pure additive and pure multiplicative models.
+
+    \item \code{semiparametric} are based on the covariance matrix of 1 to h steps ahead errors and normal distribution.
+
+    \item \code{nonparametric} intervals use the values from a quantile regression on the error matrix (see Taylor and Bunn, 1999).
+
+    \item Finally \code{asymmetric} are based on half moment of distribution.
   }
-  \item{xreg}{ The vector / matrix / dataframe of exogenous variables.
+  }
+  \item{bounds}{ What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
   }
   \item{holdout}{ If \code{TRUE}, the holdout sample of size \code{h} is taken from the end of the data.
   }
@@ -59,11 +72,25 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{legend}{ If \code{TRUE}, the legend is drawn in the outplot.
   }
+  \item{xreg}{ The vector / matrix / dataframe of exogenous variables.
+  }
+  \item{go.wild}{ if \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}.
+  }
+  \item{intermittent}{ If \code{TRUE}, then the data is considered as intermittent, taking into account Bernoulli distribution of demand occurancies.
+  }
   \item{...}{ Other parameters that are passed to DON'T KNOW WHAT YET.
   }
 }
 \details{
-The details will be here soon.
+The function estimates ETS in a form of the Single Source of Error State-space model of the following type:
+
+\eqn{y_[t] = o_[t] (w(v_[t-l]) + x_t a_[t-1] + r(v_[t-l]) \epsilon_[t])}
+
+\eqn{v_[t] = f(v_[t-l]) + g(v_[t-l]) \epsilon_[t]}
+
+\eqn{a_[t] = F_[X] a_[t-1] + g_[X] \epsilon_[t] / x_[t]}
+
+Where \eqn{o_[t]} is Bernoulli distributed random variable (in case of normal data equal to 1), \eqn{v_[t]} is a state vector (defined using \code{orders}) and \eqn{l} is a vector of \code{lags}, \eqn{x_t} vector of exogenous parameters. w(.) is the measurement function, r(.) is an error function, f(.) is transition function and g(.) is persistence function.
 }
 \value{
   The list of the following values is returned for the simpler models:
@@ -83,8 +110,12 @@ The details will be here soon.
     \item \code{errors} - trace forecast in-sample errors, returned as a matrix. In the case of trace forecasts this is the matrix used in optimisation. In non-trace estimations it is returned just for the information.
     \item \code{actuals} - the original data.
     \item \code{holdout} - the holdout part of the original data.
+    \item \code{xreg} - the provided vector or matrix of exogenous variables.
+    \item \code{persistenceX} - persistence vector g for exogenous variables.
+    \item \code{transitionX} - transition matrix F for exogenous variables.
     \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc and BIC.
     \item \code{CF} - Cost function value.
+    \item \code{CF.type} - Type of cost function used in the estimation.
     \item \code{FI} - Fisher Information estimated in the optimal point.
     \item \code{xreg} - the provided vector or matrix of exogenous variables.
     \item \code{accuracy} - the vector or accuracy measures for the holdout sample. Includes MPE, MAPE, SMAPE, MASE and MASALE. Available only when \code{holdout=T}.
@@ -102,6 +133,7 @@ The details will be here soon.
     \item \code{actuals},
     \item \code{holdout},
     \item \code{ICs} - the IC weights used in the combination.
+    \item \code{CF.type},
     \item \code{xreg},
     \item \code{accuracy}.
   }
@@ -118,7 +150,7 @@ Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
 
 \seealso{
-\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[TStools]{sim.ets}}
+\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[smooth]{sim.ets}}
 }
 \examples{
 library(Mcomp)
@@ -129,7 +161,11 @@ es(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,trace=TRUE) -> test
 es(M3$N2568$x,model="MAM",h=18,holdout=TRUE,trace=TRUE) -> test
 
 # Model selection example
-es(M3$N1245$x,model="ZZN",IC="AIC",h=8,holdout=FALSE,trace=FALSE,bounds="a") -> test
+es(M3$N1245$x,model="ZZN",IC="AIC",h=8,holdout=FALSE,bounds="a") -> test
+
+# Model selection. Compare AICc of these two models:
+es(M3$N1683$x,"ZZZ",h=10,holdout=TRUE)->test
+es(M3$N1683$x,"MAdM",h=10,holdout=TRUE)->test
 
 # Combination example
 es(M3$N1245$x,model="CCC",h=8,holdout=TRUE) -> test

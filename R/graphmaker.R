@@ -1,13 +1,11 @@
-graphmaker <- function(actuals, forecast, fitted=NULL,
-                       lower=NULL, upper=NULL, int.w=NULL,
-                       legend=TRUE, title=NULL){
+graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,
+                       int.w=NULL,legend=TRUE,main=NULL){
 # Function constructs the universal linear graph for any model
 ##### Make legend change if the fitted is provided or not!
     if(!is.null(lower) | !is.null(upper)){
         intervals <- TRUE;
         if(is.null(int.w)){
-            message("The width of prediction intervals is not provided to graphmaker!");
-            message("Assuming 95%.");
+            message("The width of prediction intervals is not provided to graphmaker! Assuming 95%.");
             int.w <- 0.95;
         }
     }
@@ -32,14 +30,24 @@ graphmaker <- function(actuals, forecast, fitted=NULL,
 
     if(legend==TRUE){
         layout(matrix(c(1,2),2,1),heights=c(0.86,0.14));
-        par(mar=c(2,3,2,1));
+        if(is.null(main)){
+            par(mar=c(2,3,2,1));
+        }
+        else{
+            par(mar=c(2,3,3,1));
+        }
     }
     else{
-        par(mar=c(3,3,2,1));
+        if(is.null(main)){
+            par(mar=c(3,3,2,1));
+        }
+        else{
+            par(mar=c(3,3,3,1));
+        }
     }
 
-    plot(actuals, type="l", xlim=range(time(actuals)[1],time(forecast)[h]),
-         ylim=plot.range, xlab="", ylab="", main=title);
+    plot(actuals,type="l",xlim=range(time(actuals)[1],time(forecast)[h]),
+         ylim=plot.range,xlab="", ylab="", main=main);
     if(!all(is.na(fitted))){
         lines(fitted,col="purple",lwd=2,lty=2);
     }

@@ -6,7 +6,7 @@ export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        nzlength,init.ets,mre,mre.plot,bias.coeff,
        sim.ets,es,
        MPE,MAPE,SMAPE,MASE,GMRAE,hm,
-       sowhat,ro,graphmaker,intervals,
+       sowhat,ro,graphmaker,pintervals,
        sma,
        residout,stlboot)
 useDynLib(TStools)
