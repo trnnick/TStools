@@ -15,4 +15,5 @@ However Mac OS users may need to install gfortran libraries in order to use Rcpp
 
 Note
 -------
-Functions es() and sim.ets() are now maintained and updated in "smooth" package: https://github.com/config-i1/smooth The versions provided in TStools will be supported but updated less frequently.
+Functions es() and sim.ets() are now maintained in "smooth" package: https://github.com/config-i1/smooth.
+The functions will be removed from Tstools by the end of May 2016.
