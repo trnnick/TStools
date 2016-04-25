@@ -32,7 +32,21 @@ ro <- function(data,h=10,origins=10,call,value=NULL,
     crs <- min(parallel::detectCores() - 1, origins);
 
 # Check the system and choose the package to use
-    if(Sys.info()['sysname']=="Linux"){
+#    else{
+ if(Sys.info()['sysname']=="Windows"){
+      if(requireNamespace("doParallel", quietly = TRUE)){
+        cat(paste0("Setting up ", crs, " clusters using 'doParallel'..."));
+        cat("\n");
+        cl <- parallel::makeCluster(crs);
+        doParallel::registerDoParallel(cl);
+      }
+      else{
+        stop("Sorry, but in order to run the function in parallel, you need 'doParallel' package.",
+             call. = FALSE)
+      }
+    }
+#    else(Sys.info()['sysname']=="Linux"){
+    else{
       if(requireNamespace("doMC", quietly = TRUE)){
         doMC::registerDoMC(crs);
         cl <- NULL;
@@ -45,19 +59,6 @@ ro <- function(data,h=10,origins=10,call,value=NULL,
       }
       else{
         stop("Sorry, but in order to run the function in parallel, you need either 'doMC' (prefered) or 'doParallel' packages.",
-             call. = FALSE)
-      }
-    }
-    else{
-# if(Sys.info()['sysname']=="Windows")
-      if(requireNamespace("doParallel", quietly = TRUE)){
-        cat(paste0("Setting up ", crs, " clusters using 'doParallel'..."));
-        cat("\n");
-        cl <- parallel::makeCluster(crs);
-        doParallel::registerDoParallel(cl);
-      }
-      else{
-        stop("Sorry, but in order to run the function in parallel, you need 'doParallel' package.",
              call. = FALSE)
       }
     }
