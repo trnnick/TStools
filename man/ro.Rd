@@ -18,7 +18,7 @@ Currently function can do all of that in parallel, but it needs \code{foreach} a
   }
   \item{origins}{The number of rolling origins.
   }
-  \item{call}{The call that is passed to the function. The call must be in quotes. Example: \code{"forecast(ets(data),h)"}. Here \code{data} shows where the data and \code{h} defines where the horizon should be passed in the \code{call}. Some hiddent parameters can also be specified in the call. For example, parameters \code{counti} and \code{counto} are used in the inner loop and can be used for the regulation of exogenous variables sizes. See examples for the appropriate command.
+  \item{call}{The call that is passed to the function. The call must be in quotes. Example: \code{"forecast(ets(data),h)"}. Here \code{data} shows where the data and \code{h} defines where the horizon should be passed in the \code{call}. Some hidden parameters can also be specified in the call. For example, parameters \code{counti} and \code{counto} are used in the inner loop and can be used for the regulation of exogenous variables sizes. See examples for the appropriate command.
   }
   \item{value}{The variable passed by the \code{call} that contains forecasts. For example, "\code{mean}" for functions of \code{forecast} package. Can also be a vector of variables. See examples for the details. If the parameter is \code{NULL}, then all the values from the call are returned (could be really messy!).
   }
