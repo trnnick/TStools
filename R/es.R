@@ -217,14 +217,11 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         	message("Are you out of your mind?! We don't have enough observations for the seasonal model! Switching to non-seasonal.");
        		Stype <- "N";
     	}
-        else{
-            n.param.test <- n.param.test - length(initial.season);
-        }
     }
 
 ### Check the persistence vector for the possible errors.
     if(!is.null(persistence)){
-        if(any(!is.numeric(persistence),!is.vector(persistence))){
+        if(!is.numeric(persistence)){
             message("The persistence is not a numeric vector!");
             message("Changing to the estimation of persistence vector values.");
             persistence <- NULL;
@@ -235,15 +232,16 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                 message("Changing to the estimation of persistence vector values.");
                 persistence <- NULL;
             }
-            else{
-                n.param.test <- n.param.test - length(persistence);
-            }
         }
+    }
+# If persistence is null or has been changed in the previous check, write down the number of parameters
+    if(is.null(persistence)){
+        n.param.test <- n.param.test - length(persistence);
     }
 
 ### Check if the meaningfull initials are passed
     if(!is.null(initial)){
-        if(any(!is.numeric(initial),!is.vector(initial))){
+        if(!is.numeric(initial)){
             message("The initial vector is not numeric!");
             message("Values of initial vector will be estimated.");
             initial <- NULL;
@@ -258,6 +256,30 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                 n.param.test <- n.param.test - length(initial);
             }
         }
+    }
+# If initial is null or has been changed in the previous check, write down the number of parameters
+    if(is.null(initial)){
+        n.param.test <- n.param.test - length(initial);
+    }
+
+### Check if the meaningfull initials are passed
+    if(!is.null(initial.season)){
+        if(!is.numeric(initial.season)){
+            message("The initial.season vector is not numeric!");
+            message("Values of initial.season vector will be estimated.");
+            initial.season <- NULL;
+        }
+        else{
+            if(length(initial.season)!=datafreq){
+                message("The length of initial.season vector is wrong! It should correspond to the frequency of the data.");
+                message("Values of initial.season vector will be estimated.");
+                initial.season <- NULL;
+            }
+        }
+    }
+# If the initial.season has been changed to estimation, do things...
+    if(Stype!="N" & is.null(initial.season)){
+        n.param.test <- n.param.test - length(initial.season);
     }
 
 # Check phi
@@ -361,56 +383,80 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         }
 ##### The case with vectors and ts objects, but not matrices
         if(is.vector(xreg) | (is.ts(xreg) & !is.matrix(xreg))){
-# If xreg is vector or simple ts
-            if(length(xreg)!=obs & length(xreg)!=obs.all){
-                stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=F);
+# Check if xreg contains something meaningful
+            if(all(xreg==xreg[1])){
+                warning("The exogenous variable has no variability. Cannot do anything with that, so dropping out xreg.",
+                        call.=FALSE, immediate.=TRUE);
+                xreg <- NULL;
             }
-            if(length(xreg)==obs){
-                message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
-                xreg <- c(as.vector(xreg),rep(xreg[obs],h));
-            }
+            else{
+                if(length(xreg)!=obs & length(xreg)!=obs.all){
+                    stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!", call.=F);
+                }
+                if(length(xreg)==obs){
+                    message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
+                    xreg <- c(as.vector(xreg),rep(xreg[obs],h));
+                }
 # Number of exogenous variables
-        n.exovars <- 1;
+                n.exovars <- 1;
 # Define matrix w for exogenous variables
-        matxt <- matrix(xreg,ncol=1);
+                matxt <- matrix(xreg,ncol=1);
 # Define the second matat to fill in the coefs of the exogenous vars
-        matat <- matrix(NA,obs.all+datafreq,1);
-        exocomponent.names <- "exogenous";
+                matat <- matrix(NA,obs.all+datafreq,1);
+                exocomponent.names <- "exogenous";
 # Fill in the initial values for exogenous coefs using OLS
-        matat[1:datafreq,] <- cov(data[1:obs],xreg[1:obs])/var(xreg[1:obs]);
+                matat[1:datafreq,] <- cov(data[1:obs],xreg[1:obs])/var(xreg[1:obs]);
+            }
         }
 ##### The case with matrices and data frames
         else if(is.matrix(xreg) | is.data.frame(xreg)){
-    # If xreg is matrix or data frame
-            if(nrow(xreg)!=obs & nrow(xreg)!=obs.all){
-                stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=F);
-            }
-            if(nrow(xreg)==obs){
-	            message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
-                for(j in 1:h){
-                xreg <- rbind(xreg,xreg[obs,]);
+            checkvariability <- apply(xreg==rep(xreg[1,],each=nrow(xreg)),2,all);
+            if(any(checkvariability)){
+                if(all(checkvariability)){
+                    warning("All exogenous variables have no variability. Cannot do anything with that, so dropping out xreg.",
+                            call.=FALSE, immediate.=TRUE);
+                    xreg <- NULL;
+                }
+                else{
+                    warning("Some exogenous variables do not have any variability. Dropping them out.",
+                            call.=FALSE, immediate.=TRUE);
+                    xreg <- as.matrix(xreg[,!checkvariability]);
                 }
             }
+
+            if(!is.null(xreg)){
+                if(nrow(xreg)!=obs & nrow(xreg)!=obs.all){
+                    stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=F);
+                }
+                if(nrow(xreg)==obs){
+	                message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
+                    for(j in 1:h){
+                    xreg <- rbind(xreg,xreg[obs,]);
+                    }
+                }
 # mat.x is needed for the initial values of coefs estimation using OLS
-            mat.x <- as.matrix(cbind(rep(1,obs.all),xreg));
-            n.exovars <- ncol(xreg);
+                mat.x <- as.matrix(cbind(rep(1,obs.all),xreg));
+                n.exovars <- ncol(xreg);
 # Define the second matat to fill in the coefs of the exogenous vars
-            matat <- matrix(NA,obs.all+datafreq,n.exovars);
-            exocomponent.names <- paste0("x",c(1:n.exovars));
+                matat <- matrix(NA,obs.all+datafreq,n.exovars);
+                exocomponent.names <- paste0("x",c(1:n.exovars));
 # Define matrix w for exogenous variables
-            matxt <- as.matrix(xreg);
+                matxt <- as.matrix(xreg);
 # Fill in the initial values for exogenous coefs using OLS
-            matat[1:datafreq,] <- rep(t(solve(t(mat.x[1:obs,]) %*% mat.x[1:obs,],tol=1e-50) %*%
-                                               t(mat.x[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],
-                                         each=datafreq);
-            colnames(matat) <- colnames(xreg);
+                matat[1:datafreq,] <- rep(t(solve(t(mat.x[1:obs,]) %*% mat.x[1:obs,],tol=1e-50) %*%
+                                                  t(mat.x[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],
+                                          each=datafreq);
+                colnames(matat) <- colnames(xreg);
+            }
         }
         else{
             stop("Unknown format of xreg. Should be either vector or matrix. Aborting!",call.=F);
         }
         estimate.xreg <- TRUE;
     }
-    else{
+
+##### In case we changed xreg to null...
+    if(is.null(xreg)){
 # "1" is needed for the final forecast simplification
         n.exovars <- 1;
         matxt <- matrix(0,max(obs+datafreq,obs.all),1);
@@ -814,7 +860,7 @@ checker <- function(inherits=TRUE){
 ##### If auto selection is used (for model="ZZZ" or model="CCC"), then let's start misbehaving...
         if(any(model.do==c("combine","select"))){
 
-##### This huge chunk of code must be transfered into .cpp fil along with all the model selection thingies. #####
+##### This huge chunk of code must be transfered into .cpp file along with all the model selection thingies. #####
             estimation.script <- function(Etype,Ttype,Stype,damped,phi){
 # Start functions from current environment
                 environment(C.values) <- environment();
@@ -841,7 +887,14 @@ checker <- function(inherits=TRUE){
                 res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
                               opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-4, "maxeval"=100));
                 C <- res$solution;
-                environment(CF) <- environment();
+
+                if(any(C==Cs$C)){
+                    C[C==Cs$C] <- 0;
+                    res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
+                                  opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
+                    C <- res$solution;
+                }
+
                 res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
                               opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=400));
                 C <- res$solution;
@@ -1142,6 +1195,14 @@ checker <- function(inherits=TRUE){
             res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
                           opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
             C <- res$solution;
+
+            if(any(C==Cs$C)){
+                C[C==Cs$C] <- 0;
+                res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
+                              opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
+                C <- res$solution;
+            }
+
             res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
                           opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=500));
             C <- res$solution;
@@ -1215,6 +1276,10 @@ checker <- function(inherits=TRUE){
                                    matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX),
                     start=time(data)[obs]+deltat(data),frequency=datafreq);
 
+        if(Etype=="M" & any(y.for<1)){
+            y.for[y.for<1] <- 1;
+        }
+
         if(estimate.persistence==FALSE & estimate.phi==FALSE & estimate.initial==FALSE & estimate.initial.season==FALSE &
            estimate.xreg==FALSE & estimate.Fx==FALSE & estimate.gx==FALSE){
             C <- c(vecg,phi,initial,initial.season);
@@ -1223,7 +1288,8 @@ checker <- function(inherits=TRUE){
             n.param <- 0;
         }
         else{
-            n.param <- n.components*estimate.persistence + estimate.phi +
+# 1 stand for the variance
+            n.param <- 1 + n.components*estimate.persistence + estimate.phi +
                 (n.components - (Stype!="N"))*estimate.initial + maxlag*estimate.initial.season + intermittent +
                 estimate.xreg * n.exovars + estimate.Fx * n.exovars^2 + estimate.gx * n.exovars;
         }
