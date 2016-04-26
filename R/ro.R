@@ -94,10 +94,10 @@ ro <- function(data,h=10,origins=10,call,value=NULL,
         h <- min(hh,obs - (in.sample+ivan41-1))
 # Make the in-sample
         if(ci==FALSE){
-          data <- ts(y[1:(in.sample-h+ivan41-1)],start=data.start,frequency=data.freq)
+          data <- ts(y[1:(in.sample+ivan41-1)],start=data.start,frequency=data.freq)
         }
         else{
-          data <- ts(y[ivan41:(in.sample-h+ivan41-1)],start=data.start,frequency=data.freq)
+          data <- ts(y[ivan41:(in.sample+ivan41-1)],start=data.start,frequency=data.freq)
         }
 # Evaluate the call string and save to object o.m.
         o.m <- eval(parse(text=call))
@@ -116,10 +116,10 @@ ro <- function(data,h=10,origins=10,call,value=NULL,
       for (ivan41 in 1:origins){
 # Make the in-sample
         if(ci==FALSE){
-          data <- ts(y[1:(in.sample-h+ivan41-1)],start=data.start,frequency=data.freq)
+          data <- ts(y[1:(in.sample+ivan41-1)],start=data.start,frequency=data.freq)
         }
         else{
-          data <- ts(y[ivan41:(in.sample-h+ivan41-1)],start=data.start,frequency=data.freq)
+          data <- ts(y[ivan41:(in.sample+ivan41-1)],start=data.start,frequency=data.freq)
         }
 # Evaluate the call string and save to object o.m.
         o.m <- eval(parse(text=call))
@@ -158,10 +158,10 @@ ro <- function(data,h=10,origins=10,call,value=NULL,
         h <- min(hh,obs - (in.sample+ivan41-1));
 # Make the in-sample
         if(ci==FALSE){
-          data <- ts(y[1:(in.sample-h+ivan41-1)],start=data.start,frequency=data.freq);
+          data <- ts(y[1:(in.sample+ivan41-1)],start=data.start,frequency=data.freq);
         }
         else{
-          data <- ts(y[ivan41:(in.sample-h+ivan41-1)],start=data.start,frequency=data.freq);
+          data <- ts(y[ivan41:(in.sample+ivan41-1)],start=data.start,frequency=data.freq);
         }
 # Evaluate the call string and save to object o.m.
         o.m <- eval(parse(text=call));
@@ -177,10 +177,10 @@ ro <- function(data,h=10,origins=10,call,value=NULL,
       forecasts <- foreach::`%dopar%`(foreach::foreach(ivan41=1:origins, .packages=callpackages, .export=ls(envir=callenvir)),{
 # Make the in-sample
         if(ci==FALSE){
-          data <- ts(y[1:(in.sample-h+ivan41-1)],start=data.start,frequency=data.freq)
+          data <- ts(y[1:(in.sample+ivan41-1)],start=data.start,frequency=data.freq)
         }
         else{
-          data <- ts(y[ivan41:(in.sample-h+ivan41-1)],start=data.start,frequency=data.freq)
+          data <- ts(y[ivan41:(in.sample+ivan41-1)],start=data.start,frequency=data.freq)
         }
 # Evaluate the call string and save to object o.m.
         o.m <- eval(parse(text=call))
