@@ -100,6 +100,8 @@ ro <- function(data,h=10,origins=10,call,value=NULL,
             counti <- ivan41:(in.sample+ivan41-1);
         }
         counto <- (in.sample+ivan41):(in.sample+ivan41+h-1);
+        countfull <- c(counti,counto);
+
         data <- ts(y[counti],start=data.start,frequency=data.freq);
 # Evaluate the call string and save to object o.m.
         o.m <- eval(parse(text=call));
@@ -124,6 +126,8 @@ ro <- function(data,h=10,origins=10,call,value=NULL,
             counti <- ivan41:(in.sample-h+ivan41-1);
         }
         counto <- (in.sample+ivan41-h+1):(in.sample+ivan41);
+        countfull <- c(counti,counto);
+
         data <- ts(y[counti],start=data.start,frequency=data.freq);
 # Evaluate the call string and save to object o.m.
         o.m <- eval(parse(text=call))
@@ -168,6 +172,8 @@ ro <- function(data,h=10,origins=10,call,value=NULL,
             counti <- ivan41:(in.sample+ivan41-1);
         }
         counto <- (in.sample+ivan41):(in.sample+ivan41+h-1);
+        countfull <- c(counti,counto);
+
         data <- ts(y[counti],start=data.start,frequency=data.freq);
 # Evaluate the call string and save to object o.m.
         o.m <- eval(parse(text=call));
@@ -189,6 +195,8 @@ ro <- function(data,h=10,origins=10,call,value=NULL,
             counti <- ivan41:(in.sample-h+ivan41-1);
         }
         counto <- (in.sample+ivan41-h+1):(in.sample+ivan41);
+        countfull <- c(counti,counto);
+
         data <- ts(y[counti],start=data.start,frequency=data.freq);
 # Evaluate the call string and save to object o.m.
         o.m <- eval(parse(text=call));

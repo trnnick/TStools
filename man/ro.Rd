@@ -18,7 +18,7 @@ Currently function can do all of that in parallel, but it needs \code{foreach} a
   }
   \item{origins}{The number of rolling origins.
   }
-  \item{call}{The call that is passed to the function. The call must be in quotes. Example: \code{"forecast(ets(data),h)"}. Here \code{data} shows where the data and \code{h} defines where the horizon should be passed in the \code{call}. Some hidden parameters can also be specified in the call. For example, parameters \code{counti} and \code{counto} are used in the inner loop and can be used for the regulation of exogenous variables sizes. See examples for the appropriate command.
+  \item{call}{The call that is passed to the function. The call must be in quotes. Example: \code{"forecast(ets(data),h)"}. Here \code{data} shows where the data and \code{h} defines where the horizon should be passed in the \code{call}. Some hidden parameters can also be specified in the call. For example, parameters \code{counti}, \code{counto} and \code{countfull} are used in the inner loop and can be used for the regulation of exogenous variables sizes. See examples for the appropriate command.
   }
   \item{value}{The variable passed by the \code{call} that contains forecasts. For example, "\code{mean}" for functions of \code{forecast} package. Can also be a vector of variables. See examples for the details. If the parameter is \code{NULL}, then all the values from the call are returned (could be really messy!).
   }
@@ -101,6 +101,12 @@ xreg <- rnorm(100,0,1)
 ## counti is used to define in-sample size of xreg, counto - the size of holdout sample
 ourcall <- "forecast(auto.arima(data,xreg=xreg[counti]),h=h,xreg=xreg[counto])"
 ourvalue <- "mean"
+
+ro(x,h=5,origins=5,ourcall,ourvalue)
+
+## countfull is used to take xreg of the size corresponding to all sample on each iteration
+ourcall <- "es(data,'ANN',xreg=xreg[countfull],h=h,silent=TRUE)"
+ourvalue <- "forecast"
 
 ro(x,h=5,origins=5,ourcall,ourvalue)
 }
