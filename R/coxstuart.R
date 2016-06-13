@@ -65,10 +65,10 @@ coxstuart <- function(y,type=c("trend","deviation","dispersion"),alpha=0.05){
   
   if (p <= alpha/2){
     H <- 1
-    txt <- "H0: There is no trend present in location/dispersion"
+    txt <- "H1: There is trend (upwards or downwards)"
   } else {
     H <- 0
-    txt <- "H1: There is trend (upwards or downwards)"
+    txt <- "H0: There is no trend present in location/dispersion"
   }
   
   return(list(H=H,p.value=p,Htxt=txt))
