@@ -4,7 +4,7 @@ wins <- function (x, p=0.05){
 # Inputs
 #   x       Vector to be winsorised
 #   p       Percentage or number of observations to be winsorised. 
-#           If value is <1 then it is used as a percentages. Otheriwse it is the number
+#           If value is <1 then it is used as a percentages. Otherwise it is the number
 #           of observations to winsorise. If the resulting p > floor((length(x)-1)/2) 
 #           then it is set equal to floor((length(x)-1)/2).
 #
