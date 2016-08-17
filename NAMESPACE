@@ -1,5 +1,5 @@
 importFrom(tseries,kpss.test)
-import(forecast,nloptr,numDeriv,zoo,Rcpp)
+import(forecast,nloptr,numDeriv,zoo,Rcpp,MAPA)
 
 export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        coxstuart,wins,rowWins,colWins,theta,abc,xyz,abcxyz,
@@ -8,5 +8,5 @@ export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        MPE,MAPE,SMAPE,MASE,GMRAE,hm,
        sowhat,ro,graphmaker,pintervals,
        sma,
-       residout,stlboot)
+       residout,stlboot,get.opt.k)
 useDynLib(TStools)
