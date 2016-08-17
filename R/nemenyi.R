@@ -1,7 +1,7 @@
 nemenyi <- function(data, conf.int=0.95, sort=c(TRUE,FALSE), 
                     plottype=c("vline","none","mcb","vmcb","line"), 
                     console=c(FALSE,TRUE), silent=c(FALSE,TRUE), 
-                    pcol=NULL, title=NULL, select=NULL, labels=NULL)
+                    pcol=NULL, title=NULL, select=NULL, labels=NULL, ...)
 {
 # Friedman and Nemenyi tests for nonparametric comparisons between methods.
 #
@@ -169,7 +169,7 @@ if (is.null(labels)){
     # Plot
     plot(1:cols.number,ranks.means,
         xlab="", ylab="Mean ranks", main=title,
-        type="p", axes=FALSE, pch=20, lwd=4, col="black", ylim=c(ymin,ymax))
+        type="p", axes=FALSE, pch=20, lwd=4, col="black", ylim=c(ymin,ymax), ...)
     if (!is.null(select)){
       lines(c(0,cols.number+1),rep(ranks.intervals[1,select],times=2), col="gray", lty=2)
       lines(c(0,cols.number+1),rep(ranks.intervals[2,select],times=2), col="gray", lty=2)    
@@ -201,7 +201,7 @@ if (is.null(labels)){
     par(mar=c(2, lbl.size/1.5, 4, 2) + 0.1)
     plot(ranks.means,1:cols.number,
          ylab="", xlab="Mean ranks", main=title,
-         type="p", axes=FALSE, pch=20, lwd=4, col="black", xlim=c(xmin,xmax))
+         type="p", axes=FALSE, pch=20, lwd=4, col="black", xlim=c(xmin,xmax), ...)
     if (!is.null(select)){
       lines(rep(ranks.intervals[1,select],times=2), c(0,cols.number+1), col="gray", lty=2)
       lines(rep(ranks.intervals[2,select],times=2), c(0,cols.number+1), col="gray", lty=2)    
@@ -257,7 +257,7 @@ if (is.null(labels)){
     par(mar=c(lbl.size/2, 4, 4, 2) + 0.1)
     plot(1:cols.number,rep(0,times=cols.number),
          xlab="", ylab="", main=title,
-         type="p", axes=FALSE, pch=20, lwd=4, col="black", ylim=c(0,k+1))
+         type="p", axes=FALSE, pch=20, lwd=4, col="black", ylim=c(0,k+1), ...)
     if (k>0){
       for (i in 1:k){
         lines(rline[i,],c(i,i), col=pcol[i], lwd = 4)
@@ -312,7 +312,7 @@ if (is.null(labels)){
     par(mar=c(2, lbl.size/2, 4, 2) + 0.1)
     plot(rep(0,times=cols.number),1:cols.number,
          ylab="", xlab="", main=title, 
-         type="p", axes=FALSE, pch=20, lwd=4, col="black", xlim=c(0,k+1), ylim=rev(c(1,cols.number)))
+         type="p", axes=FALSE, pch=20, lwd=4, col="black", xlim=c(0,k+1), ylim=rev(c(1,cols.number)), ...)
     if (k>0){
       for (i in 1:k){
         lines(c(i,i), rline[i,], col=pcol[i], lwd = 4)

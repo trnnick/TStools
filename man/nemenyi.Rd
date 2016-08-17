@@ -9,7 +9,7 @@
 nemenyi(data, conf.int=0.95, sort=c(TRUE,FALSE), 
         plottype=c("vline","none","mcb","vmcb","line"), 
         console=c(FALSE,TRUE), silent=c(FALSE,TRUE), 
-        pcol=NULL, title=NULL, select=NULL, labels=NULL)
+        pcol=NULL, title=NULL, select=NULL, labels=NULL, ...)
 }
 
 \arguments{
@@ -43,6 +43,9 @@ nemenyi(data, conf.int=0.95, sort=c(TRUE,FALSE),
 }
   \item{labels}{
     Optional labels for models. If NULL column names of 'data' will be used. If number of labels < k, then it is assumed as NULL. 
+}
+  \item{...}{
+    Other parameters passed to plot function. 
 }
 }
 \value{
