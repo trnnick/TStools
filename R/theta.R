@@ -185,11 +185,15 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
   # Convert to ts object
   if (class(y) == "ts"){
     s <- end(y)
-    if (s[2]==m){
-      s[1] <- s[1]+1
-      s[2] <- 1
+    if (length(s)==2){
+      if (s[2]==m){
+        s[1] <- s[1]+1
+        s[2] <- 1
+      } else {
+        s[2] <- s[2]+1
+      }
     } else {
-      s[2] <- s[2]+1
+      s <- s + 1/m
     }
     frc <- ts(frc,start=s,frequency=m)  
   } 
@@ -236,11 +240,16 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
     # As previous, including theta lines
     if (class(y) == "ts"){
       s <- end(y)
-      if (s[2]==m){
-        s[1] <- s[1]+1
-        s[2] <- 1
+      s <- end(y)
+      if (length(s)==2){
+        if (s[2]==m){
+          s[1] <- s[1]+1
+          s[2] <- 1
+        } else {
+          s[2] <- s[2]+1
+        }
       } else {
-        s[2] <- s[2]+1
+        s <- s + 1/m
       }
       frc.theta0 <- ts(frc.theta0,start=s,frequency=m)  
       frc.theta2 <- ts(frc.theta2,start=s,frequency=m)  
