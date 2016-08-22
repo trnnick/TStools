@@ -7,7 +7,7 @@
     Function returns quantiles of distribution using different methods based on the provided vector or matrix of random variables.
 }
 \usage{
-intervals(data,intType=c("standard","2sd","hm"),centre=NULL,
+intervals(data,intType=c("standard","2sd","hm","mad"),centre=NULL,
           level=0.95,df=NULL,k=NULL)
 }
 \arguments{

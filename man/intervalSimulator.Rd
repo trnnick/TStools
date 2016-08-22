@@ -4,7 +4,7 @@
     Simulate data from distribution and construct prediction intervals.
 }
 \description{
-    Function simulates data, constructs prediction intervals using three methods ("Standard","2 SD" and "HM") and then returns graph and coverage, width and distance from theoretical quantiles.
+    Function simulates data, constructs prediction intervals using four methods ("Standard","2 SD", "HM" and "MAD") and then returns graph and coverage, width and distance from theoretical quantiles.
 }
 \usage{
 intervalsSimulator(randomizer=c("norm","lnorm","pois","unif","t","beta"),
@@ -14,7 +14,7 @@ intervalsSimulator(randomizer=c("norm","lnorm","pois","unif","t","beta"),
 \arguments{
     \item{randomizer}{ What type of random numbers generator to use.
     }
-    \item{centre}{ What type of centre estimation to use (used by "HM"-based intervals only).
+    \item{centre}{ What type of centre estimation to use (used by all methods).
     }
     \item{obs}{ Number of observations to produce.
     }
@@ -32,6 +32,7 @@ intervalsSimulator(randomizer=c("norm","lnorm","pois","unif","t","beta"),
     \item \code{coverage} - coverage for all the 3 methods used.
     \item \code{distances} - distances from upper, lower quantiles and overall.
     \item \code{width} - width of produced prediction intervals (in units).
+    \item \code{quant} - produced quantiles (prediction intervals).
   }
 }
 \author{
