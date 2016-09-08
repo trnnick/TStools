@@ -150,7 +150,7 @@ Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
 
 \seealso{
-\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[smooth]{sim.ets}}
+\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[smooth]{sim.es}}
 }
 \examples{
 library(Mcomp)
