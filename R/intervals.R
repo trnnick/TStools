@@ -1,5 +1,5 @@
 ##### *This function constructs intervals for the given data* #####
-intervals <- function(data,intType=c("standard","2sd","hm","mad"),centre=NULL,
+intervals <- function(data,intType=c("standard","2sd","hm","mad","qr"),centre=NULL,
                       level=0.95,df=NULL,k=NULL){
 # Default centre = mean(data)
 # k is number of parameters of model, needed in order to estimate df correctly.
@@ -79,6 +79,18 @@ intervals <- function(data,intType=c("standard","2sd","hm","mad"),centre=NULL,
             lower <- centre + quantValues[1,] * variances[1,] / 0.798;
             upper <- centre + quantValues[2,] * variances[2,] / 0.798;
         }
+        else if(intType=="q"){
+            QFunction <- function(C,alpha){
+                values <- C[1]*t^C[2]
+                return((1-alpha)*sum(abs(data[data<values]-values))+alpha*sum(abs(data[data<values]-values)));
+            }
+            t <- matrix(c(1:nCols),byrow=TRUE,nrow=nObs,ncol=nCols);
+            C <- rep(1,2);
+            res1 <- nlminb(C,QFunction,alpha=(1-level)/2);
+            res2 <- nlminb(C,QFunction,alpha=(1+level)/2);
+            lower <- res1$par[1]*t^res1$par[2];
+            upper <- res2$par[1]*t^res2$par[2]
+        }
     }
 #### {Only 1 series} ####
     else{
@@ -146,6 +158,15 @@ intervals <- function(data,intType=c("standard","2sd","hm","mad"),centre=NULL,
             variances[2] <- sum((abs(data-centre))*(data>centre),na.rm=TRUE)/df[2];
             lower <- centre + quantValues[1] * variances[1] / 0.798;
             upper <- centre + quantValues[2] * variances[2] / 0.798;
+        }
+        else if(intType=="q"){
+            QFunction <- function(C,alpha){
+                return((1-alpha)*sum(abs(data[data<C]-C))+alpha*sum(abs(data[data>C]-C)));
+            }
+            res1 <- nlminb(median(data),QFunction,alpha=(1-level)/2);
+            res2 <- nlminb(median(data),QFunction,alpha=(1+level)/2);
+            lower <- res1$par;
+            upper <- res2$par;
         }
     }
     return(list(lower=lower,upper=upper));
