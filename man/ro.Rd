@@ -105,7 +105,7 @@ ourvalue <- "mean"
 ro(x,h=5,origins=5,ourcall,ourvalue)
 
 ## countfull is used to take xreg of the size corresponding to all sample on each iteration
-ourcall <- "es(data,'ANN',xreg=xreg[countfull],h=h,silent=TRUE)"
+ourcall <- "sma(data,h=h,silent=TRUE)"
 ourvalue <- "forecast"
 
 ro(x,h=5,origins=5,ourcall,ourvalue)

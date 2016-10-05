@@ -69,7 +69,7 @@
 \examples{
 
 y <- rnorm(100,10,2)
-esmodel <- es(y[1:90],model="ANN",h=10)
+esmodel <- sma(y[1:90],order=5,h=10)
 
 MPE(y[91:100],esmodel$forecast,digits=5)
 MAPE(y[91:100],esmodel$forecast,digits=5)
@@ -77,7 +77,7 @@ SMAPE(y[91:100],esmodel$forecast,digits=5)
 MASE(y[91:100],esmodel$forecast,mean(abs(y[1:90])),digits=5)
 MASE(y[91:100],esmodel$forecast,mean(abs(diff(y[1:90]))),digits=5)
 
-esmodel2 <- es(y[1:90],model="AAN",h=10)
+esmodel2 <- sma(y[1:90],order=10,h=10)
 GMRAE(y[91:100],esmodel2$forecast,esmodel$forecast,digits=5)
 
 }

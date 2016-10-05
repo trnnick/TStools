@@ -1,14 +1,24 @@
 importFrom(tseries,kpss.test)
-import(forecast,nloptr,numDeriv,zoo,Rcpp,MAPA)
+importFrom("grDevices", "colorRampPalette", "gray", "rainbow", "rgb")
+importFrom("graphics", "abline", "axis", "box", "boxplot", "hist",
+           "image", "legend", "lines", "mtext", "par", "plot",
+           "points", "polygon", "text", "title", "layout")
+importFrom("stats", "cor.test", "deltat", "density", "end", "fft",
+           "frequency", "friedman.test", "is.ts", "loess", "median",
+           "na.exclude", "na.omit", "nlminb", "optim", "pbinom",
+           "predict", "qt", "qtukey", "quantile", "sd", "start", "stl",
+           "time", "ts", "ts.plot", "uniroot")
+
+import(forecast,zoo,MAPA)
 
 export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        coxstuart,wins,rowWins,colWins,theta,abc,xyz,abcxyz,
        nzlength,init.ets,mre,mre.plot,bias.coeff,
-       sim.ets,es,
+       sim.ets,es,graphmaker,
        MPE,MAPE,SMAPE,MASE,GMRAE,hm,
-       sowhat,ro,graphmaker,pintervals,intervals,intervalsSimulator,
+       sowhat,ro,intervals,intervalsSimulator,
        sma,
        residout,stlboot,get.opt.k)
 
 S3method(print,intervalStuff)
-useDynLib(TStools)
+#useDynLib(TStools)

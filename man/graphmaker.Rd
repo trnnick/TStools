@@ -42,12 +42,10 @@
 }
 \examples{
 x <- rnorm(100,0,1)
-values <- es(x,model="ANN",silent=TRUE,intervals=TRUE,int.w=0.95)
+values <- sma(x)
 
 graphmaker(x,values$forecast,values$fitted)
 graphmaker(x,values$forecast,values$fitted,legend=FALSE)
-graphmaker(x,values$forecast,values$fitted,values$lower,values$upper,int.w=0.95)
-graphmaker(x,values$forecast,values$fitted,values$lower,values$upper,int.w=0.95,legend=FALSE)
 
 actuals <- c(1:10)
 forecast <- ts(c(11:15),start=end(actuals)[1]+end(actuals)[2]*deltat(actuals),

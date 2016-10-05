@@ -1,2 +1,0 @@
-## Use the R_HOME indirection to support installations of multiple R version
-PKG_LIBS=$(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
