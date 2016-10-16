@@ -30,7 +30,7 @@ abc(x,prc=c(0.2,0.3,0.5),outplot=c(TRUE,FALSE),cex.prc=0.8,...)
 \item{value}{A vector containing the importance value of each series.}
 \item{class}{A vector containing the class membership of each series.}
 \item{rank}{A vector containing the rank of each series. Highest value is 1.}
-\item{importance}{The importance concentration of each class, as percentage of total value.}
+\item{conc}{The importance concentration of each class, as percentage of total value.}
 }
 \author{
 Nikolaos Kourentzes

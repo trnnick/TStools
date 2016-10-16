@@ -9,7 +9,7 @@ importFrom("stats", "cor.test", "deltat", "density", "end", "fft",
            "predict", "qt", "qtukey", "quantile", "sd", "start", "stl",
            "time", "ts", "ts.plot", "uniroot")
 
-import(forecast,zoo,MAPA)
+import(forecast,zoo,MAPA,RColorBrewer)
 
 export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        coxstuart,wins,rowWins,colWins,theta,abc,xyz,abcxyz,
@@ -21,4 +21,7 @@ export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        residout,stlboot,get.opt.k)
 
 S3method(print,intervalStuff)
+S3method(print,classabc)
+S3method(summary,classabc)
+
 #useDynLib(TStools)

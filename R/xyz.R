@@ -1,4 +1,4 @@
-xyz <- function(x,m=NULL,prc=c(0.2,0.3,0.5),type=c("naive","ets","cv"),outplot=c(TRUE,FALSE)){
+xyz <- function(x,m=NULL,prc=c(0.2,0.3,0.5),type=c("naive","ets","cv"),outplot=c(TRUE,FALSE),cex.prc=0.8,...){
 # XYZ analysis
 #
 # Inputs
@@ -12,12 +12,14 @@ xyz <- function(x,m=NULL,prc=c(0.2,0.3,0.5),type=c("naive","ets","cv"),outplot=c
 #                 "ets"   - fit ets and calculate fit RMSE/mean level
 #                 "cv"    - use coefficient of variation as a proxy of forecastability
 #   outplot     If TRUE provide a visualisation of the ABC analysis result.
+#   cex.prc     Font size of percentage reported in plot.
+#   ...         Additional arguments can be passed to the plot.
 #   
 # Outputs
 #   value       A vector containing the forecastability value of each series.
 #   class       A vector containing the class membership of each series.
 #   rank        A vector containing the rank of each series. Lowest forecastability is 1.
-#   cum.error   The forecastability concentration of each class, as percentage of total value.
+#   conc        The forecastability concentration of each class, as percentage of total value.
 #   model       Fitted model for each series.
 #
 # Example
@@ -25,13 +27,14 @@ xyz <- function(x,m=NULL,prc=c(0.2,0.3,0.5),type=c("naive","ets","cv"),outplot=c
 #   xyz(x,m=12,outplot=TRUE)
 #
 # Nikolaos Kourentzes, 2014 <nikolaos@kourentzes.com>
+# Update 2016.10: Change colour scheme, accept ellipsis, S3method  
 
   outplot <- outplot[1]
   type <- type[1]
   
   n <- dim(x)[2]              # Number of series total
   
-  if (sum(dim(x)==1)>0){
+  if (sum(dim(x)==1)>0 | class(x)=="numeric"){
     x.mean <- x
     x.model <- NULL
   } else {
@@ -74,8 +77,8 @@ xyz <- function(x,m=NULL,prc=c(0.2,0.3,0.5),type=c("naive","ets","cv"),outplot=c
   p <- array(0,c(k,1))        # Number of series in each class
   x.ind <- array(k,c(1,n))    # Indicator for class of each series
   x.class <- array(NA,c(1,n)) # Class of each series
-  x.imp <- array(0,c(k,1))    # Percentage importance of each class
   nam.xyz <- LETTERS[26:(26-k+1)]
+  x.imp <- array(0,c(k,1),dimnames=list(nam.xyz,"Errors"))    # Percentage importance of each class
   
   # Calculate classes
   for (i in 1:(k)){
@@ -92,13 +95,36 @@ xyz <- function(x,m=NULL,prc=c(0.2,0.3,0.5),type=c("naive","ets","cv"),outplot=c
     }
     x.class[x.ind==i] <- nam.xyz[i]
   }
-  rownames(x.imp) <- nam.xyz
   
   # Produce plot
   if (outplot==TRUE){
-    cmp <- rainbow(k,start=0,end=1/6,alpha=0.5)
-    plot(((1:n)/n)*100,((1:n)/n)*100,xlim=c(1,100),ylim=c(0,100),type="l",xaxs="i",yaxs="i",
-         xlab="",ylab="",lty=2)
+    
+    # Get colours
+    cmp <- colorRampPalette(brewer.pal(9,"Oranges")[4:7])(k)
+    
+    # Allow user to override plot defaults
+    args <- list(...)
+    if (!("main" %in% names(args))){
+      args$main <- "XYZ analysis"
+    }
+    if (!("xlab" %in% names(args))){
+      args$xlab <- "Cumulative number of items"
+    }
+    if (!("ylab" %in% names(args))){
+      args$ylab <- "Cumulative error"
+    }
+    if (!("xaxs" %in% names(args))){
+      args$xaxs <- "i"
+    }
+    if (!("yaxs" %in% names(args))){
+      args$yaxs <- "i"
+    }
+    # Remaining defaults
+    args$x <- args$y <- NA
+    args$xlim <- args$ylim <- c(0,100)
+    # Use do.call to use manipulated ellipsis (...)
+    do.call(plot,args)
+    # Plot the rest
     for (i in 1:k){
       yy <- sum(x.imp[1:i])
       xx <- (sum(p[1:i])/n)*100
@@ -111,11 +137,12 @@ xyz <- function(x,m=NULL,prc=c(0.2,0.3,0.5),type=c("naive","ets","cv"),outplot=c
         polygon(c(xx2,xx,xx,0,0,xx2),c(0,0,yy,yy,yy2,yy2),col=cmp[i])
         text(xx2+(xx-xx2)/2,yy/2,nam.xyz[i],cex=1.2)
       }
-      text(xx/2,yy,paste(format(round(x.imp[i],1),nsmall=1),"%",sep=""),cex=0.6,adj=c(0.5,1))
+      text(xx/2,yy,paste(format(round(x.imp[i],1),nsmall=1),"%",sep=""),cex=cex.prc,adj=c(0.5,1))
     }
     lines(((1:n)/n)*100,cumsum(x.sort))
+    lines(((1:n)/n)*100,((1:n)/n)*100,lty=2)
   }
   
-  return(list("value"=x.mean,"class"=x.class,"rank"=x.rank,"cum.error"=x.imp,"model"=x.model))
+  return(structure(list("value"=x.mean,"class"=x.class,"rank"=x.rank,"conc"=x.imp,"model"=x.model),class="classabc"))
 
 }

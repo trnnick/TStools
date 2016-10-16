@@ -1,4 +1,4 @@
-abcxyz <- function(imp,frc,outplot=c(TRUE,FALSE)){
+abcxyz <- function(imp,frc,outplot=c(TRUE,FALSE),...){
 # ABC-XYZ visualisation
 # 
 # Inputs
@@ -16,10 +16,10 @@ abcxyz <- function(imp,frc,outplot=c(TRUE,FALSE)){
   
   outplot <- outplot[1]
   
-  k.abc <- length(imp$importance)
-  nam.abc <- rownames(imp$importance)
-  k.xyz <- length(frc$cum.error)
-  nam.xyz <- rownames(frc$cum.error)
+  k.abc <- length(imp$conc)
+  nam.abc <- rownames(imp$conc)
+  k.xyz <- length(frc$conc)
+  nam.xyz <- rownames(frc$conc)
   
   n <- length(imp$value)
   matrix.abcxyz <- matrix(0,k.abc,k.xyz,dimnames=list(nam.abc,nam.xyz))
@@ -31,11 +31,39 @@ abcxyz <- function(imp,frc,outplot=c(TRUE,FALSE)){
   }
   
   if (outplot==TRUE){
-    cmp = rainbow(k.abc*k.xyz,alpha=0.5,start=0,end=4/6)
+    
+    # Get colours
+    cmp <- colorRampPalette(brewer.pal(11,"RdYlGn")[2:10])(k.abc*k.xyz)
+    
+    # Allow user to override plot defaults
+    args <- list(...)
+    if (!("main" %in% names(args))){
+      args$main <- "ABC-XYZ analyses"
+    }
+    if (!("xlab" %in% names(args))){
+      args$xlab <- "Importance"
+    }
+    if (!("ylab" %in% names(args))){
+      args$ylab <- "Forecastability"
+    }
+    if (!("xaxs" %in% names(args))){
+      args$xaxs <- "i"
+    }
+    if (!("yaxs" %in% names(args))){
+      args$yaxs <- "i"
+    }
+    # Remaining defaults
+    args$x <- args$y <- NA
+    args$xlim <- c(0,k.abc)
+    args$ylim <- c(0,k.xyz)
+    args$xaxt <- args$yaxt <- "n"
+    
     x.abc <- c(0,1:k.abc)
     y.xyz <- c(0,1:k.xyz)
-    plot(c(1,1),c(0,k.xyz),type="l",xlim=c(0,k.abc),ylim=c(0,k.xyz),xaxs="i",
-         yaxs="i",xlab="Importance",ylab="Forecastability",xaxt="n",yaxt="n")
+    
+    do.call(plot,args)
+    #plot(c(1,1),c(0,k.xyz),type="l",xlim=c(0,k.abc),ylim=c(0,k.xyz),xaxs="i",
+    #     yaxs="i",xlab="Importance",ylab="Forecastability",xaxt="n",yaxt="n")
     for (i in 1:k.abc){
       for (j in 1:k.xyz){
         polygon(c(x.abc[i],x.abc[i+1],x.abc[i+1],x.abc[i]),

@@ -16,14 +16,14 @@ abc <- function(x,prc=c(0.2,0.3,0.5),outplot=c(TRUE,FALSE),cex.prc=0.8,...){
 #   value       A vector containing the importance value of each series.
 #   class       A vector containing the class membership of each series.
 #   rank        A vector containing the rank of each series. Highest value is 1.
-#   importance  The importance concentration of each class, as percentage of total value.
+#   conc        The importance concentration of each class, as percentage of total value.
 #
 # Example
 #   x <- abs(matrix(cumsum(rnorm(5400,0,1)),36,150))
 #   abc(x,outplot=TRUE)
 #
 # Nikolaos Kourentzes, 2014 <nikolaos@kourentzes.com>
-# Update 2016.10: Change colour scheme, accept ellipsis
+# Update 2016.10: Change colour scheme, accept ellipsis, S3method
 
   outplot <- outplot[1]
   
@@ -63,46 +63,32 @@ abc <- function(x,prc=c(0.2,0.3,0.5),outplot=c(TRUE,FALSE),cex.prc=0.8,...){
   
   # Produce plot
   if (outplot==TRUE){
-    
+
     # Get colours
     cmp <- colorRampPalette(brewer.pal(9,"Greens")[4:7])(k)
     
     # Allow user to override plot defaults
     args <- list(...)
-    if ("main" %in% names(args)){
-      tmain <- args$main
-      args$main <- NULL
-    } else {
-      tmain <- "ABC analysis"
+    if (!("main" %in% names(args))){
+      args$main <- "ABC analysis"
     }
-    if ("xlab" %in% names(args)){
-      txlab <- args$xlab
-      args$xlab <- NULL
-    } else {
-      txlab <- "Cumulative number of items"
+    if (!("xlab" %in% names(args))){
+      args$xlab <- "Cumulative number of items"
     }
-    if ("ylab" %in% names(args)){
-      tylab <- args$ylab
-      args$ylab <- NULL
-    } else {
-      tylab <- "Cumulative importance"
+    if (!("ylab" %in% names(args))){
+      args$ylab <- "Cumulative importance"
     }
-    if ("xaxs" %in% names(args)){
-      txaxs <- args$xaxs
-      args$xaxs <- NULL
-    } else {
-      txaxs <- "i"
+    if (!("xaxs" %in% names(args))){
+      args$xaxs <- "i"
     }
-    if ("yaxs" %in% names(args)){
-      tyaxs <- args$yaxs
-      args$yaxs <- NULL
-    } else {
-      tyaxs <- "i"
+    if (!("yaxs" %in% names(args))){
+      args$yaxs <- "i"
     }
-    # Remaining of plot inputs
-    args.def = list(x=NA,y=NA,xlim=c(0,100),ylim=c(0,100),xaxs=txaxs,yaxs=tyaxs,xlab=txlab,ylab=tylab,main=tmain)
-    # Use do.call to merge user defined ... inputs and defaults
-    do.call(plot,c(args.def,args))
+    # Remaining defaults
+    args$x <- args$y <- NA
+    args$xlim <- args$ylim <- c(0,100)
+    # Use do.call to use manipulated ellipsis (...)
+    do.call(plot,args)
     # Plot the rest
     for (i in 1:k){
       yy <- sum(x.imp[1:i])
@@ -122,6 +108,14 @@ abc <- function(x,prc=c(0.2,0.3,0.5),outplot=c(TRUE,FALSE),cex.prc=0.8,...){
     lines(((1:n)/n)*100,((1:n)/n)*100,lty=2)
   }
   
-  return(list("value"=x.mean,"class"=x.class,"rank"=x.rank,"importance"=x.imp))
+  return(structure(list("value"=x.mean,"class"=x.class,"rank"=x.rank,"conc"=x.imp),class="classabc"))
 
+}
+
+summary.classabc <- function(x,...){
+  print(x)
+}
+
+print.classabc <- function(x,...){
+  print(x$conc)
 }
