@@ -1,4 +1,4 @@
-abc <- function(x,prc=c(0.2,0.3,0.5),outplot=c(TRUE,FALSE)){
+abc <- function(x,prc=c(0.2,0.3,0.5),outplot=c(TRUE,FALSE),cex.prc=0.8,...){
 # ABC analysis
 #
 # Inputs
@@ -9,6 +9,8 @@ abc <- function(x,prc=c(0.2,0.3,0.5),outplot=c(TRUE,FALSE)){
 #   prc         A list of percentages to separate the items in. By default this is c(0.2,0.3,0.5),
 #               but any set of percentage values can be used as long as 0<=prc[i]<=1 and sum(prc)==1.
 #   outplot     If TRUE provide a visualisation of the ABC analysis result.
+#   cex.prc     Font size of percentage reported in plot.
+#   ...         Additional arguments can be passed to the plot.
 #   
 # Outputs
 #   value       A vector containing the importance value of each series.
@@ -21,10 +23,11 @@ abc <- function(x,prc=c(0.2,0.3,0.5),outplot=c(TRUE,FALSE)){
 #   abc(x,outplot=TRUE)
 #
 # Nikolaos Kourentzes, 2014 <nikolaos@kourentzes.com>
+# Update 2016.10: Change colour scheme, accept ellipsis
 
   outplot <- outplot[1]
   
-  if (sum(dim(x)==1)>0){
+  if (sum(dim(x)==1)>0 | class(x)=="numeric"){
     x.mean <- x
   } else {
     x.mean <- colMeans(x, na.rm = TRUE)
@@ -39,16 +42,16 @@ abc <- function(x,prc=c(0.2,0.3,0.5),outplot=c(TRUE,FALSE)){
   p <- array(0,c(k,1))        # Number of series in each class
   x.ind <- array(k,c(1,n))    # Indicator for class of each series
   x.class <- array(NA,c(1,n)) # Class of each series
-  x.imp <- array(0,c(k,1))    # Percentage importance of each class
   nam.abc <- LETTERS[1:k]
+  x.imp <- array(0,c(k,1),dimnames=list(nam.abc,"Importance"))    # Percentage importance of each class
   
   # Calculate classes
-  for (i in 1:(k)){
+  for (i in 1:k){
     p[i] <- round(n*prc[i])
-    if (i==1){
-      x.ind[x.rank<=p[i]] <- i
+    if (i == 1){
+      x.ind[x.rank <= p[i]] <- i
       x.imp[i] <- sum(x.sort[1:sum(p[1:i])])
-    } else if (i!=k) {
+    } else if (i != k) {
       x.ind[sum(p[1:(i-1)])<x.rank & x.rank<=sum(p[1:i])] <- i
       x.imp[i] <- sum(x.sort[1:sum(p[1:i])]) - sum(x.imp[1:(i-1)])
     } else {
@@ -57,13 +60,50 @@ abc <- function(x,prc=c(0.2,0.3,0.5),outplot=c(TRUE,FALSE)){
     }
     x.class[x.ind==i] <- nam.abc[i]
   }
-  rownames(x.imp) <- nam.abc
   
   # Produce plot
   if (outplot==TRUE){
-    cmp <- rainbow(k,start=3/12,end=5/12,alpha=0.5)
-    plot(((1:n)/n)*100,((1:n)/n)*100,xlim=c(1,100),ylim=c(0,100),type="l",xaxs="i",yaxs="i",
-         xlab="",ylab="",lty=2)
+    
+    # Get colours
+    cmp <- colorRampPalette(brewer.pal(9,"Greens")[4:7])(k)
+    
+    # Allow user to override plot defaults
+    args <- list(...)
+    if ("main" %in% names(args)){
+      tmain <- args$main
+      args$main <- NULL
+    } else {
+      tmain <- "ABC analysis"
+    }
+    if ("xlab" %in% names(args)){
+      txlab <- args$xlab
+      args$xlab <- NULL
+    } else {
+      txlab <- "Cumulative number of items"
+    }
+    if ("ylab" %in% names(args)){
+      tylab <- args$ylab
+      args$ylab <- NULL
+    } else {
+      tylab <- "Cumulative importance"
+    }
+    if ("xaxs" %in% names(args)){
+      txaxs <- args$xaxs
+      args$xaxs <- NULL
+    } else {
+      txaxs <- "i"
+    }
+    if ("yaxs" %in% names(args)){
+      tyaxs <- args$yaxs
+      args$yaxs <- NULL
+    } else {
+      tyaxs <- "i"
+    }
+    # Remaining of plot inputs
+    args.def = list(x=NA,y=NA,xlim=c(0,100),ylim=c(0,100),xaxs=txaxs,yaxs=tyaxs,xlab=txlab,ylab=tylab,main=tmain)
+    # Use do.call to merge user defined ... inputs and defaults
+    do.call(plot,c(args.def,args))
+    # Plot the rest
     for (i in 1:k){
       yy <- sum(x.imp[1:i])
       xx <- (sum(p[1:i])/n)*100
@@ -76,9 +116,10 @@ abc <- function(x,prc=c(0.2,0.3,0.5),outplot=c(TRUE,FALSE)){
         polygon(c(xx2,xx,xx,0,0,xx2),c(0,0,yy,yy,yy2,yy2),col=cmp[i])
         text(xx2+(xx-xx2)/2,yy/2,nam.abc[i],cex=1.2)
       }
-      text(xx/2,yy,paste(format(round(x.imp[i],1),nsmall=1),"%",sep=""),cex=0.6,adj=c(0.5,1))
+      text(xx/2,yy,paste(format(round(x.imp[i],1),nsmall=1),"%",sep=""),cex=cex.prc,adj=c(0.5,1))
     }
     lines(((1:n)/n)*100,cumsum(x.sort))
+    lines(((1:n)/n)*100,((1:n)/n)*100,lty=2)
   }
   
   return(list("value"=x.mean,"class"=x.class,"rank"=x.rank,"importance"=x.imp))
