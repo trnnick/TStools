@@ -1,7 +1,6 @@
 nemenyi <- function(data, conf.int=0.95, sort=c(TRUE,FALSE), 
                     plottype=c("vline","none","mcb","vmcb","line"), 
-                    console=c(FALSE,TRUE), silent=c(FALSE,TRUE), 
-                    pcol=NULL, title=NULL, select=NULL, labels=NULL, ...)
+                    select=NULL, labels=NULL, ...)
 {
 # Friedman and Nemenyi tests for nonparametric comparisons between methods.
 #
@@ -18,22 +17,20 @@ nemenyi <- function(data, conf.int=0.95, sort=c(TRUE,FALSE),
 #               - line: Line visualisation (ISF style). Numbers next to method names are the mean rank
 #                 see: http://www.forecasters.org/proceedings12/HibonMicheleISF2012.pdf
 #               - vline: Vertical line visualisation [Default]
-#  pcol       Override default colours with single colour. Default is to use blue for MCB plots
-#             and rainbow colours for line plots. If no evidence of significant differences is found, 
-#             based on Friedman's test, then all colours become grey
-#  console    If FALSE, no console output is given.
-#  silent     If TRUE, console is overriden to FALSE and plottype to "none". Use to have only numerical
-#             output.
-#  title      Override default title
 #  select     Highlight selected model (column). Number 1 to k. Select NULL for no highlighting.
 #  labels     Optional labels for models. If NULL column names of 'data' will be used.
 #             If number of labels < k, then it is assumed as NULL. 
+#   ...         Additional arguments can be passed to the plot.
 #  
 # Outputs:
 #   means - mean rank of each method
-#   intervals - nemenyi intervals for each method
-#   fpval - friedman test p-value
-#   cd - critical distance for nemenyi
+#   intervals - Nemenyi intervals for each method
+#   fpval - Friedman test p-value
+#   fH - Friedman hypothesis result
+#   cd - critical distance for Nemenyi
+#   conf.int - the width of the confidence interval
+#   k - number of methods
+#   n - number of measurements
 #
 # Example:
 #  N <- 50
@@ -54,8 +51,6 @@ nemenyi <- function(data, conf.int=0.95, sort=c(TRUE,FALSE),
 # Defaults
   sort <- sort[1]
   plottype <- plottype[1]
-  console <- console[1]
-  silent <- silent[1]
   
   data <- na.exclude(data)
   rows.number <- nrow(data)
@@ -68,61 +63,46 @@ nemenyi <- function(data, conf.int=0.95, sort=c(TRUE,FALSE),
     }
   }
 
-# Check if silent is requested
-  if (silent == TRUE){
-    plottype = "none"
-    console = FALSE
-  }
-  
 # If plot is asked, always sort the results
   if (plottype != "none"){
     sort <- TRUE
   }
 
 # Checks for labels
-  if (!is.null(labels)){
-    if (length(labels)<cols.number){
-      labels <- NULL
-    } else {
-      labels <- labels[1:cols.number]
+  if (is.null(labels)){
+    labels <- colnames(data)
+    if (is.null(labels)){
+      labels <- 1:cols.number
     }
+  } else {
+    labels <- labels[1:cols.number]
   }
 
 # First run Friedman test. If insignificant then ignore Nemenyi (Weaker)
   fried.pval <- friedman.test(data)$p.value
   if (fried.pval <= 1-conf.int){
-    fried.H <- "Different" # At least one method is different
+    fried.H <- "Ha: Different" # At least one method is different
   } else {
-    fried.H <- "Same"      # No evidence of differences between methods
+    fried.H <- "H0: Identical" # No evidence of differences between methods
   }
-  
-# Matrix of ranks
-  ranks.matrix <- matrix(NA, nrow=rows.number, ncol=cols.number)
-  colnames(ranks.matrix) <- colnames(data)
-
-# Vector of mean values of ranks
-  ranks.means <- c(1:cols.number)
 
 # Nemenyi critical distance and bounds of intervals
   r.stat <- qtukey(conf.int,cols.number,Inf) * sqrt((cols.number*(cols.number+1))/(12*rows.number))
   r.stat <- c(-r.stat,r.stat)
 
-# The matrix of intervals for mean ranks
-  ranks.intervals <- matrix(NA, nrow=2, ncol=cols.number)
-  colnames(ranks.intervals) <- colnames(data)
-  
 # Rank methods for each time series
+  ranks.matrix <- matrix(NA, nrow=rows.number, ncol=cols.number)
+  colnames(ranks.matrix) <- labels
   for (i in 1:rows.number){
-    ranks.matrix[i, ] = rank(data[i,],na.last="keep",ties.method="average")
+    ranks.matrix[i, ] <- rank(data[i,],na.last="keep",ties.method="average")
   }
 
-# Calculate mean values
+# Calculate mean rank values
   ranks.means <- colMeans(ranks.matrix)
 
 # Calculate intervals for each of the methods
-  for (i in 1:cols.number){
-    ranks.intervals[, i] = ranks.means[i]+r.stat
-  }
+  ranks.intervals <- rbind(ranks.means + r.stat[1],ranks.means + r.stat[2])
+  colnames(ranks.intervals) <- labels
 
 # Sort interval matrix and means
   if(sort==TRUE){
@@ -137,15 +117,6 @@ nemenyi <- function(data, conf.int=0.95, sort=c(TRUE,FALSE),
     }
   }
 
-# Produce Console Output
-  if(console==TRUE){
-    writeLines("Friedman and Nemenyi Tests")
-    writeLines(paste("The significance level is ", (1-conf.int)*100, "%", sep=""))
-    writeLines(paste("Number of observations is ", rows.number, " and number of methods is ", cols.number, sep=""))
-    writeLines(paste("Friedman test p-value: ", format(round(fried.pval,4),nsmall=4) , " - ", fried.H, sep=""))
-    writeLines(paste("Nemenyi critical distance: ", format(round(r.stat[2],4),nsmall=4), sep=""))
-  }
-    
 # Create title for plots
 if(is.null(title)){
   title <- paste("Friedman: ", format(round(fried.pval,3),nsmall=3), " (", fried.H, ") \n Nemenyi CD: ", format(round(r.stat[2],3),nsmall=3), sep = "")
@@ -159,67 +130,127 @@ if (is.null(labels)){
 # Produce plots
   # MCB style plot
   if(plottype == "mcb"){
+    
+    cmp <- brewer.pal(3,"Set1")[1:2]
     # Choose colour depending on Friedman test result
-    if (fried.pval > 1-conf.int){pcol <- "gray"} else {if (is.null(pcol)){pcol <- "blue"}}
+    if (fried.pval > 1-conf.int){pcol <- "gray"} else {pcol <- cmp[2]}
     # Find min max
     ymax <- max(ranks.intervals)
     ymin <- min(ranks.intervals)
     ymax <- ymax + 0.1*(ymax-ymin)
     ymin <- ymin - 0.1*(ymax-ymin)
-    # Plot
-    plot(1:cols.number,ranks.means,
-        xlab="", ylab="Mean ranks", main=title,
-        type="p", axes=FALSE, pch=20, lwd=4, col="black", ylim=c(ymin,ymax), ...)
-    if (!is.null(select)){
-      lines(c(0,cols.number+1),rep(ranks.intervals[1,select],times=2), col="gray", lty=2)
-      lines(c(0,cols.number+1),rep(ranks.intervals[2,select],times=2), col="gray", lty=2)    
-    } else {
-      lines(c(0,cols.number+1),rep(ranks.intervals[1,1],times=2), col="gray", lty=2)
-      lines(c(0,cols.number+1),rep(ranks.intervals[2,1],times=2), col="gray", lty=2)    
+    
+    args <- list(...)
+    if (!("main" %in% names(args))){
+      args$main <- paste0("Friedman: ", format(round(fried.pval,3),nsmall=3), " (", fried.H, ") \n MCB interval: ", format(round(r.stat[2],3),nsmall=3))
     }
+    if (!("xlab" %in% names(args))){
+      args$xlab <- ""
+    }
+    if (!("ylab" %in% names(args))){
+      args$ylab <- "Mean ranks"
+    }
+    if (!("xaxs" %in% names(args))){
+      args$xaxs <- "i"
+    }
+    if (!("yaxs" %in% names(args))){
+      args$yaxs <- "i"
+    }
+    # Remaining defaults
+    args$x <- args$y <- NA
+    args$xlim <- c(0,cols.number+1)
+    args$ylim <- c(ymin,ymax)
+    args$axes <- FALSE
+    # Use do.call to use manipulated ellipsis (...)
+    do.call(plot,args)
+    # Plot rest
+    points(1:cols.number,ranks.means,pch=20,lwd=4)
+    axis(1,at=c(1:cols.number),labels=labels)
+    axis(2)
+    box(which="plot", col="black")
+    # Intervals for best method
+    if (is.null(select)){
+      select <- 1
+    }
+    lines(c(0,cols.number+1),rep(ranks.intervals[1,select],times=2), col="gray", lty=2)
+    lines(c(0,cols.number+1),rep(ranks.intervals[2,select],times=2), col="gray", lty=2)    
+    # Intervals for all methods
     for (i in 1:cols.number){
       lines(rep(i,times=2),ranks.intervals[,i], type="b", lwd=2, col=pcol);
     }
-    axis(1,at=c(1:cols.number),labels=labels);
-    axis(2);
-    box(which="plot", col="black");
+    # Highlight identical
+    idx <- !((ranks.intervals[2,select] < ranks.intervals[1,]) | (ranks.intervals[1,select] > ranks.intervals[2,]))
+    points((1:cols.number)[idx],ranks.means[idx],pch=20,lwd=4,col=cmp[1])
   }
 
   # MCB style plot - vertical
   if(plottype == "vmcb"){
+    
+    cmp <- brewer.pal(3,"Set1")[1:2]
+    # Find max label size
+    lbl.size <- nchar(labels)
+    lbl.size <- max(lbl.size)
     # Choose colour depending on Friedman test result
-    if (fried.pval > 1-conf.int){pcol <- "gray"} else {if (is.null(pcol)){pcol <- "blue"}}
+    if (fried.pval > 1-conf.int){pcol <- "gray"} else {pcol <- cmp[2]}
     # Find min max
     xmax <- max(ranks.intervals)
     xmin <- min(ranks.intervals)
     xmax <- xmax + 0.1*(xmax-xmin)
     xmin <- xmin - 0.1*(xmax-xmin)
+    
     # Find max label size
     lbl.size <- nchar(labels)
     lbl.size <- max(lbl.size)
-    # Produce plot
-    par(mar=c(2, lbl.size/1.5, 4, 2) + 0.1)
-    plot(ranks.means,1:cols.number,
-         ylab="", xlab="Mean ranks", main=title,
-         type="p", axes=FALSE, pch=20, lwd=4, col="black", xlim=c(xmin,xmax), ...)
-    if (!is.null(select)){
-      lines(rep(ranks.intervals[1,select],times=2), c(0,cols.number+1), col="gray", lty=2)
-      lines(rep(ranks.intervals[2,select],times=2), c(0,cols.number+1), col="gray", lty=2)    
-    } else {
-      lines(rep(ranks.intervals[1,1],times=2), c(0,cols.number+1), col="gray", lty=2)
-      lines(rep(ranks.intervals[2,1],times=2), c(0,cols.number+1), col="gray", lty=2)    
+    
+    args <- list(...)
+    if (!("main" %in% names(args))){
+      args$main <- paste0("Friedman: ", format(round(fried.pval,3),nsmall=3), " (", fried.H, ") \n MCB interval: ", format(round(r.stat[2],3),nsmall=3))
     }
+    if (!("ylab" %in% names(args))){
+      args$ylab <- ""
+    }
+    if (!("xlab" %in% names(args))){
+      args$xlab <- "Mean ranks"
+    }
+    if (!("xaxs" %in% names(args))){
+      args$xaxs <- "i"
+    }
+    if (!("yaxs" %in% names(args))){
+      args$yaxs <- "i"
+    }
+    # Remaining defaults
+    args$x <- args$y <- NA
+    args$ylim <- c(0,cols.number+1)
+    args$xlim <- c(xmin,xmax)
+    args$axes <- FALSE
+    # Use do.call to use manipulated ellipsis (...)
+    temp.mar <- par()$mar
+    par(mar=c(2, lbl.size/1.5, 4, 2) + 0.1)
+    do.call(plot,args)
+    # Plot rest
+    points(ranks.means,1:cols.number,pch=20,lwd=4)
+    axis(2,at=c(1:cols.number),labels=labels,las=2)
+    axis(1)
+    box(which="plot", col="black")
+    # Intervals for best method
+    if (is.null(select)){
+      select <- 1
+    }
+    lines(rep(ranks.intervals[1,select],times=2), c(0,cols.number+1), col="gray", lty=2)
+    lines(rep(ranks.intervals[2,select],times=2), c(0,cols.number+1), col="gray", lty=2)    
+    # Intervals for all methods
     for (i in 1:cols.number){
       lines(ranks.intervals[,i], rep(i,times=2), type="b", lwd=2, col=pcol);
     }
-    axis(2,at=c(1:cols.number),labels=labels,las=2)
-    axis(1);
-    box(which="plot", col="black");
-    par(mar=c(5, 4, 4, 2) + 0.1)
+    # Highlight identical
+    idx <- !((ranks.intervals[2,select] < ranks.intervals[1,]) | (ranks.intervals[1,select] > ranks.intervals[2,]))
+    points(ranks.means[idx],(1:cols.number)[idx],pch=20,lwd=4,col=cmp[1])
+    par(mar=temp.mar)
   }
 
   # Line style plot (as in ISF)
   if(plottype == "line"){
+    
     # Find groups
     rline <- matrix(NA, nrow=cols.number, ncol=2)
     for (i in 1:cols.number){
@@ -236,9 +267,8 @@ if (is.null(labels)){
     }
     k <- nrow(rline)
     # Choose colour depending on Friedman test result
-    if (fried.pval > 1-conf.int){pcol <- rep("gray",times=k)} else {
-      if (is.null(pcol)){pcol <- rainbow(k)} else {pcol <- rep(pcol,times=k)}
-    }
+    cmp <- colorRampPalette(brewer.pal(12,"Paired"))(k)
+    if (fried.pval > 1-conf.int){pcol <- rep("gray",times=k)} else {pcol <- cmp}
     # Prepare method labels and add mean rank to them
     lbl <- labels
     lblm <- matrix(NA,nrow=1,ncol=cols.number)
@@ -254,10 +284,32 @@ if (is.null(labels)){
     }
     lbl.size <- max(lbl.size)
     # Produce plot
+    args <- list(...)
+    if (!("main" %in% names(args))){
+      args$main <- paste0("Friedman: ", format(round(fried.pval,3),nsmall=3), " (", fried.H, ") \n CD: ", format(round(r.stat[2],3),nsmall=3))
+    }
+    if (!("ylab" %in% names(args))){
+      args$ylab <- ""
+    }
+    if (!("xlab" %in% names(args))){
+      args$xlab <- ""
+    }
+    if (!("xaxs" %in% names(args))){
+      args$xaxs <- "i"
+    }
+    if (!("yaxs" %in% names(args))){
+      args$yaxs <- "i"
+    }
+    # Remaining defaults
+    args$x <- args$y <- NA
+    args$ylim <- c(0,k+1)
+    args$xlim <- c(0,cols.number+1)
+    args$axes <- FALSE
+    # Use do.call to use manipulated ellipsis (...)
+    temp.mar <- par()$mar
     par(mar=c(lbl.size/2, 4, 4, 2) + 0.1)
-    plot(1:cols.number,rep(0,times=cols.number),
-         xlab="", ylab="", main=title,
-         type="p", axes=FALSE, pch=20, lwd=4, col="black", ylim=c(0,k+1), ...)
+    do.call(plot,args)
+    points(1:cols.number,rep(0,cols.number),pch=20,lwd=4)
     if (k>0){
       for (i in 1:k){
         lines(rline[i,],c(i,i), col=pcol[i], lwd = 4)
@@ -267,10 +319,9 @@ if (is.null(labels)){
     }
     axis(1,at=c(1:cols.number),labels=lblm,las=2)
     if (!is.null(select)){
-      points(select,0,pch=20,col="red",cex=2)
+      points(select,0,pch=20,col=brewer.pal(3,"Set1")[1],cex=2)
     }
-    # box(which="plot", col="black")
-    par(mar=c(5, 4, 4, 2) + 0.1)
+    par(mar=temp.mar)
   }
 
   # Line style plot (as in ISF) - vertical
@@ -291,9 +342,8 @@ if (is.null(labels)){
     }
     k <- nrow(rline)
     # Choose colour depending on Friedman test result
-    if (fried.pval > 1-conf.int){pcol <- rep("gray",times=k)} else {
-      if (is.null(pcol)){pcol <- rainbow(k)} else {pcol <- rep(pcol,times=k)}
-    }
+    cmp <- colorRampPalette(brewer.pal(12,"Paired"))(k)
+    if (fried.pval > 1-conf.int){pcol <- rep("gray",times=k)} else {pcol <- cmp}
     # Prepare method labels and add mean rank to them
     lbl <- labels
     lblm <- matrix(NA,nrow=1,ncol=cols.number)
@@ -309,10 +359,32 @@ if (is.null(labels)){
     }
     lbl.size <- max(lbl.size)
     # Produce plot
+    args <- list(...)
+    if (!("main" %in% names(args))){
+      args$main <- paste0("Friedman: ", format(round(fried.pval,3),nsmall=3), " (", fried.H, ") \n CD: ", format(round(r.stat[2],3),nsmall=3))
+    }
+    if (!("ylab" %in% names(args))){
+      args$ylab <- ""
+    }
+    if (!("xlab" %in% names(args))){
+      args$xlab <- ""
+    }
+    if (!("xaxs" %in% names(args))){
+      args$xaxs <- "i"
+    }
+    if (!("yaxs" %in% names(args))){
+      args$yaxs <- "i"
+    }
+    # Remaining defaults
+    args$x <- args$y <- NA
+    args$xlim <- c(0,k+1)
+    args$ylim <- c(0,cols.number+1)
+    args$axes <- FALSE
+    # Use do.call to use manipulated ellipsis (...)
+    temp.mar <- par()$mar
     par(mar=c(2, lbl.size/2, 4, 2) + 0.1)
-    plot(rep(0,times=cols.number),1:cols.number,
-         ylab="", xlab="", main=title, 
-         type="p", axes=FALSE, pch=20, lwd=4, col="black", xlim=c(0,k+1), ylim=rev(c(1,cols.number)), ...)
+    do.call(plot,args)
+    points(rep(0,cols.number),1:cols.number,pch=20,lwd=4)
     if (k>0){
       for (i in 1:k){
         lines(c(i,i), rline[i,], col=pcol[i], lwd = 4)
@@ -322,12 +394,25 @@ if (is.null(labels)){
     }
     axis(2,at=c(1:cols.number),labels=lblm,las=2)
     if (!is.null(select)){
-      points(0,select,pch=20,col="red",cex=2)
+      points(0,select,pch=20,col=brewer.pal(3,"Set1")[1],cex=2)
     }
-    # box(which="plot", col="black")
-    par(mar=c(5, 4, 4, 2) + 0.1)
+    par(mar=temp.mar)
   }
 
+  return(structure(list("means"=ranks.means,"intervals"=ranks.intervals,"fpval"=fried.pval,"fH"=fried.H,"cd"=r.stat[2],"conf.int"=conf.int,"k"=cols.number,"n"=rows.number),class="nemenyi"))
+  
+}
 
-  return(list(means=ranks.means,intervals=ranks.intervals,fpval=fried.pval,cd=r.stat[2]));
+summary.nemenyi <- function(x,...){
+  print(x)
+}
+
+print.nemenyi <- function(x,...){
+  
+  writeLines("Friedman and Nemenyi Tests")
+  writeLines(paste0("The significance level is ", (1-x$conf.int)*100, "%"))
+  writeLines(paste0("Number of observations is ", x$n, " and number of methods is ", x$k))
+  writeLines(paste0("Friedman test p-value: ", format(round(x$fpval,4),nsmall=4) , " - ", x$fH))
+  writeLines(paste0("Nemenyi critical distance: ", format(round(x$cd,4),nsmall=4)))
+  
 }
