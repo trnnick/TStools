@@ -1,6 +1,6 @@
 TStools 
 =======
-[![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/TStools)]
+![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/TStools)
 
 Collection of R functions for time series analysis
 
