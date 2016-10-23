@@ -1,6 +1,6 @@
 TStools 
 =======
-[![Github All Releases](https://img.shields.io/github/downloads/TStools/TStools/total.svg)](http://cranlogs.r-pkg.org/badges/grand-total/TStools)
+[![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/TStools)]
 
 Collection of R functions for time series analysis
 
