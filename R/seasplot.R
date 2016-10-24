@@ -1,6 +1,6 @@
 seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
                      outplot=c(1,0,2,3,4,5),decomposition=c("multiplicative","additive"),
-                     cma=NULL,labels=NULL,plot.title=NULL)
+                     cma=NULL,labels=NULL,...)
 {
 # Seasonal plots and crude trend/season tests
 #
@@ -24,7 +24,8 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
 #   cma           Input precalculated level/trend for the analysis. Overrides trend=NULL.
 #   labels        External labels for the seasonal periods. Use NULL for default. 
 #                 If length(labels) < m, then this input is ignored.
-#   plot.title    External title for the seasonal plot. Use NULL for default.
+#   ...           Additional arguments can be passed to plotting functions. For example use 
+#                 main="" to replace the title.
 #
 # Outputs:
 #   List with the following elements:
@@ -147,6 +148,7 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
   # Produce plots
   if (outplot != 0){
     yminmax <- c(ymin - 0.1*(ymax-ymin),ymax + 0.1*(ymax-ymin))
+    yminmax <- c(-1,1)*max(abs(ymid-yminmax))+ymid
     if (is.null(season.pval)){
       plottitle <- paste(title.trend, "\n", title.season,sep="")
     } else {
@@ -155,64 +157,104 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
     }
   }
   
+  # Allow user to override plot defaults
+  args <- list(...)
+  if (!("main" %in% names(args))){
+    addtitle <- TRUE
+  } else {
+    addtitle <- FALSE
+  }
+  if (!("xlab" %in% names(args))){
+    args$xlab <- "Period"
+  }
+  if (!("ylab" %in% names(args))){
+    args$ylab <- ""
+  }
+  if (!("yaxs" %in% names(args))){
+    args$yaxs <- "i"
+  }
+  if (!("ylim" %in% names(args))){
+    args$ylim <- yminmax
+  }
+  # Remaining defaults
+  args$x <- args$y <- NA
+  
   if (outplot == 1){
     # Conventional seasonal diagramme
     if (is.null(colour)){
-      cmp <- rainbow(ns,start=2.5/6,end=4.5/6)
-      cmp <- rev(cmp)
+      cmp <- colorRampPalette(brewer.pal(9,"YlGnBu")[4:8])(ns)
     } else {
       cmp <- rep(colour,times=ns)
     }
-    plot(ynt[1,],type="l",col=cmp[1],xlab="Period",ylab="",ylim=yminmax,xlim=c(1,m),xaxt="n")
-    for (i in 2:ns){
+    # Additional plot options
+    if (!("xlim" %in% names(args))){
+      args$xlim <- c(1,m)
+    }
+    if (!("xaxs" %in% names(args))){
+      args$xaxs <- "i"
+    }
+    if (addtitle){
+      args$main <- paste0("Seasonal plot ",main=plottitle)
+    }
+    args$xaxt <- "n"
+    # Produce plot
+    do.call(plot,args)
+    for (i in 1:ns){
       lines(ynt[i,],type="l",col=cmp[i])
     }
     lines(c(0,m+1),c(ymid,ymid),col="black",lty=2)
-    if (is.null(plot.title)){
-      title(paste("Seasonal diagramme ",main=plottitle,sep=""))
-    } else {
-      title(main=plot.title)
-    }
     legend("topleft",c("Oldest","Newest"),col=c(cmp[1],cmp[ns]),lty=1,bty="n",lwd=2,cex=0.7)
     axis(1,at=1:m,labels=labels)
   } 
   if (outplot == 2){
     # Seasonal boxplots
     if (is.null(colour)){
-      cmp <- "cyan"
-    }
-    boxplot(ynt,col=cmp,ylim=yminmax,xlim=c(1,m),xlab="Period")
-    lines(c(0,m+1),c(ymid,ymid),col="black",lty=2)
-    if (is.null(plot.title)){
-      title(paste("Seasonal boxplot ",main=plottitle,sep=""))
+      cmp <- brewer.pal(3,"Set3")[1]
     } else {
-      title(main=plot.title)
+      cmp <- colour
     }
+    # Additional plot options
+    if (!("xlim" %in% names(args))){
+      args$xlim <- c(1,m)
+    }
+    if (addtitle){
+      args$main <- paste0("Seasonal boxplot ",main=plottitle)
+    }
+    args$x <- ynt
+    args$col <- cmp
+    # Produce plot
+    do.call(boxplot,args)
+    lines(c(0,m+1),c(ymid,ymid),col="black",lty=2)
   }
   if (outplot == 3){
     # Subseries plots
     if (is.null(colour)){
-      cmp <- array(NA,c(1,2))
-      cmp[1] <- "blue"
-      cmp[2] <- "red"
+      cmp <- brewer.pal(3,"Set1")
+    } else {
+      cmp <- colour
     }
-    plot(1:ns,ynt[,1],type="o",col=cmp[1],xlab="Period",ylab="",ylim=yminmax,
-         xlim=c(1,m*ns),pch=20,cex=0.75,xaxt="n")
-    lines(c(1,ns),median(ynt[,1],na.rm=TRUE)*c(1,1),col=cmp[2],lwd=2)
-    lines(c(1,1)*ns+0.5,yminmax,col="gray")
-    for (i in 2:m){
-      lines((1+(i-1)*ns):(ns+(i-1)*ns),ynt[,i],type="o",col=cmp[1],pch=20,cex=0.75)
-      lines(c((1+(i-1)*ns),(ns+(i-1)*ns)),median(ynt[,i],na.rm=TRUE)*c(1,1),col=cmp[2],lwd=2)
+    # Additional plot options
+    if (!("xlim" %in% names(args))){
+      args$xlim <- c(1,m*ns)
+    }
+    if (addtitle){
+      args$main <- paste0("Seasonal subseries ",main=plottitle)
+    }
+    if (!("xaxs" %in% names(args))){
+      args$xaxs <- "i"
+    }
+    args$xaxt <- "n"
+    # Produce plot
+    do.call(plot,args)
+    lines(c(1,ns),median(ynt[,1],na.rm=TRUE)*c(1,1),col=cmp[1],lwd=2)
+    for (i in 1:m){
+      lines((1+(i-1)*ns):(ns+(i-1)*ns),ynt[,i],type="o",col=cmp[2],pch=20,cex=0.75)
+      lines(c((1+(i-1)*ns),(ns+(i-1)*ns)),median(ynt[,i],na.rm=TRUE)*c(1,1),col=cmp[1],lwd=2)
       if (i < m){
         lines(c(1,1)*i*ns+0.5,yminmax,col="gray")
       }
     }
     lines(c(0,m*ns+1),c(ymid,ymid),col="black",lty=2)
-    if (is.null(plot.title)){
-      title(paste("Seasonal subseries ",main=plottitle,sep=""))
-    } else {
-      title(main=plot.title)
-    }
     axis(1,at=seq(0.5+(ns/2),0.5+m*ns-ns/2,ns),labels=labels)
   }
   if (outplot == 4){
@@ -224,19 +266,27 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
     for (i in 1:m){
       qntl[,i] <- quantile(ynt[!is.na(ynt[,i]),i], c(0, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 1))
     }
-    plot(x=NULL,y=NULL,xlim=c(1,m),ylim=yminmax,ylab="",xlab="Period",xaxt="n")
+    # Additional plot options
+    if (!("xlim" %in% names(args))){
+      args$xlim <- c(1,m)
+    }
+    if (addtitle){
+      args$main <- paste0("Seasonal distribution ",main=plottitle)
+    }
+    if (!("xaxs" %in% names(args))){
+      args$xaxs <- "i"
+    }
+    args$xaxt <- "n"
+    # Produce plot
+    do.call(plot,args)
     polygon(c(1:m,rev(1:m)),c(qntl[7,],rev(qntl[1,])),col=gray(0.8),border=NA)
     polygon(c(1:m,rev(1:m)),c(qntl[6,],rev(qntl[2,])),col="lightblue",border=NA)
     polygon(c(1:m,rev(1:m)),c(qntl[5,],rev(qntl[3,])),col="skyblue",border=NA)
     lines(1:m,qntl[4,],col=cmp,lwd=2)
     lines(c(0,m*ns+1),c(ymid,ymid),col="black",lty=2)
     legend("topleft",c("Median","25%-75%","10%-90%","MinMax"),col=c(cmp,"skyblue","lightblue",gray(0.8)),lty=1,bty="n",lwd=2,cex=0.7)
-    if (is.null(plot.title)){
-      title(paste("Seasonal distribution ",main=plottitle,sep=""))
-    } else {
-      title(main=plot.title)
-    }
     axis(1,at=1:m,labels=labels)
+    box()
   }
   if (outplot == 5){
     dnst <- matrix(NA,nrow=m,ncol=512)
@@ -247,21 +297,41 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
         llc <- tmp$x
        }
     }
-    image(1:m,llc,dnst,ylim=yminmax,xlab="Period",ylab="",
-          col=c(rgb(0,0,0,0),colorRampPalette(c(rgb(1,1,1,0), rgb(0,0,1,0), rgb(0,1/3,1,0), rgb(0,2/3,1,0), rgb(0,1,1,0)))(100)),
-          xaxt="n")
-    # filled.contour(1:m,llc,dnst,ylim=yminmax,xlab="Period",ylab="",nlevels=50,color.palette=rainbow)
-    lines(colMeans(ynt,na.rm=TRUE),type="o",lty=1,bg="skyblue",pch=21,cex=0.7)
-    lines(c(0,m*ns+1),c(ymid,ymid),col="black",lty=2)
-    if (is.null(plot.title)){
-      title(paste("Seasonal density ",main=plottitle,sep=""))
-    } else {
-      title(main=plot.title)
+    cmp <- c(rgb(0,0,0,0), colorRampPalette((brewer.pal(9,"Blues")[3:9]))(100))
+    # Additional plot options
+    if (addtitle){
+      args$main <- paste0("Seasonal density ",main=plottitle)
     }
+    args$xaxt <- "n"
+    args$col <- cmp
+    args$x <- 1:m
+    args$y <- llc
+    args$z <- dnst
+    # Produce plot
+    do.call(image,args)
+    lines(colMeans(ynt,na.rm=TRUE),type="o",lty=1,bg=brewer.pal(3,"Set1")[1],pch=21,cex=1.1,lwd=2)
+    lines(c(0,m*ns+1),c(ymid,ymid),col="black",lty=2)
+    box()
     axis(1,at=1:m,labels=labels)
   }
   
-  return(list(season=ynt,season.exist=season.exist,season.pval=season.pval,
-              trend=cma,trend.exist=trend.exist,trend.pval=trend.pval))
+  out <- list(season=ynt,season.exist=season.exist,season.pval=season.pval,
+              trend=cma,trend.exist=trend.exist,trend.pval=trend.pval)
+  out <- structure(out,class="classseas")
+  return(out)
 
+}
+
+summary.classseas <- function(object,...){
+  print(object)
+}
+
+print.classseas <- function(x,...){
+  cat("Results of statistical testing\n")
+  if (!is.null(x$trend.exist)){
+    cat(paste0("Evidence of trend: ",x$trend.exist, "  (pval: ",round(x$trend.pval,3),")\n"))
+  } else {
+    cat("Presence of trend not tested.\n")
+  }
+  cat(paste0("Evidence of seasonality: ",x$season.exist, "  (pval: ",round(x$season.pval,3),")\n"))
 }

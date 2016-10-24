@@ -21,9 +21,11 @@ export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        residout,stlboot,get.opt.k)
 
 S3method(print,intervalStuff)
+S3method(print,classseas)
 S3method(print,classabc)
 S3method(print,nemenyi)
 S3method(summary,classabc)
+S3method(summary,classseas)
 S3method(summary,nemenyi)
 
 #useDynLib(TStools)
