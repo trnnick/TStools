@@ -112,8 +112,8 @@ abc <- function(x,prc=c(0.2,0.3,0.5),outplot=c(TRUE,FALSE),cex.prc=0.8,...){
 
 }
 
-summary.classabc <- function(x,...){
-  print(x)
+summary.classabc <- function(object,...){
+  print(object)
 }
 
 print.classabc <- function(x,...){
