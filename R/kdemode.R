@@ -1,4 +1,4 @@
-kdemode <- function(data,type=c("diffusion","SJ","nrd0"),outplot=c(FALSE,TRUE)){
+kdemode <- function(data,type=c("diffusion","SJ","nrd0"),outplot=c(FALSE,TRUE),...){
 # Return mode of a vector as calculated using KDE
 #
 # Inputs:
@@ -8,6 +8,7 @@ kdemode <- function(data,type=c("diffusion","SJ","nrd0"),outplot=c(FALSE,TRUE)){
 #               - SJ: Sheater and Jones method
 #               - nrd0: Silverman heuristic
 #   outplot   If TRUE provides plot of the KDE and the mean, median and mode
+#   ...       Additional arguments can be passed to the plot.
 #
 # Outputs: 
 #   mode      Estimated mode value.
@@ -29,6 +30,7 @@ kdemode <- function(data,type=c("diffusion","SJ","nrd0"),outplot=c(FALSE,TRUE)){
 #   Code by Z. I. Botev: http://web.maths.unsw.edu.au/~zdravkobotev/
 #
 # Nikolaos Kourentzes, 2014 <nikolaos@kourentzes.com>
+# Updated 2016
   
   # Defaults  
   type <- type[1]
@@ -50,9 +52,18 @@ kdemode <- function(data,type=c("diffusion","SJ","nrd0"),outplot=c(FALSE,TRUE)){
   
   # Produce plot
   if (outplot == TRUE){
+      
+    # Allow user to override plot defaults
+    args <- list(...)
+    # Remaining defaults
+    args$x <- args$y <- NA
+    # Use do.call to use manipulated ellipsis (...)
+    do.call(plot,args)  
+    
     md <- median(data)
     mn <- mean(data)
     plot(x,f,type="l")
+    lines(x,f)
     lines(data,rep(0,length(data)),type="p",pch="*")
     lines(mn,f[which(abs(x - mn) == min(abs(x - mn)))],col="black",bg="red",type="p",pch=21,cex=1.5)
     lines(md,f[which(abs(x - md) == min(abs(x - md)))],col="black",bg="yellow",type="p",pch=21,cex=1.5)

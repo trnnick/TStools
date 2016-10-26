@@ -19,6 +19,9 @@ kdemode(data,type=c("diffusion","SJ","nrd0"),outplot=c(FALSE,TRUE))
   \item{outplot}{
     If TRUE provides plot of the KDE and the mean, median and mode.
 }
+  \item{...}{
+    Additional arguments can be passed to plotting functions. For example use main="" to replace the title.
+}
 }
 \value{
 \item{mode}{Estimated mode value.}
