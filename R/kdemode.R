@@ -65,8 +65,15 @@ kdemode <- function(data,type=c("diffusion","SJ","nrd0"),from=NULL,to=NULL,outpl
       
     # Allow user to override plot defaults
     args <- list(...)
+    if (!("xlim" %in% names(args))){
+        args$xlim <- c(min(x),max(x))
+    }
+    if (!("ylim" %in% names(args))){
+        args$ylim <- c(0,max(y))
+    }
     # Remaining defaults
     args$x <- args$y <- NA
+    
     # Use do.call to use manipulated ellipsis (...)
     do.call(plot,args)  
     
