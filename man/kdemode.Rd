@@ -6,7 +6,7 @@
 \description{Return mode of a vector as calculated using KDE.}
 
 \usage{
-kdemode(data,type=c("diffusion","SJ","nrd0"),outplot=c(FALSE,TRUE))
+kdemode(data,type=c("diffusion","SJ","nrd0"),from=NULL,to=NULL,outplot=c(FALSE,TRUE))
 }
 
 \arguments{
@@ -15,6 +15,12 @@ kdemode(data,type=c("diffusion","SJ","nrd0"),outplot=c(FALSE,TRUE))
 }
   \item{type}{
     Bandwidth selection: 1. "diffusion": Kernel Density Estimation Via Diffusion, Botev el al. 2010; 2. SJ: Sheater and Jones method; 3. nrd0: Silverman heuristic.
+}
+  \item{from}{
+    Lower bound of values for KDE estimation. By default this is min(data)-0.1*diff(range(data)).
+}
+  \item{to}{
+    Upper bound of values for KDE estimation. By default this is max(data)+0.1*diff(range(data)).
 }
   \item{outplot}{
     If TRUE provides plot of the KDE and the mean, median and mode.
