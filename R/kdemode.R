@@ -1,4 +1,4 @@
-kdemode <- function(data,type=c("diffusion","SJ","nrd0"),from=NULL,to=NULL,outplot=c(FALSE,TRUE),...){
+kdemode <- function(data,type=c("diffusion","SJ","nrd0"),weights=NULL,from=NULL,to=NULL,outplot=c(FALSE,TRUE),...){
 # Return mode of a vector as calculated using KDE
 #
 # Inputs:
@@ -7,6 +7,7 @@ kdemode <- function(data,type=c("diffusion","SJ","nrd0"),from=NULL,to=NULL,outpl
 #               - diffusion: Kernel Density Estimation Via Diffusion, Botev el al. 2010 
 #               - SJ: Sheater and Jones method
 #               - nrd0: Silverman heuristic
+#   weights   Numeric vector of non-negative observation weights, of the same length as data.
 #   from      Lower bound of values for KDE estimation. By default this is min(data)-0.1*diff(range(data)).
 #   to        Upper bound of values for KDE estimation. By default this is max(data)+0.1*diff(range(data)).    
 #   outplot   If TRUE provides plot of the KDE and the mean, median and mode
@@ -48,10 +49,11 @@ kdemode <- function(data,type=c("diffusion","SJ","nrd0"),from=NULL,to=NULL,outpl
    
   # Calculate KDE
   if (type != "diffusion"){
-    ks <- density(data,bw="SJ",n=512,from=from,to=to)
+    ks <- density(data,bw="SJ",n=512,from=from,to=to,weights=weights)
     x <- ks$x
     f <- ks$y
   } else {
+    if (!is.null(weights)){stop("Weighted KDE not implemented with diffusion estimation for bandwidth.")}
     ks <- kde(data, n=512,MIN=from,MAX=to)
     x <- ks[1,]
     f <- ks[2,]
