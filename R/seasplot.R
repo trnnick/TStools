@@ -155,9 +155,7 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
       plottitle <- paste(title.trend, "\n", title.season,
                    " (p-val: ",round(season.pval,3),")",sep="")
     }
-  }
-  
-  # Allow user to override plot defaults
+   # Allow user to override plot defaults
   args <- list(...)
   if (!("main" %in% names(args))){
     addtitle <- TRUE
@@ -178,6 +176,7 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
   }
   # Remaining defaults
   args$x <- args$y <- NA
+  }
   
   if (outplot == 1){
     # Conventional seasonal diagramme
