@@ -155,28 +155,28 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
       plottitle <- paste(title.trend, "\n", title.season,
                    " (p-val: ",round(season.pval,3),")",sep="")
     }
-   # Allow user to override plot defaults
-  args <- list(...)
-  if (!("main" %in% names(args))){
-    addtitle <- TRUE
-  } else {
-    addtitle <- FALSE
-  }
-  if (!("xlab" %in% names(args))){
-    args$xlab <- "Period"
-  }
-  if (!("ylab" %in% names(args))){
-    args$ylab <- ""
-  }
-  if (!("yaxs" %in% names(args))){
-    args$yaxs <- "i"
-  }
-  if (!("ylim" %in% names(args))){
-    args$ylim <- yminmax
-  }
-  # Remaining defaults
-  args$x <- args$y <- NA
-  }
+    # Allow user to override plot defaults
+    args <- list(...)
+    if (!("main" %in% names(args))){
+      addtitle <- TRUE
+    } else {
+      addtitle <- FALSE
+    }
+    if (!("xlab" %in% names(args))){
+      args$xlab <- "Period"
+    }
+    if (!("ylab" %in% names(args))){
+      args$ylab <- ""
+    }
+    if (!("yaxs" %in% names(args))){
+      args$yaxs <- "i"
+    }
+    if (!("ylim" %in% names(args))){
+      args$ylim <- yminmax
+    }
+    # Remaining defaults
+    args$x <- args$y <- NA
+   }
   
   if (outplot == 1){
     # Conventional seasonal diagramme
