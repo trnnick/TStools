@@ -14,8 +14,7 @@ import(forecast,zoo,MAPA,RColorBrewer)
 export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        coxstuart,wins,rowWins,colWins,theta,abc,xyz,abcxyz,
        nzlength,init.ets,mre,mre.plot,bias.coeff,
-       sim.ets,es,graphmaker,
-       MPE,MAPE,SMAPE,MASE,GMRAE,hm,
+       graphmaker,MPE,MAPE,SMAPE,MASE,GMRAE,hm,
        sowhat,ro,intervals,intervalsSimulator,
        sma,
        residout,stlboot,get.opt.k)
