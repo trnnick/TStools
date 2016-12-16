@@ -47,7 +47,7 @@ stlboot  <- function(ts,k=1,test.season=c(TRUE,FALSE),outplot=c(FALSE,TRUE)){
     ts.decomp.trend <- predict(ts.decomp, data.frame(x=x))
     remainder <- ts.bc - ts.decomp.trend
   }    
-  
+
   # MBB bootstrapping
   n <- length(remainder) 
   l <- m*2        # Find block size

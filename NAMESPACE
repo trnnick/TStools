@@ -17,7 +17,7 @@ export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        graphmaker,MPE,MAPE,SMAPE,MASE,GMRAE,hm,
        sowhat,ro,intervals,intervalsSimulator,
        sma,
-       residout,stlboot,get.opt.k)
+       residout,stlboot,get.opt.k,leadtrail)
 
 S3method(print,intervalStuff)
 S3method(print,classseas)
