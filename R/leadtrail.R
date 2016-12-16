@@ -36,7 +36,7 @@ leadtrail <- function(x,rm=c("zeros","na"),lead=c(TRUE,FALSE),trail=c(TRUE,FALSE
   l <- length(idx)
   
   # Handle leading observations
-  if (lead==TRUE){
+  if (lead==TRUE & l>0){
     
     if (idx[1]==1){
       d.idx <- diff(idx)
@@ -54,7 +54,7 @@ leadtrail <- function(x,rm=c("zeros","na"),lead=c(TRUE,FALSE),trail=c(TRUE,FALSE
   }
   
   # Handle trailing observations
-  if (trail==TRUE){
+  if (trail==TRUE & l>0){
     
     if (tail(idx,1)==n){
       d.idx <- diff(rev(idx))
