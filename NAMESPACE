@@ -9,7 +9,7 @@ importFrom("stats", "cor.test", "deltat", "density", "end", "fft",
            "predict", "qt", "qtukey", "quantile", "sd", "start", "stl",
            "time", "ts", "ts.plot", "uniroot")
 
-import(forecast,zoo,MAPA,RColorBrewer)
+import(forecast,zoo,MAPA,RColorBrewer,MASS,neuralnet,glmnet)
 
 export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        coxstuart,wins,rowWins,colWins,theta,abc,xyz,abcxyz,
@@ -17,14 +17,17 @@ export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        graphmaker,MPE,MAPE,SMAPE,MASE,GMRAE,hm,
        sowhat,ro,intervals,intervalsSimulator,
        sma,
-       residout,stlboot,get.opt.k,leadtrail)
+       residout,stlboot,get.opt.k,leadtrail,
+       linscale,lagmatrix,elm)
 
 S3method(print,intervalStuff)
 S3method(print,classseas)
 S3method(print,classabc)
 S3method(print,nemenyi)
+S3method(print,elm)
 S3method(summary,classabc)
 S3method(summary,classseas)
 S3method(summary,nemenyi)
+S3method(forecast,elm)
 
 #useDynLib(TStools)
