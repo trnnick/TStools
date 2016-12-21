@@ -18,7 +18,7 @@ export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        sowhat,ro,intervals,intervalsSimulator,
        sma,
        residout,stlboot,get.opt.k,leadtrail,
-       linscale,lagmatrix,elm)
+       linscale,lagmatrix,elm,forecast.elm)
 
 S3method(print,intervalStuff)
 S3method(print,classseas)
