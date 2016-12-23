@@ -16,7 +16,7 @@ export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        nzlength,init.ets,mre,mre.plot,bias.coeff,
        graphmaker,MPE,MAPE,SMAPE,MASE,GMRAE,hm,
        sowhat,ro,intervals,intervalsSimulator,
-       sma,
+       sma,geomean,
        residout,stlboot,get.opt.k,leadtrail,
        linscale,lagmatrix,elm,forecast.elm)
 
