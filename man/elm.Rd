@@ -1,5 +1,5 @@
-\name{linscale}
-\alias{linscale}
+\name{elm}
+\alias{elm}
 
 \title{Fit ELM neural network.}
 
@@ -8,7 +8,7 @@
 \usage{
 elm(y,hd=50,type=c("lasso","step","lm"),reps=20,
     comb=c("median","mean","mode"),lags=NULL,
-    difforder=NULL,outplot=c(FALSE,TRUE))
+    difforder=-1,outplot=c(FALSE,TRUE))
 }
 
 \arguments{
@@ -31,7 +31,7 @@ elm(y,hd=50,type=c("lasso","step","lm"),reps=20,
     Lags of y to use as inputs. If none provided then 1:frequency(y) is used.
     }
     \item{difforder}{
-    Vector including the differencing lags. For example c(1,12) will apply first and seasonal (12) differences. For no differencing use NULL.
+    Vector including the differencing lags. For example c(1,12) will apply first and seasonal (12) differences. For no differencing use NULL. For automatic selection use -1.
     }
   \item{outplot}{
     Provide plot of model fit. Cn be TRUE or FALSE.
@@ -61,6 +61,6 @@ Nikolaos Kourentzes, \email{nikolaos@kourentzes.com}
 }
 \examples{
 y <- log(AirPassengers)
-fit <- elm(y,difforder=c(1,frequency(y)),outplot=TRUE)
+fit <- elm(y)
 frc <- forecast(fit,h=36,outplot=TRUE)
 }

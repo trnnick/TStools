@@ -1,5 +1,5 @@
 elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode"),
-                lags=NULL,difforder=NULL,outplot=c(FALSE,TRUE)){
+                lags=NULL,difforder=-1,outplot=c(FALSE,TRUE)){
     
     # Defaults
     type <- type[1]
@@ -14,6 +14,19 @@ elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mea
     # Default lagvector
     if (is.null(lags)){
         lags <- 1:frequency(y)
+    }
+    
+    # Find differencing order
+    if (difforder == -1){
+        # Identify difforder automatically
+        st <- seasplot(y)
+        difforder <- NULL
+        if (st$trend.exist == TRUE){
+            difforder <- 1
+        }
+        if (st$season.exist == TRUE){
+            difforder <- c(difforder,frequency(y))
+        }
     }
     
     # Apply differencing
