@@ -64,7 +64,7 @@ elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mea
     Yhat <- array(NA,c((length(y)-sum(difforder)-max(lags)),reps))
     
     for (r in 1:reps){
-        H[[r]] <- as.matrix(tail(compute(net,X,i)$neurons,1)[[1]][,2:(tail(hd,1)+1)])
+        H[[r]] <- as.matrix(tail(compute(net,X,r)$neurons,1)[[1]][,2:(tail(hd,1)+1)])
     
         # Calculate regression
         switch(type,
