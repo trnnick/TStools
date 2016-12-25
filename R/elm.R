@@ -19,7 +19,7 @@ elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mea
     # Find differencing order
     if (difforder == -1){
         # Identify difforder automatically
-        st <- seasplot(y)
+        st <- seasplot(y,outplot=0)
         difforder <- NULL
         if (st$trend.exist == TRUE){
             difforder <- 1
@@ -52,6 +52,16 @@ elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mea
     Y <- y.sc.lag[(max(lags)+1):n,1,drop=FALSE]
     X <- y.sc.lag[(max(lags)+1):n,2:(length(lags)+1),drop=FALSE]
     colnames(X) <- paste0("X",lags)
+    
+    # Select lags
+    reg.isel <- as.data.frame(cbind(Y,X))
+    colnames(reg.isel) <- c("Y",paste0("X",1:max(lags)))
+    fit <- lm(Y~.,reg.isel)
+    fit <- stepAIC(fit,trace=0)
+    cf.temp <- coef(fit)
+    loc <- which(colnames(reg.isel) %in% names(cf.temp))-1
+    X <- X[,loc,drop=FALSE]
+    # lags <- loc
     
     # Create network
     frm <- paste0(colnames(X),"+",collapse="")
