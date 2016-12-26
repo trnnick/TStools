@@ -1,10 +1,11 @@
 elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode"),
-                lags=NULL,difforder=-1,outplot=c(FALSE,TRUE)){
+                lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(FALSE,TRUE)){
     
     # Defaults
     type <- type[1]
     comb <- comb[1]
     outplot <- outplot[1]
+    sel.lag <- sel.lag[1]
     
     # Check if y input is a time series
     if (class(y) != "ts"){
@@ -54,18 +55,20 @@ elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mea
     colnames(X) <- paste0("X",lags)
     
     # Select lags
-    reg.isel <- as.data.frame(cbind(Y,X))
-    colnames(reg.isel) <- c("Y",paste0("X",1:max(lags)))
-    fit <- lm(Y~.,reg.isel)
-    fit <- stepAIC(fit,trace=0)
-    cf.temp <- coef(fit)
-    loc <- which(colnames(reg.isel) %in% names(cf.temp))-1
-    # X <- X[,loc,drop=FALSE]
-    lags <- loc
-    y.sc.lag <- lagmatrix(y.sc,unique(c(0,lags)))
-    Y <- y.sc.lag[(max(lags)+1):n,1,drop=FALSE]
-    X <- y.sc.lag[(max(lags)+1):n,2:(length(lags)+1),drop=FALSE]
-    colnames(X) <- paste0("X",lags)
+    if (sel.lag == TRUE){
+        reg.isel <- as.data.frame(cbind(Y,X))
+        colnames(reg.isel) <- c("Y",paste0("X",1:max(lags)))
+        fit <- lm(Y~.,reg.isel)
+        fit <- stepAIC(fit,trace=0)
+        cf.temp <- coef(fit)
+        loc <- which(colnames(reg.isel) %in% names(cf.temp))-1
+        # X <- X[,loc,drop=FALSE]
+        lags <- loc
+        y.sc.lag <- lagmatrix(y.sc,unique(c(0,lags)))
+        Y <- y.sc.lag[(max(lags)+1):n,1,drop=FALSE]
+        X <- y.sc.lag[(max(lags)+1):n,2:(length(lags)+1),drop=FALSE]
+        colnames(X) <- paste0("X",lags)
+    }
     
     # Create network
     frm <- paste0(colnames(X),"+",collapse="")
