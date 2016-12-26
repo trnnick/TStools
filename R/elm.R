@@ -60,8 +60,12 @@ elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mea
     fit <- stepAIC(fit,trace=0)
     cf.temp <- coef(fit)
     loc <- which(colnames(reg.isel) %in% names(cf.temp))-1
-    X <- X[,loc,drop=FALSE]
-    # lags <- loc
+    # X <- X[,loc,drop=FALSE]
+    lags <- loc
+    y.sc.lag <- lagmatrix(y.sc,unique(c(0,lags)))
+    Y <- y.sc.lag[(max(lags)+1):n,1,drop=FALSE]
+    X <- y.sc.lag[(max(lags)+1):n,2:(length(lags)+1),drop=FALSE]
+    colnames(X) <- paste0("X",lags)
     
     # Create network
     frm <- paste0(colnames(X),"+",collapse="")
