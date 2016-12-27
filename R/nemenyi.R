@@ -128,6 +128,17 @@ if (is.null(labels)){
 }
 
 # Produce plots
+  
+  # For all plots
+  if (plottype != "none"){
+      args <- list(...)
+      par.nms <- c("ask", "fig", "fin", "lheight", "mai", "mar", "mex", "mfcol", "mfrow", "mfg", "new", "oma", "omd", "omi", "pin", "plt", "ps", "pty", "usr", "xlog", "ylog", "ylbias")
+      args.nms <- names(args)
+      loc <- which(args.nms %in% par.nms)
+      args.par <- args[loc]
+      args <- args[setdiff(1:length(args),loc)]
+  }
+  
   # MCB style plot
   if(plottype == "mcb"){
     
@@ -140,7 +151,6 @@ if (is.null(labels)){
     ymax <- ymax + 0.1*(ymax-ymin)
     ymin <- ymin - 0.1*(ymax-ymin)
     
-    args <- list(...)
     if (!("main" %in% names(args))){
       args$main <- paste0("Friedman: ", format(round(fried.pval,3),nsmall=3), " (", fried.H, ") \n MCB interval: ", format(round(r.stat[2],3),nsmall=3))
     }
@@ -202,7 +212,6 @@ if (is.null(labels)){
     lbl.size <- nchar(labels)
     lbl.size <- max(lbl.size)
     
-    args <- list(...)
     if (!("main" %in% names(args))){
       args$main <- paste0("Friedman: ", format(round(fried.pval,3),nsmall=3), " (", fried.H, ") \n MCB interval: ", format(round(r.stat[2],3),nsmall=3))
     }
@@ -225,7 +234,11 @@ if (is.null(labels)){
     args$axes <- FALSE
     # Use do.call to use manipulated ellipsis (...)
     temp.mar <- par()$mar
-    par(mar=c(2, lbl.size/1.5, 4, 2) + 0.1)
+    if (!("mar" %in% names(args.par))){
+        args.par$mar <- c(2, lbl.size/1.5, 4, 2) + 0.1
+    }
+    par(args.par)
+    
     do.call(plot,args)
     # Plot rest
     points(ranks.means,1:cols.number,pch=20,lwd=4)
@@ -284,7 +297,6 @@ if (is.null(labels)){
     }
     lbl.size <- max(lbl.size)
     # Produce plot
-    args <- list(...)
     if (!("main" %in% names(args))){
       args$main <- paste0("Friedman: ", format(round(fried.pval,3),nsmall=3), " (", fried.H, ") \n CD: ", format(round(r.stat[2],3),nsmall=3))
     }
@@ -307,7 +319,11 @@ if (is.null(labels)){
     args$axes <- FALSE
     # Use do.call to use manipulated ellipsis (...)
     temp.mar <- par()$mar
-    par(mar=c(lbl.size/2, 4, 4, 2) + 0.1)
+    if (!("mar" %in% names(args.par))){
+        args.par$mar <- c(lbl.size/2, 4, 4, 2) + 0.1
+    }
+    par(args.par)
+    
     do.call(plot,args)
     points(1:cols.number,rep(0,cols.number),pch=20,lwd=4)
     if (k>0){
@@ -359,7 +375,6 @@ if (is.null(labels)){
     }
     lbl.size <- max(lbl.size)
     # Produce plot
-    args <- list(...)
     if (!("main" %in% names(args))){
       args$main <- paste0("Friedman: ", format(round(fried.pval,3),nsmall=3), " (", fried.H, ") \n CD: ", format(round(r.stat[2],3),nsmall=3))
     }
@@ -382,7 +397,11 @@ if (is.null(labels)){
     args$axes <- FALSE
     # Use do.call to use manipulated ellipsis (...)
     temp.mar <- par()$mar
-    par(mar=c(2, lbl.size/2, 4, 2) + 0.1)
+    if (!("mar" %in% names(args.par))){
+        args.par$mar <- c(2, lbl.size/2, 4, 2) + 0.1
+    }
+    par(args.par)
+    
     do.call(plot,args)
     points(rep(0,cols.number),1:cols.number,pch=20,lwd=4)
     if (k>0){
