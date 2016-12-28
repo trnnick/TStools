@@ -67,6 +67,9 @@ elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mea
         fit <- stepAIC(fit,trace=0)
         cf.temp <- coef(fit)
         loc <- which(colnames(reg.isel) %in% names(cf.temp))-1
+        if (length(loc)==0){
+          loc <- 1
+        }
         # X <- X[,loc,drop=FALSE]
         lags <- loc
         y.sc.lag <- lagmatrix(y.sc,unique(c(0,lags)))
