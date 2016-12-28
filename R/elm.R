@@ -25,8 +25,10 @@ elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mea
         if (st$trend.exist == TRUE){
             difforder <- 1
         }
-        if (st$season.exist == TRUE){
-            difforder <- c(difforder,frequency(y))
+        if (frequency(y)>1){
+            if (st$season.exist == TRUE){
+                difforder <- c(difforder,frequency(y))
+            }
         }
     }
     

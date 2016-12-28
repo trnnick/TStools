@@ -8,7 +8,7 @@
 \usage{
 elm(y,hd=50,type=c("lasso","step","lm"),reps=20,
     comb=c("median","mean","mode"),lags=NULL,
-    difforder=-1,outplot=c(FALSE,TRUE))
+    difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(FALSE,TRUE))
 }
 
 \arguments{
@@ -34,7 +34,10 @@ elm(y,hd=50,type=c("lasso","step","lm"),reps=20,
     Vector including the differencing lags. For example c(1,12) will apply first and seasonal (12) differences. For no differencing use NULL. For automatic selection use -1.
     }
   \item{outplot}{
-    Provide plot of model fit. Cn be TRUE or FALSE.
+    Provide plot of model fit. Can be TRUE or FALSE.
+    }
+  \item{sel.lag}{
+    Use selective lags only. Can be TRUE or FALSE. 
     }
 }
 \value{
