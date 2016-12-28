@@ -1,11 +1,12 @@
 elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode"),
-                lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(FALSE,TRUE)){
+                lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(FALSE,TRUE),direct=c(FALSE,TRUE)){
     
     # Defaults
     type <- type[1]
     comb <- comb[1]
     outplot <- outplot[1]
     sel.lag <- sel.lag[1]
+    direct <- direct[1]
     
     # Check if y input is a time series
     if (class(y) != "ts"){
@@ -18,16 +19,18 @@ elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mea
     }
     
     # Find differencing order
-    if (difforder == -1){
-        # Identify difforder automatically
-        st <- seasplot(y,outplot=0)
-        difforder <- NULL
-        if (st$trend.exist == TRUE){
-            difforder <- 1
-        }
-        if (frequency(y)>1){
-            if (st$season.exist == TRUE){
-                difforder <- c(difforder,frequency(y))
+    if (!is.null(difforder)){
+        if (difforder == -1){
+            # Identify difforder automatically
+            st <- seasplot(y,outplot=0)
+            difforder <- NULL
+            if (st$trend.exist == TRUE){
+                difforder <- 1
+            }
+            if (frequency(y)>1){
+                if (st$season.exist == TRUE){
+                    difforder <- c(difforder,frequency(y))
+                }
             }
         }
     }
@@ -84,23 +87,29 @@ elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mea
     
     for (r in 1:reps){
         H[[r]] <- as.matrix(tail(compute(net,X,r)$neurons,1)[[1]][,2:(tail(hd,1)+1)])
+        
+        if (direct==TRUE){
+            Z <- cbind(H[[r]],X)
+        } else {
+            Z <- H[[r]]
+        }
     
         # Calculate regression
         switch(type,
                "lasso" = {
-                   fit <- cv.glmnet(H[[r]],cbind(Y))
+                   fit <- cv.glmnet(Z,cbind(Y))
                    cf <- as.vector(coef(fit))
                },
                {
-                   reg.data <- as.data.frame(cbind(Y,H[[r]]))
-                   colnames(reg.data) <- c("Y",paste0("X",1:tail(hd,1)))
+                   reg.data <- as.data.frame(cbind(Y,Z))
+                   colnames(reg.data) <- c("Y",paste0("X",1:(tail(hd,1)+direct*length(lags))))
                    fit <- lm(Y~.,reg.data)
                    cf <- coef(fit)
                    if (type == "step"){
                        fit <- stepAIC(fit,trace=0)
                        cf.temp <- coef(fit)
                        loc <- which(colnames(reg.data) %in% names(cf.temp))
-                       cf <- rep(0,tail(hd,1)+1)
+                       cf <- rep(0,(tail(hd,1)+1+direct*length(lags)))
                        cf[1] <- cf.temp[1]
                        cf[loc] <- cf.temp[2:length(cf.temp)]
                    }
@@ -108,7 +117,7 @@ elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mea
         W[[r]] <- cbind(cf)
     
         # Produce fit
-        yhat.sc <- cbind(1,H[[r]]) %*% W[[r]]
+        yhat.sc <- cbind(1,Z) %*% W[[r]]
         yhat <- linscale(yhat.sc,sc$minmax,rev=TRUE)$x
     
         # # Check unscaled, but differenced fit
@@ -167,7 +176,7 @@ elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mea
         
     }
     
-    return(structure(list("net"=net,"hd"=hd,"W"=W,"lags"=lags,"difforder"=difforder,"y"=y,"minmax"=sc$minmax,"comb"=comb,"type"=type,"fitted"=yout,"MSE"=MSE),class="elm"))
+    return(structure(list("net"=net,"hd"=hd,"W"=W,"lags"=lags,"difforder"=difforder,"y"=y,"minmax"=sc$minmax,"comb"=comb,"type"=type,"direct"=direct,"fitted"=yout,"MSE"=MSE),class="elm"))
     
 }
 
@@ -192,6 +201,7 @@ forecast.elm <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
     difforder <- fit$difforder
     minmax <- fit$minmax
     comb <- fit$comb
+    direct <- fit$direct
     fitted <- fit$fitted
     reps <- length(net$weights)
     
@@ -223,7 +233,14 @@ forecast.elm <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
             xi <- rev(tail(c(Y,temp),max(lags)))
             xi <- rbind(xi[lags])
             H <- t(as.matrix(tail(compute(net,xi,r)$neurons,1)[[1]][,2:(tail(hd,1)+1)]))
-            yhat.sc <- cbind(1,H) %*% W[[r]]
+            
+            if (direct == TRUE){
+                Z <- cbind(H,xi)
+            } else {
+                Z <- H
+            }
+            
+            yhat.sc <- cbind(1,Z) %*% W[[r]]
             frc.sc[i] <- yhat.sc
         }
         
@@ -282,6 +299,7 @@ forecast.elm <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
 print.elm <- function(x, ...){
     
     difforder <- x$difforder
+    direct <- x$direct
     d <- length(difforder)
     reps <- length(x$net$weights)
     hd <- x$hd
@@ -297,8 +315,14 @@ print.elm <- function(x, ...){
             hde <- ""
         }
     }
-        
-    writeLines(paste0("ELM fit with ", hdt," hidden node",hde," and ", reps, " repetition",if(reps>1){"s"},"."))
+     
+    if (direct == TRUE){
+        dtx <- ", direct output connections"
+    } else {
+        dtx <- ""
+    }
+    
+    writeLines(paste0("ELM fit with ", hdt," hidden node",hde,dtx," and ", reps, " repetition",if(reps>1){"s"},"."))
     if (d>0){
         writeLines(paste0("Series modelled in differences: ", paste0("D",difforder,collapse=""), "."))
     }

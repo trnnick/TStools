@@ -8,7 +8,8 @@
 \usage{
 elm(y,hd=50,type=c("lasso","step","lm"),reps=20,
     comb=c("median","mean","mode"),lags=NULL,
-    difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(FALSE,TRUE))
+    difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(FALSE,TRUE),
+    direct=c(FALSE,TRUE))
 }
 
 \arguments{
@@ -39,6 +40,9 @@ elm(y,hd=50,type=c("lasso","step","lm"),reps=20,
   \item{sel.lag}{
     Use selective lags only. Can be TRUE or FALSE. 
     }
+  \item{direct}{
+    Use direct input-output connections to model strictly linear effects. Can be TRUE or FALSE. 
+    }
 }
 \value{
 \item{net}{ELM networks.}
@@ -50,6 +54,7 @@ elm(y,hd=50,type=c("lasso","step","lm"),reps=20,
 \item{minmax}{Scaling structure.}
 \item{comb}{Combination operator used.}
 \item{type}{Estimation used for output layer weights.}
+\item{direct}{Presence of direct input-output connections.}
 \item{fitted}{Fitted values.}
 \item{MSE}{In-sample Mean Squared Error.}
 }
