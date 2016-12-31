@@ -18,16 +18,20 @@ export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        sowhat,ro,intervals,intervalsSimulator,
        sma,geomean,
        residout,stlboot,get.opt.k,leadtrail,
-       linscale,lagmatrix,elm,forecast.elm)
+       linscale,lagmatrix,
+       elm,forecast.elm,
+       mlp,forecast.mlp)
 
 S3method(print,intervalStuff)
 S3method(print,classseas)
 S3method(print,classabc)
 S3method(print,nemenyi)
 S3method(print,elm)
+S3method(print,mlp)
 S3method(summary,classabc)
 S3method(summary,classseas)
 S3method(summary,nemenyi)
 S3method(forecast,elm)
+S3method(forecast,mlp)
 
 #useDynLib(TStools)
