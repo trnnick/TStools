@@ -8,6 +8,6 @@ Maintainer: Ivan Svetunkov <i.svetunkov@lancaster.ac.uk>
 Description: Here in this magnificent world of fascinating R functions we introduce set of species created in order to help in time series modelling, analysis and forecasting.
 LazyData: yes
 License: GPL (>=2)
-Depends: zoo, forecast, tseries, MAPA, RColorBrewer, glmnet, neuralnet
+Depends: zoo, forecast, tseries, MAPA, RColorBrewer, glmnet, neuralnet, MASS
 Suggests: Mcomp, parallel, foreach, doMC, doParallel, RColorBrewer
 URL: http://kourentzes.com/forecasting/2014/04/19/tstools-for-r/
