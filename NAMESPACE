@@ -8,8 +8,9 @@ importFrom("stats", "cor.test", "deltat", "density", "end", "fft",
            "na.exclude", "na.omit", "nlminb", "optim", "pbinom",
            "predict", "qt", "qtukey", "quantile", "sd", "start", "stl",
            "time", "ts", "ts.plot", "uniroot")
+importFrom("MASS", "stepAIC")
 
-import(forecast,zoo,MAPA,RColorBrewer,MASS,neuralnet,glmnet)
+import(forecast,zoo,MAPA,RColorBrewer,neuralnet,glmnet)
 
 export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        coxstuart,wins,rowWins,colWins,theta,abc,xyz,abcxyz,
@@ -18,7 +19,7 @@ export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        sowhat,ro,intervals,intervalsSimulator,
        sma,geomean,
        residout,stlboot,get.opt.k,leadtrail,
-       linscale,lagmatrix,
+       linscale,lagmatrix,seasdummy,
        elm,forecast.elm,
        mlp,forecast.mlp)
 

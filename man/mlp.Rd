@@ -9,6 +9,7 @@
 elm(y,hd=50,reps=20,
     comb=c("median","mean","mode"),lags=NULL,
     difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
+    allow.det.season=c(TRUE,FALSE),
     ...)
 }
 
@@ -37,6 +38,9 @@ elm(y,hd=50,reps=20,
   \item{sel.lag}{
     Use selective lags only. Can be TRUE or FALSE. 
     }
+  \item{allow.det.season}{
+    Permit modelling seasonality with deterministic dummies.
+  }
   \item{...}{
     Additional inputs for neuralnet function. 
     }
@@ -46,6 +50,7 @@ elm(y,hd=50,reps=20,
 \item{hd}{Number of hidden nodes.}
 \item{lags}{Input lags used.}
 \item{difforder}{Differencing used.}
+\item{sdummy}{Use of deterministic seasonality.}
 \item{y}{Input time series.}
 \item{minmax}{Scaling structure.}
 \item{comb}{Combination operator used.}

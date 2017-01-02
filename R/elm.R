@@ -1,5 +1,6 @@
 elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode"),
-                lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(FALSE,TRUE),direct=c(FALSE,TRUE)){
+                lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(FALSE,TRUE),direct=c(FALSE,TRUE),
+                allow.det.season=c(TRUE,FALSE)){
     
     # Defaults
     type <- type[1]
@@ -7,6 +8,7 @@ elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mea
     outplot <- outplot[1]
     sel.lag <- sel.lag[1]
     direct <- direct[1]
+    allow.det.season <- allow.det.season[1]
     
     # Check if y input is a time series
     if (class(y) != "ts"){
@@ -91,6 +93,16 @@ elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mea
         Y <- y.sc.lag[(max(lags)+1):n,1,drop=FALSE]
         X <- y.sc.lag[(max(lags)+1):n,2:(length(lags)+1),drop=FALSE]
         colnames(X) <- paste0("X",lags)
+    }
+    
+    # Create seasonal dummies
+    if (!any(difforder == frequency(y)) & if(frequency(y)>1){st$season.exist==TRUE} & allow.det.season==TRUE){
+      sdummy <- TRUE
+      Xd <- seasdummy(length(Y),y=ts(Y,end=end(y),frequency=frequency(y)))
+      colnames(Xd) <- paste0("D",1:length(Xd[1,]))
+      X <- cbind(X,Xd) 
+    } else {
+      sdummy <- FALSE
     }
     
     # Create network
@@ -194,7 +206,7 @@ elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mea
         
     }
     
-    return(structure(list("net"=net,"hd"=hd,"W"=W,"lags"=lags,"difforder"=difforder,"y"=y,"minmax"=sc$minmax,"comb"=comb,"type"=type,"direct"=direct,"fitted"=yout,"MSE"=MSE),class="elm"))
+    return(structure(list("net"=net,"hd"=hd,"W"=W,"lags"=lags,"difforder"=difforder,"sdummy"=sdummy,"y"=y,"minmax"=sc$minmax,"comb"=comb,"type"=type,"direct"=direct,"fitted"=yout,"MSE"=MSE),class="elm"))
     
 }
 
@@ -217,11 +229,14 @@ forecast.elm <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
     W <- fit$W
     lags <- fit$lags
     difforder <- fit$difforder
+    sdummy <- fit$sdummy
     minmax <- fit$minmax
     comb <- fit$comb
     direct <- fit$direct
     fitted <- fit$fitted
     reps <- length(net$weights)
+    
+    fstart <- c(end(y)[1],end(y)[2]+1)
     
     # Apply differencing
     d <- length(difforder)
@@ -236,6 +251,11 @@ forecast.elm <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
     }
     Y <- as.vector(linscale(y.d[[d+1]],minmax=minmax)$x)
 
+    if (sdummy == TRUE){
+      temp <- ts(1:h,start=fstart,frequency=frequency(y))
+      Xd <- seasdummy(h,y=temp)
+    }
+    
     Yfrc <- array(NA,c(h,reps))
     
     # For each repetition
@@ -250,6 +270,9 @@ forecast.elm <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
             }
             xi <- rev(tail(c(Y,temp),max(lags)))
             xi <- rbind(xi[lags])
+            if (sdummy == TRUE){
+              xi <- cbind(xi,Xd[i,,drop=FALSE])
+            }
             H <- t(as.matrix(tail(compute(net,xi,r)$neurons,1)[[1]][,2:(tail(hd,1)+1)]))
             
             if (direct == TRUE){
@@ -257,7 +280,7 @@ forecast.elm <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
             } else {
                 Z <- H
             }
-            
+
             yhat.sc <- cbind(1,Z) %*% W[[r]]
             frc.sc[i] <- yhat.sc
         }
@@ -295,7 +318,7 @@ forecast.elm <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
         fout <- Yfrc[,1]
     }
     
-    fout <- ts(fout,frequency=frequency(y),start=c(end(y)[1],end(y)[2]+1))
+    fout <- ts(fout,frequency=frequency(y),start=fstart)
     
     if (outplot==TRUE){
         ts.plot(y,fitted,fout,col=c("black","red","red"))
@@ -317,6 +340,7 @@ forecast.elm <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
 print.elm <- function(x, ...){
     
     difforder <- x$difforder
+    sdummy <- x$sdummy
     direct <- x$direct
     d <- length(difforder)
     reps <- length(x$net$weights)
@@ -343,6 +367,9 @@ print.elm <- function(x, ...){
     writeLines(paste0("ELM fit with ", hdt," hidden node",hde,dtx," and ", reps, " repetition",if(reps>1){"s"},"."))
     if (d>0){
         writeLines(paste0("Series modelled in differences: ", paste0("D",difforder,collapse=""), "."))
+    }
+    if (sdummy == TRUE){
+      writeLines(paste0("Deterministic seasonal dummies included."))
     }
     if (reps>1){
         writeLines(paste0("Forecast combined using the ", x$comb, " operator."))

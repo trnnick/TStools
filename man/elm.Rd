@@ -9,7 +9,8 @@
 elm(y,hd=50,type=c("lasso","step","lm"),reps=20,
     comb=c("median","mean","mode"),lags=NULL,
     difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(FALSE,TRUE),
-    direct=c(FALSE,TRUE))
+    direct=c(FALSE,TRUE),
+    allow.det.season=c(TRUE,FALSE))
 }
 
 \arguments{
@@ -43,6 +44,9 @@ elm(y,hd=50,type=c("lasso","step","lm"),reps=20,
   \item{direct}{
     Use direct input-output connections to model strictly linear effects. Can be TRUE or FALSE. 
     }
+  \item{allow.det.season}{
+    Permit modelling seasonality with deterministic dummies.
+  }
 }
 \value{
 \item{net}{ELM networks.}
@@ -50,6 +54,7 @@ elm(y,hd=50,type=c("lasso","step","lm"),reps=20,
 \item{W}{Output layer weights for ech repetition.}
 \item{lags}{Input lags used.}
 \item{difforder}{Differencing used.}
+\item{sdummy}{Use of deterministic seasonality.}
 \item{y}{Input time series.}
 \item{minmax}{Scaling structure.}
 \item{comb}{Combination operator used.}
