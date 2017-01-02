@@ -29,7 +29,22 @@ elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mea
             }
             if (frequency(y)>1){
                 if (st$season.exist == TRUE){
+                  # difforder <- c(difforder,frequency(y))
+                  
+                  # Remove trend appropriately
+                  cma <- cmav(y)
+                  m.seas <- mseastest(y,cma=cma)$is.multiplicative
+                  if (m.seas == TRUE){
+                    y.dt <- y/cma
+                  } else {
+                    y.dt <- y-cma
+                  }
+                  # Check if unit-root stochastic
+                  d.order <- nsdiffs(y.dt,test="ch")
+                  if (d.order > 0){
                     difforder <- c(difforder,frequency(y))
+                  } 
+                  
                 }
             }
         }
