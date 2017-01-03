@@ -81,7 +81,7 @@ elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mea
         reg.isel <- as.data.frame(cbind(Y,X))
         colnames(reg.isel) <- c("Y",paste0("X",1:max(lags)))
         fit <- lm(Y~.,reg.isel)
-        fit <- stepAIC(fit,trace=0)
+        fit <- stepAIC(fit,trace=0,direction="backward")
         cf.temp <- coef(fit)
         loc <- which(colnames(reg.isel) %in% names(cf.temp))-1
         if (length(loc)==0){
