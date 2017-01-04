@@ -29,6 +29,9 @@ elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mea
             if (st$trend.exist == TRUE){
                 difforder <- 1
             }
+            if (is.null(st$season.exist)){
+              st$season.exist <- FALSE
+            }
             if (frequency(y)>1){
                 if (st$season.exist == TRUE){
                   # difforder <- c(difforder,frequency(y))
@@ -96,7 +99,7 @@ elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mea
     }
     
     # Create seasonal dummies
-    if (!any(difforder == frequency(y)) & if(frequency(y)>1){st$season.exist==TRUE} & allow.det.season==TRUE){
+    if (!any(difforder == frequency(y)) & frequency(y)>1 & st$season.exist==TRUE & allow.det.season==TRUE){
       sdummy <- TRUE
       Xd <- seasdummy(length(Y),y=ts(Y,end=end(y),frequency=frequency(y)))
       colnames(Xd) <- paste0("D",1:length(Xd[1,]))

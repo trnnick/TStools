@@ -1,4 +1,4 @@
-mlp <- function(y,hd=5,reps=20,comb=c("median","mean","mode"),
+mlp <- function(y,m=frequency(y),hd=5,reps=20,comb=c("median","mean","mode"),
                 lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
                 allow.det.season=c(TRUE,FALSE),...){
     
@@ -26,6 +26,9 @@ mlp <- function(y,hd=5,reps=20,comb=c("median","mean","mode"),
             difforder <- NULL
             if (st$trend.exist == TRUE){
                 difforder <- 1
+            }
+            if (is.null(st$season.exist)){
+              st$season.exist <- FALSE
             }
             if (frequency(y)>1){
                 if (st$season.exist == TRUE){
@@ -94,7 +97,7 @@ mlp <- function(y,hd=5,reps=20,comb=c("median","mean","mode"),
     }
 
     # Create seasonal dummies
-    if (!any(difforder == frequency(y)) & if(frequency(y)>1){st$season.exist==TRUE} & allow.det.season==TRUE){
+    if (!any(difforder == frequency(y)) & frequency(y)>1 & st$season.exist==TRUE & allow.det.season==TRUE){
       sdummy <- TRUE
       Xd <- seasdummy(length(Y),y=ts(Y,end=end(y),frequency=frequency(y)))
       colnames(Xd) <- paste0("D",1:length(Xd[1,]))
