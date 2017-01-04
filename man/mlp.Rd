@@ -9,7 +9,7 @@
 elm(y,hd=50,reps=20,
     comb=c("median","mean","mode"),lags=NULL,
     difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
-    allow.det.season=c(TRUE,FALSE),
+    allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
     ...)
 }
 
@@ -41,6 +41,9 @@ elm(y,hd=50,reps=20,
   \item{allow.det.season}{
     Permit modelling seasonality with deterministic dummies.
   }
+  \item{det.type}{
+    Type of deterministic seasonality dummies to use. This can be "bin" for binary or "trg" for a sine-cosine pair. With "auto" if ony a single seasonality is used and periodicity is up to 12 then "bin" is used, otherwise "trg".
+  }
   \item{...}{
     Additional inputs for neuralnet function. 
     }
@@ -51,6 +54,7 @@ elm(y,hd=50,reps=20,
 \item{lags}{Input lags used.}
 \item{difforder}{Differencing used.}
 \item{sdummy}{Use of deterministic seasonality.}
+\item{det.type}{Type of determistic seasonality.}
 \item{y}{Input time series.}
 \item{minmax}{Scaling structure.}
 \item{comb}{Combination operator used.}

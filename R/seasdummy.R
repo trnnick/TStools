@@ -1,4 +1,4 @@
-seasdummy <- function(n,m=12,y=NULL,type=c("bin","trg"),full=c(FALSE,TRUE)){
+seasdummy <- function(n,m=NULL,y=NULL,type=c("bin","trg"),full=c(FALSE,TRUE)){
 # Create deterministic seasonality dummies
 
     # Default
@@ -7,10 +7,16 @@ seasdummy <- function(n,m=12,y=NULL,type=c("bin","trg"),full=c(FALSE,TRUE)){
     
     # Get time series information if available
     if (!is.null(y)){
+      if (is.null(m)){
         m <- frequency(y)
-        start <- tail(start(y),1)
+      }
+      start <- tail(start(y),1)
     } else {
-        start <- 1
+      start <- 1
+    }
+    
+    if (is.null(m)){
+      stop("Seasonality not specified.")
     }
     
     # Create dummies

@@ -1,28 +1,38 @@
 mlp <- function(y,m=frequency(y),hd=5,reps=20,comb=c("median","mean","mode"),
                 lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
-                allow.det.season=c(TRUE,FALSE),...){
+                allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),...){
     
     # Defaults
     comb <- comb[1]
     outplot <- outplot[1]
     sel.lag <- sel.lag[1]
     allow.det.season <- allow.det.season[1]
+    det.type <- det.type[1]
     
     # Check if y input is a time series
-    if (class(y) != "ts"){
-        stop("Input y must be of class ts.")
+    if (!(any(class(y) == "ts") | any(class(y) == "msts"))){
+        stop("Input y must be of class ts or msts.")
+    }
+    
+    # Get time series frequency
+    if (any(class(y) == "msts")){
+      ff <- attributes(y)$msts
+      ff.n <- length(ff)
+    } else {
+      ff <- frequency(y)
+      ff.n <- 1
     }
     
     # Default lagvector
     if (is.null(lags)){
-        lags <- 1:frequency(y)
+        lags <- 1:max(ff)
     }
     
     # Find differencing order
     if (!is.null(difforder)){
         if (difforder == -1){
             # Identify difforder automatically
-            st <- seasplot(y,outplot=0)
+            st <- seasplot(y,m=max(ff),outplot=0)
             difforder <- NULL
             if (st$trend.exist == TRUE){
                 difforder <- 1
@@ -35,17 +45,17 @@ mlp <- function(y,m=frequency(y),hd=5,reps=20,comb=c("median","mean","mode"),
                   # difforder <- c(difforder,frequency(y))
                   
                   # Remove trend appropriately
-                  cma <- cmav(y)
-                  m.seas <- mseastest(y,cma=cma)$is.multiplicative
+                  cma <- cmav(y,ma=max(ff))
+                  m.seas <- mseastest(y,m=max(ff),cma=cma)$is.multiplicative
                   if (m.seas == TRUE){
                     y.dt <- y/cma
                   } else {
                     y.dt <- y-cma
                   }
                   # Check if unit-root stochastic
-                  d.order <- nsdiffs(y.dt,test="ch")
+                  d.order <- nsdiffs(ts(y.dt,frequency=max(ff)),test="ch")
                   if (d.order > 0){
-                    difforder <- c(difforder,frequency(y))
+                    difforder <- c(difforder,max(ff))
                   } 
                   
                 }
@@ -99,8 +109,23 @@ mlp <- function(y,m=frequency(y),hd=5,reps=20,comb=c("median","mean","mode"),
     # Create seasonal dummies
     if (!any(difforder == frequency(y)) & frequency(y)>1 & st$season.exist==TRUE & allow.det.season==TRUE){
       sdummy <- TRUE
-      Xd <- seasdummy(length(Y),y=ts(Y,end=end(y),frequency=frequency(y)))
-      colnames(Xd) <- paste0("D",1:length(Xd[1,]))
+      # Set type of seasonal dummies
+      if (det.type == "auto"){
+        if (ff.n == 1 && ff[1] <= 12){
+          det.type <- "bin"
+        } else {
+          det.type <- "trg"
+        }
+      }
+      Xd <- vector("list",ff.n)
+      for (s in 1:ff.n){
+        Xd[[s]] <- seasdummy(length(Y),y=ts(Y,end=end(y),frequency=ff[s]),type=det.type)
+        colnames(Xd[[s]]) <- paste0("D",s,".",1:length(Xd[[s]][1,]))
+        if (det.type=="trg"){
+          Xd[[s]] <- Xd[[s]][,1:2]
+        }
+      }
+      Xd <- do.call(cbind,Xd)
       X <- cbind(X,Xd) 
     } else {
       sdummy <- FALSE
@@ -176,7 +201,9 @@ mlp <- function(y,m=frequency(y),hd=5,reps=20,comb=c("median","mean","mode"),
         
     }
     
-    return(structure(list("net"=net,"hd"=hd,"lags"=lags,"difforder"=difforder,"sdummy"=sdummy,"y"=y,"minmax"=sc$minmax,"comb"=comb,"fitted"=yout,"MSE"=MSE),class="mlp"))
+    return(structure(list("net"=net,"hd"=hd,"lags"=lags,"difforder"=difforder,"sdummy"=sdummy,
+                          "det.type"=det.type,"y"=y,"minmax"=sc$minmax,"comb"=comb,"fitted"=yout,
+                          "MSE"=MSE),class="mlp"))
     
 }
 
@@ -189,8 +216,17 @@ forecast.mlp <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
         y <- fit$y
     }
     
+    # Get time series frequency
+    if (any(class(y) == "msts")){
+      ff <- attributes(y)$msts
+      ff.n <- length(ff)
+    } else {
+      ff <- frequency(y)
+      ff.n <- 1
+    }
+    
     if (is.null(h)){
-        h <- frequency(y)
+        h <- max(ff)
     }
     
     # Get stuff from fit list
@@ -199,6 +235,7 @@ forecast.mlp <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
     lags <- fit$lags
     difforder <- fit$difforder
     sdummy <- fit$sdummy
+    det.type <- fit$det.type
     minmax <- fit$minmax
     comb <- fit$comb
     fitted <- fit$fitted
@@ -220,8 +257,18 @@ forecast.mlp <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
     Y <- as.vector(linscale(y.d[[d+1]],minmax=minmax)$x)
     
     if (sdummy == TRUE){
-      temp <- ts(1:h,start=fstart,frequency=frequency(y))
-      Xd <- seasdummy(h,y=temp)
+      temp <- ts(1:h,start=fstart,frequency=max(ff))
+      Xd <- vector("list",ff.n)
+      
+      for (s in 1:ff.n){
+        Xd[[s]] <- seasdummy(h,m=ff[s],y=temp,type=det.type)
+        colnames(Xd[[s]]) <- paste0("D",s,".",1:length(Xd[[s]][1,]))
+        if (det.type=="trg"){
+          Xd[[s]] <- Xd[[s]][,1:2]
+        }
+      }
+      Xd <- do.call(cbind,Xd)
+      # Xd <- seasdummy(h,y=temp,type=det.type)
     }
     
     Yfrc <- array(NA,c(h,reps))

@@ -6,7 +6,7 @@
 \description{Create binary or trigonometric seasonal dummies.}
 
 \usage{
-seasdummy(n,m=12,y=NULL,type=c("bin","trg"),full=c(FALSE,TRUE))
+seasdummy(n,m=NULL,y=NULL,type=c("bin","trg"),full=c(FALSE,TRUE))
 }
 
 \arguments{
@@ -14,7 +14,7 @@ seasdummy(n,m=12,y=NULL,type=c("bin","trg"),full=c(FALSE,TRUE))
     Number of observations to create.
     }
   \item{m}{
-    Seasonal periodicity. Will be overriden if a time series is provided (y argument). 
+    Seasonal periodicity. If NULL it will take the information from the provided time series (y argument). 
     }
    \item{y}{
     This is an optional time series input that can be used to get seasonal periodicity (m) and the start point. 
