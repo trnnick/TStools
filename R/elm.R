@@ -164,6 +164,7 @@ forecast.elm <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
     lags <- fit$lags
     difforder <- fit$difforder
     sdummy <- fit$sdummy
+    det.type <- fit$det.type
     minmax <- fit$minmax
     comb <- fit$comb
     direct <- fit$direct
