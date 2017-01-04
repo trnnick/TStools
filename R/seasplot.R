@@ -44,7 +44,7 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
   
   # Get m (seasonality)
   if (is.null(m)){
-    if (class(y) == "ts"){
+    if (any(class(y) == "ts")){
       m <- frequency(y)
     } else {
       stop("Seasonality not defined (y not ts object).")
@@ -53,7 +53,7 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
   
   # Get starting period in seasonality if available
   if (is.null(s)){
-    if (class(y) == "ts"){
+    if (any(class(y) == "ts")){
       s <- start(y)
       s <- s[2]
     } else {

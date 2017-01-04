@@ -6,19 +6,19 @@
 \description{Fit ELM neural network.}
 
 \usage{
-elm(y,hd=50,type=c("lasso","step","lm"),reps=20,
+elm(y,hd=NULL,type=c("lasso","step","lm"),reps=20,
     comb=c("median","mean","mode"),lags=NULL,
     difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(FALSE,TRUE),
-    direct=c(FALSE,TRUE),
-    allow.det.season=c(TRUE,FALSE))
+    direct=c(FALSE,TRUE),allow.det.season=c(TRUE,FALSE),
+    det.type=c("auto","bin","trg"))
 }
 
 \arguments{
   \item{y}{
-    Input time series. 
+    Input time series. Can be ts or msts object. 
     }
   \item{hd}{
-    Number of hidden nodes. This can be a vector.
+    Number of hidden nodes. This can be a vector. Use NULL to automatically specify.
     }
   \item{type}{
     Estimation type for output layer weights. Can be "lasso" (lasso with CV), "step" (stepwise regression with AIC) or "lm" (linear regression).
@@ -47,6 +47,9 @@ elm(y,hd=50,type=c("lasso","step","lm"),reps=20,
   \item{allow.det.season}{
     Permit modelling seasonality with deterministic dummies.
   }
+  \item{det.type}{
+    Type of deterministic seasonality dummies to use. This can be "bin" for binary or "trg" for a sine-cosine pair. With "auto" if ony a single seasonality is used and periodicity is up to 12 then "bin" is used, otherwise "trg".
+  }
 }
 \value{
 \item{net}{ELM networks.}
@@ -55,6 +58,7 @@ elm(y,hd=50,type=c("lasso","step","lm"),reps=20,
 \item{lags}{Input lags used.}
 \item{difforder}{Differencing used.}
 \item{sdummy}{Use of deterministic seasonality.}
+\item{det.type}{Type of determistic seasonality.}
 \item{y}{Input time series.}
 \item{minmax}{Scaling structure.}
 \item{comb}{Combination operator used.}

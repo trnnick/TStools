@@ -28,7 +28,7 @@ cmav <- function(y,ma=NULL,fill=c(TRUE,FALSE),outplot=c(FALSE,TRUE),fast=c(TRUE,
   
   # Get MA length
   if (is.null(ma)){
-    if (class(y) == "ts"){
+    if (any(class(y) == "ts")){
       ma <- frequency(y)
     } else {
       stop("MA length not defined (y not ts object).")

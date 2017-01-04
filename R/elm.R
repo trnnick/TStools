@@ -1,6 +1,6 @@
-elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode"),
+elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode"),
                 lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(FALSE,TRUE),direct=c(FALSE,TRUE),
-                allow.det.season=c(TRUE,FALSE)){
+                allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg")){
     
     # Defaults
     type <- type[1]
@@ -9,103 +9,23 @@ elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mea
     sel.lag <- sel.lag[1]
     direct <- direct[1]
     allow.det.season <- allow.det.season[1]
+    det.type <- det.type[1]
     
-    # Check if y input is a time series
-    if (class(y) != "ts"){
-        stop("Input y must be of class ts.")
-    }
+    # Pre-process data (same for MLP and ELM)
+    PP <- preprocess(y,m,lags,difforder,sel.lag,allow.det.season,det.type)
+    Y <- PP$Y
+    X <- PP$X
+    sdummy <- PP$sdummy
+    difforder <- PP$difforder
+    det.type <- PP$det.type
+    lags <- PP$lags
+    sc <- PP$sc
+    d <- PP$d
+    y.d <- PP$y.d
+    y.ud <- PP$y.ud
     
-    # Default lagvector
-    if (is.null(lags)){
-        lags <- 1:frequency(y)
-    }
-    
-    # Find differencing order
-    if (!is.null(difforder)){
-        if (difforder == -1){
-            # Identify difforder automatically
-            st <- seasplot(y,outplot=0)
-            difforder <- NULL
-            if (st$trend.exist == TRUE){
-                difforder <- 1
-            }
-            if (is.null(st$season.exist)){
-              st$season.exist <- FALSE
-            }
-            if (frequency(y)>1){
-                if (st$season.exist == TRUE){
-                  # difforder <- c(difforder,frequency(y))
-                  
-                  # Remove trend appropriately
-                  cma <- cmav(y)
-                  m.seas <- mseastest(y,cma=cma)$is.multiplicative
-                  if (m.seas == TRUE){
-                    y.dt <- y/cma
-                  } else {
-                    y.dt <- y-cma
-                  }
-                  # Check if unit-root stochastic
-                  d.order <- nsdiffs(y.dt,test="ch")
-                  if (d.order > 0){
-                    difforder <- c(difforder,frequency(y))
-                  } 
-                  
-                }
-            }
-        }
-    }
-    
-    # Apply differencing
-    d <- length(difforder)
-    y.d <- y.ud <- vector("list",d+1)
-    y.d[[1]] <- y
-    names(y.d)[1] <- "d0"
-    if (d>0){
-        for (i in 1:d){
-            y.d[[i+1]] <- diff(y.d[[i]],difforder[i])
-            names(y.d)[i+1] <- paste0(names(y.d)[i],"d",difforder[i])
-        }
-    }
-    names(y.ud) <- names(y.d)
-    
-    # Scale target
-    sc <- linscale(tail(y.d,1)[[1]],minmax=list("mn"=-.8,"mx"=0.8))
-    y.sc <- sc$x
-    n <- length(y.sc)
-    
-    # Prepare inputs & target
-    y.sc.lag <- lagmatrix(y.sc,unique(c(0,lags)))
-    Y <- y.sc.lag[(max(lags)+1):n,1,drop=FALSE]
-    X <- y.sc.lag[(max(lags)+1):n,2:(length(lags)+1),drop=FALSE]
-    colnames(X) <- paste0("X",lags)
-    
-    # Select lags
-    if (sel.lag == TRUE){
-        reg.isel <- as.data.frame(cbind(Y,X))
-        colnames(reg.isel) <- c("Y",paste0("X",1:max(lags)))
-        fit <- lm(Y~.,reg.isel)
-        fit <- stepAIC(fit,trace=0,direction="backward")
-        cf.temp <- coef(fit)
-        loc <- which(colnames(reg.isel) %in% names(cf.temp))-1
-        if (length(loc)==0){
-          loc <- 1
-        }
-        # X <- X[,loc,drop=FALSE]
-        lags <- loc
-        y.sc.lag <- lagmatrix(y.sc,unique(c(0,lags)))
-        Y <- y.sc.lag[(max(lags)+1):n,1,drop=FALSE]
-        X <- y.sc.lag[(max(lags)+1):n,2:(length(lags)+1),drop=FALSE]
-        colnames(X) <- paste0("X",lags)
-    }
-    
-    # Create seasonal dummies
-    if (!any(difforder == frequency(y)) & frequency(y)>1 & st$season.exist==TRUE & allow.det.season==TRUE){
-      sdummy <- TRUE
-      Xd <- seasdummy(length(Y),y=ts(Y,end=end(y),frequency=frequency(y)))
-      colnames(Xd) <- paste0("D",1:length(Xd[1,]))
-      X <- cbind(X,Xd) 
-    } else {
-      sdummy <- FALSE
+    if (is.null(hd)){
+      hd <- min(100,max(20,ceiling(length(Y)*0.8)))
     }
     
     # Create network
@@ -205,11 +125,13 @@ elm <- function(y,hd=50,type=c("lasso","step","lm"),reps=20,comb=c("median","mea
                 lines(temp,col="grey")
             }
         }
-        lines(yout,col="red")
+        lines(yout,col="blue")
         
     }
     
-    return(structure(list("net"=net,"hd"=hd,"W"=W,"lags"=lags,"difforder"=difforder,"sdummy"=sdummy,"y"=y,"minmax"=sc$minmax,"comb"=comb,"type"=type,"direct"=direct,"fitted"=yout,"MSE"=MSE),class="elm"))
+    return(structure(list("net"=net,"hd"=hd,"W"=W,"lags"=lags,"difforder"=difforder,
+                          "sdummy"=sdummy,"det.type"=det.type,"y"=y,"minmax"=sc$minmax,
+                          "comb"=comb,"type"=type,"direct"=direct,"fitted"=yout,"MSE"=MSE),class="elm"))
     
 }
 
@@ -222,8 +144,17 @@ forecast.elm <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
         y <- fit$y
     }
     
+    # Get time series frequency
+    if (any(class(y) == "msts")){
+      ff <- attributes(y)$msts
+      ff.n <- length(ff)
+    } else {
+      ff <- frequency(y)
+      ff.n <- 1
+    }
+    
     if (is.null(h)){
-        h <- frequency(y)
+      h <- max(ff)
     }
     
     # Get stuff from fit list
@@ -255,8 +186,18 @@ forecast.elm <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
     Y <- as.vector(linscale(y.d[[d+1]],minmax=minmax)$x)
 
     if (sdummy == TRUE){
-      temp <- ts(1:h,start=fstart,frequency=frequency(y))
-      Xd <- seasdummy(h,y=temp)
+      temp <- ts(1:h,start=fstart,frequency=max(ff))
+      Xd <- vector("list",ff.n)
+      
+      for (s in 1:ff.n){
+        Xd[[s]] <- seasdummy(h,m=ff[s],y=temp,type=det.type)
+        colnames(Xd[[s]]) <- paste0("D",s,".",1:length(Xd[[s]][1,]))
+        if (det.type=="trg"){
+          Xd[[s]] <- Xd[[s]][,1:2]
+        }
+      }
+      Xd <- do.call(cbind,Xd)
+      # Xd <- seasdummy(h,y=temp,type=det.type)
     }
     
     Yfrc <- array(NA,c(h,reps))
@@ -324,7 +265,7 @@ forecast.elm <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
     fout <- ts(fout,frequency=frequency(y),start=fstart)
     
     if (outplot==TRUE){
-        ts.plot(y,fitted,fout,col=c("black","red","red"))
+        ts.plot(y,fitted,fout,col=c("black","blue","red"))
         if (reps>1){
             for (r in 1:reps){
                 temp <- Yfrc[,r]

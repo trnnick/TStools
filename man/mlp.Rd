@@ -15,7 +15,7 @@ elm(y,hd=50,reps=20,
 
 \arguments{
   \item{y}{
-    Input time series. 
+    Input time series. Can be ts or msts object.
     }
   \item{hd}{
     Number of hidden nodes. This can be a vector.

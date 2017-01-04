@@ -8,129 +8,20 @@ mlp <- function(y,m=frequency(y),hd=5,reps=20,comb=c("median","mean","mode"),
     sel.lag <- sel.lag[1]
     allow.det.season <- allow.det.season[1]
     det.type <- det.type[1]
-    
-    # Check if y input is a time series
-    if (!(any(class(y) == "ts") | any(class(y) == "msts"))){
-        stop("Input y must be of class ts or msts.")
-    }
-    
-    # Get time series frequency
-    if (any(class(y) == "msts")){
-      ff <- attributes(y)$msts
-      ff.n <- length(ff)
-    } else {
-      ff <- frequency(y)
-      ff.n <- 1
-    }
-    
-    # Default lagvector
-    if (is.null(lags)){
-        lags <- 1:max(ff)
-    }
-    
-    # Find differencing order
-    if (!is.null(difforder)){
-        if (difforder == -1){
-            # Identify difforder automatically
-            st <- seasplot(y,m=max(ff),outplot=0)
-            difforder <- NULL
-            if (st$trend.exist == TRUE){
-                difforder <- 1
-            }
-            if (is.null(st$season.exist)){
-              st$season.exist <- FALSE
-            }
-            if (frequency(y)>1){
-                if (st$season.exist == TRUE){
-                  # difforder <- c(difforder,frequency(y))
-                  
-                  # Remove trend appropriately
-                  cma <- cmav(y,ma=max(ff))
-                  m.seas <- mseastest(y,m=max(ff),cma=cma)$is.multiplicative
-                  if (m.seas == TRUE){
-                    y.dt <- y/cma
-                  } else {
-                    y.dt <- y-cma
-                  }
-                  # Check if unit-root stochastic
-                  d.order <- nsdiffs(ts(y.dt,frequency=max(ff)),test="ch")
-                  if (d.order > 0){
-                    difforder <- c(difforder,max(ff))
-                  } 
-                  
-                }
-            }
-        }
-    }
-    
-    # Apply differencing
-    d <- length(difforder)
-    y.d <- y.ud <- vector("list",d+1)
-    y.d[[1]] <- y
-    names(y.d)[1] <- "d0"
-    if (d>0){
-        for (i in 1:d){
-            y.d[[i+1]] <- diff(y.d[[i]],difforder[i])
-            names(y.d)[i+1] <- paste0(names(y.d)[i],"d",difforder[i])
-        }
-    }
-    names(y.ud) <- names(y.d)
-    
-    # Scale target
-    sc <- linscale(tail(y.d,1)[[1]],minmax=list("mn"=-.8,"mx"=0.8))
-    y.sc <- sc$x
-    n <- length(y.sc)
-    
-    # Prepare inputs & target
-    y.sc.lag <- lagmatrix(y.sc,unique(c(0,lags)))
-    Y <- y.sc.lag[(max(lags)+1):n,1,drop=FALSE]
-    X <- y.sc.lag[(max(lags)+1):n,2:(length(lags)+1),drop=FALSE]
-    colnames(X) <- paste0("X",lags)
-    
-    # Select lags
-    if (sel.lag == TRUE){
-        reg.isel <- as.data.frame(cbind(Y,X))
-        colnames(reg.isel) <- c("Y",paste0("X",1:max(lags)))
-        fit <- lm(Y~.,reg.isel)
-        fit <- stepAIC(fit,trace=0,direction="backward")
-        cf.temp <- coef(fit)
-        loc <- which(colnames(reg.isel) %in% names(cf.temp))-1
-        if (length(loc)==0){
-            loc <- 1
-        }
-        # X <- X[,loc,drop=FALSE]
-        lags <- loc
-        y.sc.lag <- lagmatrix(y.sc,unique(c(0,lags)))
-        Y <- y.sc.lag[(max(lags)+1):n,1,drop=FALSE]
-        X <- y.sc.lag[(max(lags)+1):n,2:(length(lags)+1),drop=FALSE]
-        colnames(X) <- paste0("X",lags)
-    }
 
-    # Create seasonal dummies
-    if (!any(difforder == frequency(y)) & frequency(y)>1 & st$season.exist==TRUE & allow.det.season==TRUE){
-      sdummy <- TRUE
-      # Set type of seasonal dummies
-      if (det.type == "auto"){
-        if (ff.n == 1 && ff[1] <= 12){
-          det.type <- "bin"
-        } else {
-          det.type <- "trg"
-        }
-      }
-      Xd <- vector("list",ff.n)
-      for (s in 1:ff.n){
-        Xd[[s]] <- seasdummy(length(Y),y=ts(Y,end=end(y),frequency=ff[s]),type=det.type)
-        colnames(Xd[[s]]) <- paste0("D",s,".",1:length(Xd[[s]][1,]))
-        if (det.type=="trg"){
-          Xd[[s]] <- Xd[[s]][,1:2]
-        }
-      }
-      Xd <- do.call(cbind,Xd)
-      X <- cbind(X,Xd) 
-    } else {
-      sdummy <- FALSE
-    }
-        
+    # Pre-process data (same for MLP and ELM)
+    PP <- preprocess(y,m,lags,difforder,sel.lag,allow.det.season,det.type)
+    Y <- PP$Y
+    X <- PP$X
+    sdummy <- PP$sdummy
+    difforder <- PP$difforder
+    det.type <- PP$det.type
+    lags <- PP$lags
+    sc <- PP$sc
+    d <- PP$d
+    y.d <- PP$y.d
+    y.ud <- PP$y.ud
+    
     # Create network
     frm <- paste0(colnames(X),"+",collapse="")
     frm <- substr(frm,1,nchar(frm)-1)
@@ -197,7 +88,7 @@ mlp <- function(y,m=frequency(y),hd=5,reps=20,comb=c("median","mean","mode"),
                 lines(temp,col="grey")
             }
         }
-        lines(yout,col="red")
+        lines(yout,col="blue")
         
     }
     
@@ -328,7 +219,7 @@ forecast.mlp <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
     fout <- ts(fout,frequency=frequency(y),start=fstart)
     
     if (outplot==TRUE){
-        ts.plot(y,fitted,fout,col=c("black","red","red"))
+        ts.plot(y,fitted,fout,col=c("black","blue","red"))
         if (reps>1){
             for (r in 1:reps){
                 temp <- Yfrc[,r]
@@ -376,4 +267,136 @@ print.mlp <- function(x, ...){
     }
     writeLines(paste0("MSE: ",round(x$MSE,4),"."))
     
+}
+
+preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type){
+# Pre-process data for MLP and ELM
+  
+  # Check if y input is a time series
+  if (!(any(class(y) == "ts") | any(class(y) == "msts"))){
+    stop("Input y must be of class ts or msts.")
+  }
+  
+  # Get time series frequency
+  if (any(class(y) == "msts")){
+    ff <- attributes(y)$msts
+    ff.n <- length(ff)
+  } else {
+    ff <- frequency(y)
+    ff.n <- 1
+  }
+  
+  # Default lagvector
+  if (is.null(lags)){
+    lags <- 1:max(ff)
+  }
+  
+  # Check seasonality & trend
+  st <- seasplot(y,m=max(ff),outplot=0)
+  if (is.null(st$season.exist)){
+    st$season.exist <- FALSE
+  }
+  
+  # Find differencing order
+  if (!is.null(difforder)){
+    if (any(difforder == -1)){
+      # Identify difforder automatically
+      difforder <- NULL
+      if (st$trend.exist == TRUE){
+        difforder <- 1
+      }
+      if (frequency(y)>1){
+        if (st$season.exist == TRUE){
+          # difforder <- c(difforder,frequency(y))
+          
+          # Remove trend appropriately
+          cma <- cmav(y,ma=max(ff))
+          m.seas <- mseastest(y,m=max(ff),cma=cma)$is.multiplicative
+          if (m.seas == TRUE){
+            y.dt <- y/cma
+          } else {
+            y.dt <- y-cma
+          }
+          # Check if unit-root stochastic
+          d.order <- nsdiffs(ts(y.dt,frequency=max(ff)),test="ch")
+          if (d.order > 0){
+            difforder <- c(difforder,max(ff))
+          } 
+          
+        }
+      }
+    }
+  } 
+  
+  # Apply differencing
+  d <- length(difforder)
+  y.d <- y.ud <- vector("list",d+1)
+  y.d[[1]] <- y
+  names(y.d)[1] <- "d0"
+  if (d>0){
+    for (i in 1:d){
+      y.d[[i+1]] <- diff(y.d[[i]],difforder[i])
+      names(y.d)[i+1] <- paste0(names(y.d)[i],"d",difforder[i])
+    }
+  }
+  names(y.ud) <- names(y.d)
+  
+  # Scale target
+  sc <- linscale(tail(y.d,1)[[1]],minmax=list("mn"=-.8,"mx"=0.8))
+  y.sc <- sc$x
+  n <- length(y.sc)
+  
+  # Prepare inputs & target
+  y.sc.lag <- lagmatrix(y.sc,unique(c(0,lags)))
+  Y <- y.sc.lag[(max(lags)+1):n,1,drop=FALSE]
+  X <- y.sc.lag[(max(lags)+1):n,2:(length(lags)+1),drop=FALSE]
+  colnames(X) <- paste0("X",lags)
+  
+  # Select lags
+  if (sel.lag == TRUE){
+    reg.isel <- as.data.frame(cbind(Y,X))
+    colnames(reg.isel) <- c("Y",paste0("X",1:max(lags)))
+    fit <- lm(Y~.,reg.isel)
+    fit <- stepAIC(fit,trace=0,direction="backward")
+    cf.temp <- coef(fit)
+    loc <- which(colnames(reg.isel) %in% names(cf.temp))-1
+    if (length(loc)==0){
+      loc <- 1
+    }
+    # X <- X[,loc,drop=FALSE]
+    lags <- loc
+    y.sc.lag <- lagmatrix(y.sc,unique(c(0,lags)))
+    Y <- y.sc.lag[(max(lags)+1):n,1,drop=FALSE]
+    X <- y.sc.lag[(max(lags)+1):n,2:(length(lags)+1),drop=FALSE]
+    colnames(X) <- paste0("X",lags)
+  }
+  
+  # Create seasonal dummies
+  if (if(ff.n > 1){TRUE}else{!any(difforder == max(ff))}
+      & frequency(y)>1 & st$season.exist==TRUE & allow.det.season==TRUE){
+    sdummy <- TRUE
+    # Set type of seasonal dummies
+    if (det.type == "auto"){
+      if (ff.n == 1 && ff[1] <= 12){
+        det.type <- "bin"
+      } else {
+        det.type <- "trg"
+      }
+    }
+    Xd <- vector("list",ff.n)
+    for (s in 1:ff.n){
+      Xd[[s]] <- seasdummy(length(Y),y=ts(Y,end=end(y),frequency=ff[s]),type=det.type)
+      colnames(Xd[[s]]) <- paste0("D",s,".",1:length(Xd[[s]][1,]))
+      if (det.type=="trg"){
+        Xd[[s]] <- Xd[[s]][,1:2]
+      }
+    }
+    Xd <- do.call(cbind,Xd)
+    X <- cbind(X,Xd) 
+  } else {
+    sdummy <- FALSE
+  }
+  
+  return(list("Y"=Y,"X"=X,"sdummy"=sdummy,"difforder"=difforder,"det.type"=det.type,"lags"=lags,"sc"=sc,"d"=d,"y.d"=y.d,"y.ud"=y.ud))
+  
 }
