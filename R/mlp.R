@@ -315,7 +315,7 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type){
             m.seas <- TRUE
           } else {
             # Test can only run if there are at least three seasons
-            m.seas <- seastest(y,m=max(ff),cma=cma)$is.multiplicative
+            m.seas <- mseastest(y,m=max(ff),cma=cma)$is.multiplicative
           }
           if (m.seas == TRUE){
             y.dt <- y/cma
