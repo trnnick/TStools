@@ -77,6 +77,9 @@ mseastest <- function(y,m=NULL,type=c("pearson","spearman","kendall"),cma=NULL,
     X <- X[!is.na(X)]
     Y <- cma[seq(idx[i],n,m)]
     Y <- Y[!is.na(X)]
+    if (length(X)<3){
+      stop("Not enough seasons to test for multiplicative seasonality.")
+    }
     test <- cor.test(X,Y,method=type,alternative="greater")
     cor.size[i] <- test$estimate
     cor.pvalue[i] <- test$p.value

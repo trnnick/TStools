@@ -15,19 +15,25 @@ seasdummy <- function(n,m=NULL,y=NULL,type=c("bin","trg"),full=c(FALSE,TRUE)){
       start <- 1
     }
     
+    if (start >= n){
+      n.sim <- n + start
+    } else {
+      n.sim <- n
+    }
+    
     if (is.null(m)){
       stop("Seasonality not specified.")
     }
     
     # Create dummies
-    x <- array(0,c(n,m))
+    x <- array(0,c(n.sim,m))
     if (type == "bin"){
-        x[seq(1,n,m),1] <- 1
+        x[seq(1,n.sim,m),1] <- 1
         for (i in 2:m){
-            x[,i] <- c(tail(x[,i-1],1),x[1:(n-1),i-1])
+            x[,i] <- c(tail(x[,i-1],1),x[1:(n.sim-1),i-1])
         }
     } else { # trg
-        t <- 1:n
+        t <- 1:n.sim
         for (i in 1:(m/2)){
             x[,1+(i-1)*2] <- cos((2*t*pi*i)/m)
             x[,2+(i-1)*2] <- sin((2*t*pi*i)/m)
@@ -43,6 +49,9 @@ seasdummy <- function(n,m=NULL,y=NULL,type=c("bin","trg"),full=c(FALSE,TRUE)){
     if (start > 1){
         x <- rbind(x[start:n,],x[1:(start-1),])
     }
+    
+    # If n.sim is larger, just retain n observations
+    x <- x[1:n,,drop=FALSE]
     
     return(x)
     

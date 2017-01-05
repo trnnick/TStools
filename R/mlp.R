@@ -311,7 +311,12 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type){
           
           # Remove trend appropriately
           cma <- cmav(y,ma=max(ff))
-          m.seas <- mseastest(y,m=max(ff),cma=cma)$is.multiplicative
+          if (length(y)/max(ff) < 3){
+            m.seas <- TRUE
+          } else {
+            # Test can only run if there are at least three seasons
+            m.seas <- seastest(y,m=max(ff),cma=cma)$is.multiplicative
+          }
           if (m.seas == TRUE){
             y.dt <- y/cma
           } else {
@@ -355,7 +360,7 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type){
   # Select lags
   if (sel.lag == TRUE){
     reg.isel <- as.data.frame(cbind(Y,X))
-    colnames(reg.isel) <- c("Y",paste0("X",1:max(lags)))
+    colnames(reg.isel) <- c("Y",paste0("X",lags))
     fit <- lm(Y~.,reg.isel)
     fit <- stepAIC(fit,trace=0,direction="backward")
     cf.temp <- coef(fit)
