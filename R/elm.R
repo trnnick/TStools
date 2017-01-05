@@ -282,6 +282,10 @@ forecast.elm <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
     
 }
 
+plot.elm <- function(x, r=1, ...){
+    plot.net(x,r)
+}
+
 print.elm <- function(x, ...){
     
     difforder <- x$difforder

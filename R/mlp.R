@@ -235,6 +235,10 @@ forecast.mlp <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
     
 }
 
+plot.mlp <- function(x, r=1, ...){
+    plot.net(x,r)
+}
+
 print.mlp <- function(x, ...){
     
     difforder <- x$difforder
