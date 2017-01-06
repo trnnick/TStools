@@ -23,7 +23,7 @@ plot.net <- function(fit,r=1){
         layer.size[i+1] <- dim(net$weights[[r]][[i]])[2]
         layer.yy[[i+1]] <- seq(0,1,length.out=layer.size[i+1]+2)
     }
-    rd <- 1/((max(layer.size)+2)*1.75)
+    rd <- max(0.015,1/((max(layer.size)+2)*1.75))
     
     plot(NA,NA,xlim=c(0,1),ylim=c(0,1),xlab="",ylab="",xaxt="n",yaxt="n",bty="n",main=toupper(ttl))
     
@@ -87,7 +87,7 @@ plot.net <- function(fit,r=1){
         
     # Add x-axis
     if (layer.size[1]>1){inp<-"Inputs"}else{inp<-"Input"}
-    if (layer.n>2){}
-    axis(1,at=layer.xx[2:(layer.n+2)],labels=c(inp,paste0("Hidden ",1:(layer.n-1)),"Output"),col=NA)
+    if (layer.n>2){lay<-paste0("Hidden ",1:(layer.n-1))}else{lay<-"Hidden"}
+    axis(1,at=layer.xx[2:(layer.n+2)],labels=c(inp,lay,"Output"),col=NA)
 
 }
