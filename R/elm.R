@@ -23,15 +23,13 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
     d <- PP$d
     y.d <- PP$y.d
     y.ud <- PP$y.ud
+    frm <- PP$frm
     
     if (is.null(hd)){
-      hd <- min(100,max(20,ceiling(length(Y)*0.8)))
+      hd <- min(100,max(1,length(Y)-2-direct*length(lags)))
     }
     
     # Create network
-    frm <- paste0(colnames(X),"+",collapse="")
-    frm <- substr(frm,1,nchar(frm)-1)
-    frm <- as.formula(paste0("Y~",frm))
     net <- neuralnet(frm,cbind(Y,X),hidden=hd,threshold=10^10,rep=reps,err.fct="sse",linear.output=FALSE)
     
     # Get hidden nodes output and weights for each repetition
@@ -50,16 +48,16 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
         # Calculate regression
         switch(type,
                "lasso" = {
-                   fit <- cv.glmnet(Z,cbind(Y))
+                   fit <- suppressWarnings(cv.glmnet(Z,cbind(Y)))
                    cf <- as.vector(coef(fit))
                },
                {
                    reg.data <- as.data.frame(cbind(Y,Z))
                    colnames(reg.data) <- c("Y",paste0("X",1:(tail(hd,1)+direct*length(lags))))
-                   fit <- lm(Y~.,reg.data)
+                   fit <- suppressWarnings(lm(Y~.,reg.data))
                    cf <- coef(fit)
                    if (type == "step"){
-                       fit <- stepAIC(fit,trace=0)
+                       fit <- suppressWarnings(stepAIC(fit,trace=0))
                        cf.temp <- coef(fit)
                        loc <- which(colnames(reg.data) %in% names(cf.temp))
                        cf <- rep(0,(tail(hd,1)+1+direct*length(lags)))

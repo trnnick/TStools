@@ -25,44 +25,44 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     
     # Auto specify number of hidden nodes
     if (is.null(hd)){
-      p <- length(X[1,])
-      if (p > 4){
-        hd <- c(p,4)
-      } else {
-        hd <- 4
-      }
+      # p <- length(X[1,])
+      # if (p > 4){
+      #   hd <- c(p,4)
+      # } else {
+      #   hd <- 4
+      # }
       
-      # # Use ELM to find hidden nodes
-      # net <- neuralnet(frm,cbind(Y,X),hidden=100,threshold=10^10,rep=20,err.fct="sse",linear.output=FALSE)
-      # hd.elm <- vector("numeric",20)
-      # for (r in 1:20){
-      #   Z <- as.matrix(tail(compute(net,X,r)$neurons,1)[[1]][,2:(100+1)])
-      # 
-      #   type <- "lm"
-      #   # Calculate regression
-      #   switch(type,
-      #          "lasso" = {
-      #            fit <- cv.glmnet(Z,cbind(Y))
-      #            cf <- as.vector(coef(fit))
-      #            hd.elm[r] <- sum(cf>0)-1 # -1 for intercept
-      #          },
-      #          {
-      #            reg.data <- as.data.frame(cbind(Y,Z))
-      #            colnames(reg.data) <- c("Y",paste0("X",1:100))
-      #            fit <- lm(Y~.,reg.data)
-      #            hd.elm[r] <- sum(summary(fit)$coefficients[,4]<0.05)-1
-      #            if (type == "step"){
-      #              fit <- stepAIC(fit,trace=0,direction="forward")
-      #              hd.elm[r] <- sum(summary(fit)$coefficients[,4]<0.05)-1
-      #            }
-      #          })
-      #   
-      # }
-      # 
-      # hd <- round(median(hd.elm))
-      # if (hd<1){
-      #   hd <- 1
-      # }
+      # Use ELM to find hidden nodes
+      sz.elm <- max(1,length(X[1,])-2)
+      net <- neuralnet(frm,cbind(Y,X),hidden=sz.elm,threshold=10^10,rep=20,err.fct="sse",linear.output=FALSE)
+      hd.elm <- vector("numeric",20)
+      for (r in 1:20){
+        Z <- as.matrix(tail(compute(net,X,r)$neurons,1)[[1]][,2:(sz.elm+1)])
+
+        type <- "step"
+        # Calculate regression
+        switch(type,
+               "lasso" = {
+                 fit <- suppressWarnings(cv.glmnet(Z,cbind(Y)))
+                 cf <- as.vector(coef(fit))
+                 hd.elm[r] <- sum(cf>0)-1 # -1 for intercept
+               },
+               {
+                 reg.data <- as.data.frame(cbind(Y,Z))
+                 colnames(reg.data) <- c("Y",paste0("X",1:sz.elm))
+                 fit <- suppressWarnings(lm(Y~.,reg.data))
+                 hd.elm[r] <- sum(summary(fit)$coefficients[,4]<0.05,na.rm=TRUE)-1
+                 if (type == "step"){
+                   fit <- suppressWarnings(stepAIC(fit,trace=0,direction="backward"))
+                   hd.elm[r] <- sum(summary(fit)$coefficients[,4]<0.05,na.rm=TRUE)-1
+                 }
+               })
+
+      }
+      hd <- round(median(hd.elm))
+      if (hd<1){
+        hd <- 1
+      }
       
     }
     
@@ -411,7 +411,7 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type){
     reg.isel <- as.data.frame(cbind(Y,X))
     colnames(reg.isel) <- c("Y",paste0("X",lags))
     fit <- lm(Y~.,reg.isel)
-    fit <- stepAIC(fit,trace=0,direction="backward")
+    fit <- stepAIC(fit,trace=0,direction="both")
     cf.temp <- coef(fit)
     loc <- which(colnames(reg.isel) %in% names(cf.temp))-1
     if (length(loc)==0){
