@@ -1,4 +1,4 @@
-mlp <- function(y,m=frequency(y),hd=5,reps=20,comb=c("median","mean","mode"),
+mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
                 lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
                 allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),...){
     
@@ -21,6 +21,16 @@ mlp <- function(y,m=frequency(y),hd=5,reps=20,comb=c("median","mean","mode"),
     d <- PP$d
     y.d <- PP$y.d
     y.ud <- PP$y.ud
+    
+    # Auto specify number of hidden nodes
+    if (is.null(hd)){
+      p <- length(X[1,])
+      if (p > 5){
+        hd <- c(p,5)
+      } else {
+        hd <- 5
+      }
+    }
     
     # Create network
     frm <- paste0(colnames(X),"+",collapse="")
@@ -292,7 +302,11 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type){
   
   # Default lagvector
   if (is.null(lags)){
-    lags <- 1:max(ff)
+    if (max(ff)>3){
+      lags <- 1:max(ff)
+    } else {
+      lags <- 1:4
+    }
   }
   
   # Check seasonality & trend
