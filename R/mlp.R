@@ -21,21 +21,52 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     d <- PP$d
     y.d <- PP$y.d
     y.ud <- PP$y.ud
+    frm <- PP$frm
     
     # Auto specify number of hidden nodes
     if (is.null(hd)){
       p <- length(X[1,])
-      if (p > 5){
-        hd <- c(p,5)
+      if (p > 4){
+        hd <- c(p,4)
       } else {
-        hd <- 5
+        hd <- 4
       }
+      
+      # # Use ELM to find hidden nodes
+      # net <- neuralnet(frm,cbind(Y,X),hidden=100,threshold=10^10,rep=20,err.fct="sse",linear.output=FALSE)
+      # hd.elm <- vector("numeric",20)
+      # for (r in 1:20){
+      #   Z <- as.matrix(tail(compute(net,X,r)$neurons,1)[[1]][,2:(100+1)])
+      # 
+      #   type <- "lm"
+      #   # Calculate regression
+      #   switch(type,
+      #          "lasso" = {
+      #            fit <- cv.glmnet(Z,cbind(Y))
+      #            cf <- as.vector(coef(fit))
+      #            hd.elm[r] <- sum(cf>0)-1 # -1 for intercept
+      #          },
+      #          {
+      #            reg.data <- as.data.frame(cbind(Y,Z))
+      #            colnames(reg.data) <- c("Y",paste0("X",1:100))
+      #            fit <- lm(Y~.,reg.data)
+      #            hd.elm[r] <- sum(summary(fit)$coefficients[,4]<0.05)-1
+      #            if (type == "step"){
+      #              fit <- stepAIC(fit,trace=0,direction="forward")
+      #              hd.elm[r] <- sum(summary(fit)$coefficients[,4]<0.05)-1
+      #            }
+      #          })
+      #   
+      # }
+      # 
+      # hd <- round(median(hd.elm))
+      # if (hd<1){
+      #   hd <- 1
+      # }
+      
     }
     
     # Create network
-    frm <- paste0(colnames(X),"+",collapse="")
-    frm <- substr(frm,1,nchar(frm)-1)
-    frm <- as.formula(paste0("Y~",frm))
     net <- neuralnet(frm,cbind(Y,X),hidden=hd,rep=reps,err.fct="sse",linear.output=TRUE,...)
     
     # Produce forecasts
@@ -420,6 +451,11 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type){
     sdummy <- FALSE
   }
   
-  return(list("Y"=Y,"X"=X,"sdummy"=sdummy,"difforder"=difforder,"det.type"=det.type,"lags"=lags,"sc"=sc,"d"=d,"y.d"=y.d,"y.ud"=y.ud))
+  # Netwrok formula
+  frm <- paste0(colnames(X),"+",collapse="")
+  frm <- substr(frm,1,nchar(frm)-1)
+  frm <- as.formula(paste0("Y~",frm))
+  
+  return(list("Y"=Y,"X"=X,"sdummy"=sdummy,"difforder"=difforder,"det.type"=det.type,"lags"=lags,"sc"=sc,"d"=d,"y.d"=y.d,"y.ud"=y.ud,"frm"=frm))
   
 }
