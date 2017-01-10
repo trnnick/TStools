@@ -22,7 +22,6 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     y.d <- PP$y.d
     y.ud <- PP$y.ud
     frm <- PP$frm
-    ff.det <- PP$ff.det
     
     # Auto specify number of hidden nodes
     if (is.null(hd)){
@@ -134,7 +133,7 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
         
     }
     
-    return(structure(list("net"=net,"hd"=hd,"lags"=lags,"difforder"=difforder,"sdummy"=sdummy,"ff.det"=ff.det,
+    return(structure(list("net"=net,"hd"=hd,"lags"=lags,"difforder"=difforder,"sdummy"=sdummy,
                           "det.type"=det.type,"y"=y,"minmax"=sc$minmax,"comb"=comb,"fitted"=yout,
                           "MSE"=MSE),class="mlp"))
     
@@ -172,8 +171,6 @@ forecast.mlp <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
     minmax <- fit$minmax
     comb <- fit$comb
     fitted <- fit$fitted
-    ff.det <- fit$ff.det
-    ff.n.det <- length(ff.det)
     reps <- length(net$weights)
     
     fstart <- c(end(y)[1],end(y)[2]+1)
@@ -192,11 +189,11 @@ forecast.mlp <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
     Y <- as.vector(linscale(y.d[[d+1]],minmax=minmax)$x)
     
     if (sdummy == TRUE){
-      temp <- ts(1:h,start=fstart,frequency=max(ff.det))
-      Xd <- vector("list",ff.n.det)
+      temp <- ts(1:h,start=fstart,frequency=max(ff))
+      Xd <- vector("list",ff.n)
       
-      for (s in 1:ff.n.det){
-        Xd[[s]] <- seasdummy(h,m=ff.det[s],y=temp,type=det.type)
+      for (s in 1:ff.n){
+        Xd[[s]] <- seasdummy(h,m=ff[s],y=temp,type=det.type)
         colnames(Xd[[s]]) <- paste0("D",s,".",1:length(Xd[[s]][1,]))
         if (det.type=="trg"){
           Xd[[s]] <- Xd[[s]][,1:2]
@@ -349,113 +346,6 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type){
     st$season.exist <- FALSE
   }
   
-  # Specify differencing order
-  difforder <- ndiffs.net(difforder,y,ff,st)
-  
-  # Apply differencing
-  d <- length(difforder)
-  y.d <- y.ud <- vector("list",d+1)
-  y.d[[1]] <- y
-  names(y.d)[1] <- "d0"
-  if (d>0){
-    for (i in 1:d){
-      y.d[[i+1]] <- diff(y.d[[i]],difforder[i])
-      names(y.d)[i+1] <- paste0(names(y.d)[i],"d",difforder[i])
-    }
-  }
-  names(y.ud) <- names(y.d)
-  
-  # Scale target
-  sc <- linscale(tail(y.d,1)[[1]],minmax=list("mn"=-.8,"mx"=0.8))
-  y.sc <- sc$x
-  n <- length(y.sc)
-  
-  # Prepare inputs & target
-  y.sc.lag <- lagmatrix(y.sc,unique(c(0,lags)))
-  Y <- y.sc.lag[(max(lags)+1):n,1,drop=FALSE]
-  X <- y.sc.lag[(max(lags)+1):n,2:(length(lags)+1),drop=FALSE]
-  colnames(X) <- paste0("X",lags)
-  
-  # Create seasonal dummies
-  seas.dum <- seas.dum.net(st,difforder,det.type,ff,ff.n,Y,y,allow.det.season)
-  Xd <- seas.dum$Xd
-  det.type <- seas.dum$det.type
-  sdummy <- seas.dum$sdummy
-  
-  # Select lags
-  if (sel.lag == TRUE){
-    reg.isel <- as.data.frame(cbind(Y,X))
-    colnames(reg.isel) <- c("Y",paste0("X",lags))
-    if (sdummy == FALSE){
-      fit <- lm(Y~.,reg.isel)
-      ff.det <- NULL
-    } else {
-      lm.frm <- as.formula(paste0("Y~.+",paste(paste0("Xd[[",1:ff.n,"]]"),collapse="+")))
-      fit <- lm(lm.frm,reg.isel)
-    }
-    fit <- stepAIC(fit,trace=0,direction="both")
-    # Get useful lags
-    cf.temp <- coef(fit)
-    loc <- which(colnames(reg.isel) %in% names(cf.temp))-1
-    if (length(loc)==0){
-      loc <- 1
-    }
-    lags <- loc
-    y.sc.lag <- lagmatrix(y.sc,unique(c(0,lags)))
-    Y <- y.sc.lag[(max(lags)+1):n,1,drop=FALSE]
-    X <- y.sc.lag[(max(lags)+1):n,2:(length(lags)+1),drop=FALSE]
-    colnames(X) <- paste0("X",lags)
-    # Check if deterministic seasonality has remained in the model
-    if (sdummy == TRUE){
-      still.det <- rep(TRUE,ff.n)
-      # Trigonometric dummies will not be retained by linear regression
-      # so do not allow rejection by stepwise!
-      if (det.type == "bin"){
-        for (i in 1:ff.n){
-          still.det[i] <- any(grepl("Xd[[1]]",names(cf.temp),fixed=TRUE))
-        }
-      } 
-      # Re-create seasonal dummies
-      if (sum(still.det)==0){
-        sdummy <- FALSE
-        ff.det <- NULL
-      } else {
-        ff.det <- ff[still.det]
-        ff.n.det <- length(ff.det)
-        Xd <- vector("list",ff.n.det)
-        for (s in 1:ff.n.det){
-          Xd[[s]] <- seasdummy(length(Y),y=ts(Y,end=end(y),frequency=ff[s]),type=det.type)
-          colnames(Xd[[s]]) <- paste0("D",s,".",1:length(Xd[[s]][1,]))
-          if (det.type=="trg"){
-            Xd[[s]] <- Xd[[s]][,1:2]
-          }
-        }
-      }
-      
-    }
-  } else {
-    # If no selection is done, match frequencies of dummies with frequencies of time series
-    ff.det <- ff
-  }
-  
-  # Merge lags and deterministic seasonality to create network inputs
-  if (sdummy == TRUE){
-    Xd <- do.call(cbind,Xd)
-    X <- cbind(X,Xd)
-  }
-  
-  # Netwrok formula
-  frm <- paste0(colnames(X),"+",collapse="")
-  frm <- substr(frm,1,nchar(frm)-1)
-  frm <- as.formula(paste0("Y~",frm))
-  
-  return(list("Y"=Y,"X"=X,"sdummy"=sdummy,"difforder"=difforder,"det.type"=det.type,"lags"=lags,"sc"=sc,"d"=d,"y.d"=y.d,"y.ud"=y.ud,"frm"=frm,"ff.det"=ff.det))
-  
-}
-
-ndiffs.net <- function(difforder,y,ff,st){
-  # Find differencing for neural nets
-  
   # Find differencing order
   if (!is.null(difforder)){
     if (any(difforder == -1)){
@@ -490,15 +380,52 @@ ndiffs.net <- function(difforder,y,ff,st){
         }
       }
     }
+  } 
+  
+  # Apply differencing
+  d <- length(difforder)
+  y.d <- y.ud <- vector("list",d+1)
+  y.d[[1]] <- y
+  names(y.d)[1] <- "d0"
+  if (d>0){
+    for (i in 1:d){
+      y.d[[i+1]] <- diff(y.d[[i]],difforder[i])
+      names(y.d)[i+1] <- paste0(names(y.d)[i],"d",difforder[i])
+    }
+  }
+  names(y.ud) <- names(y.d)
+  
+  # Scale target
+  sc <- linscale(tail(y.d,1)[[1]],minmax=list("mn"=-.8,"mx"=0.8))
+  y.sc <- sc$x
+  n <- length(y.sc)
+  
+  # Prepare inputs & target
+  y.sc.lag <- lagmatrix(y.sc,unique(c(0,lags)))
+  Y <- y.sc.lag[(max(lags)+1):n,1,drop=FALSE]
+  X <- y.sc.lag[(max(lags)+1):n,2:(length(lags)+1),drop=FALSE]
+  colnames(X) <- paste0("X",lags)
+  
+  # Select lags
+  if (sel.lag == TRUE){
+    reg.isel <- as.data.frame(cbind(Y,X))
+    colnames(reg.isel) <- c("Y",paste0("X",lags))
+    fit <- lm(Y~.,reg.isel)
+    fit <- stepAIC(fit,trace=0,direction="both")
+    cf.temp <- coef(fit)
+    loc <- which(colnames(reg.isel) %in% names(cf.temp))-1
+    if (length(loc)==0){
+      loc <- 1
+    }
+    # X <- X[,loc,drop=FALSE]
+    lags <- loc
+    y.sc.lag <- lagmatrix(y.sc,unique(c(0,lags)))
+    Y <- y.sc.lag[(max(lags)+1):n,1,drop=FALSE]
+    X <- y.sc.lag[(max(lags)+1):n,2:(length(lags)+1),drop=FALSE]
+    colnames(X) <- paste0("X",lags)
   }
   
-  return(difforder)
-  
-}
-
-seas.dum.net <- function(st,difforder,det.type,ff,ff.n,Y,y,allow.det.season){
-# Create seasonal dummies for networks
-  
+  # Create seasonal dummies
   if (if(ff.n > 1){TRUE}else{!any(difforder == max(ff))}
       & frequency(y)>1 & st$season.exist==TRUE & allow.det.season==TRUE){
     sdummy <- TRUE
@@ -518,12 +445,17 @@ seas.dum.net <- function(st,difforder,det.type,ff,ff.n,Y,y,allow.det.season){
         Xd[[s]] <- Xd[[s]][,1:2]
       }
     }
-    # Xd <- do.call(cbind,Xd)
-    # X <- cbind(X,Xd) 
+    Xd <- do.call(cbind,Xd)
+    X <- cbind(X,Xd) 
   } else {
     sdummy <- FALSE
   }
   
-  return(list("Xd"=Xd,"det.type"=det.type,"sdummy"=sdummy))
+  # Netwrok formula
+  frm <- paste0(colnames(X),"+",collapse="")
+  frm <- substr(frm,1,nchar(frm)-1)
+  frm <- as.formula(paste0("Y~",frm))
+  
+  return(list("Y"=Y,"X"=X,"sdummy"=sdummy,"difforder"=difforder,"det.type"=det.type,"lags"=lags,"sc"=sc,"d"=d,"y.d"=y.d,"y.ud"=y.ud,"frm"=frm))
   
 }

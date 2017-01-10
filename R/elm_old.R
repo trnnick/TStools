@@ -1,5 +1,5 @@
 elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode"),
-                lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),direct=c(FALSE,TRUE),
+                lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(FALSE,TRUE),direct=c(FALSE,TRUE),
                 allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg")){
     
     # Defaults
@@ -24,7 +24,6 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
     y.d <- PP$y.d
     y.ud <- PP$y.ud
     frm <- PP$frm
-    ff.det <- PP$ff.det
     
     if (is.null(hd)){
       hd <- min(100,max(1,length(Y)-2-direct*length(lags)))
@@ -129,7 +128,7 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
     }
     
     return(structure(list("net"=net,"hd"=hd,"W"=W,"lags"=lags,"difforder"=difforder,
-                          "sdummy"=sdummy,"ff.det"=ff.det,"det.type"=det.type,"y"=y,"minmax"=sc$minmax,
+                          "sdummy"=sdummy,"det.type"=det.type,"y"=y,"minmax"=sc$minmax,
                           "comb"=comb,"type"=type,"direct"=direct,"fitted"=yout,"MSE"=MSE),class="elm"))
     
 }
@@ -168,8 +167,6 @@ forecast.elm <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
     comb <- fit$comb
     direct <- fit$direct
     fitted <- fit$fitted
-    ff.det <- fit$ff.det
-    ff.n.det <- length(ff.det)
     reps <- length(net$weights)
     
     fstart <- c(end(y)[1],end(y)[2]+1)
@@ -188,11 +185,11 @@ forecast.elm <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
     Y <- as.vector(linscale(y.d[[d+1]],minmax=minmax)$x)
 
     if (sdummy == TRUE){
-      temp <- ts(1:h,start=fstart,frequency=max(ff.det))
-      Xd <- vector("list",ff.n.det)
+      temp <- ts(1:h,start=fstart,frequency=max(ff))
+      Xd <- vector("list",ff.n)
       
-      for (s in 1:ff.n.det){
-        Xd[[s]] <- seasdummy(h,m=ff.det[s],y=temp,type=det.type)
+      for (s in 1:ff.n){
+        Xd[[s]] <- seasdummy(h,m=ff[s],y=temp,type=det.type)
         colnames(Xd[[s]]) <- paste0("D",s,".",1:length(Xd[[s]][1,]))
         if (det.type=="trg"){
           Xd[[s]] <- Xd[[s]][,1:2]
