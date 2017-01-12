@@ -1,6 +1,6 @@
 elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode"),
                 lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),direct=c(FALSE,TRUE),
-                allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg")){
+                allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),xreg=NULL,xreg.lags=NULL){
     
     # Defaults
     type <- type[1]
@@ -11,20 +11,50 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
     allow.det.season <- allow.det.season[1]
     det.type <- det.type[1]
     
+    # Check if y input is a time series
+    if (!(any(class(y) == "ts") | any(class(y) == "msts"))){
+      stop("Input y must be of class ts or msts.")
+    }
+    
+    # Check xreg inputs
+    if (!is.null(xreg)){
+      x.n <- length(xreg[1,])
+      if (!is.null(xreg.lags)){
+        if (length(xreg.lags) != x.n){
+          stop("Argument xreg.lags must be a list with as many elements as xreg variables (columns).")
+        }
+      }
+    }
+    
+    # Get frequency
+    ff.ls <- get.ff(y)    
+    ff <- ff.ls$ff
+    ff.n <- ff.ls$ff.n
+    rm("ff.ls")
+    
+    # Default lagvector
+    xreg.ls <- def.lags(lags,ff,xreg.lags,xreg)
+    lags <- xreg.ls$lags
+    xreg.lags <- xreg.ls$xreg.lags
+    rm("xreg.ls")
+    
     # Pre-process data (same for MLP and ELM)
-    PP <- preprocess(y,m,lags,difforder,sel.lag,allow.det.season,det.type)
+    PP <- preprocess(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,ff.n,xreg,xreg.lags)
     Y <- PP$Y
     X <- PP$X
     sdummy <- PP$sdummy
     difforder <- PP$difforder
     det.type <- PP$det.type
     lags <- PP$lags
+    xreg.lags <- PP$xreg.lags
     sc <- PP$sc
     d <- PP$d
     y.d <- PP$y.d
     y.ud <- PP$y.ud
     frm <- PP$frm
     ff.det <- PP$ff.det
+    lag.max <- PP$lag.max
+    rm("PP")
     
     if (is.null(hd)){
       hd <- min(100,max(1,length(Y)-2-direct*length(lags)))
@@ -35,7 +65,7 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
     
     # Get hidden nodes output and weights for each repetition
     H <- W <- vector("list",reps)
-    Yhat <- array(NA,c((length(y)-sum(difforder)-max(lags)),reps))
+    Yhat <- array(NA,c((length(y)-sum(difforder)-lag.max),reps))
     
     for (r in 1:reps){
         H[[r]] <- as.matrix(tail(compute(net,X,r)$neurons,1)[[1]][,2:(tail(hd,1)+1)])
@@ -111,7 +141,7 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
     # Convert to time series
     yout <- ts(yout,end=end(y),frequency=frequency(y))
     
-    MSE <- mean((y[(max(lags)+1+sum(difforder)):length(y)] - yout)^2)
+    MSE <- mean((y[(lag.max+1+sum(difforder)):length(y)] - yout)^2)
     
     # Construct plot
     if (outplot==TRUE){
@@ -128,159 +158,14 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
         
     }
     
-    return(structure(list("net"=net,"hd"=hd,"W"=W,"lags"=lags,"difforder"=difforder,
+    return(structure(list("net"=net,"hd"=hd,"W"=W,"lags"=lags,"xreg.lags"=xreg.lags,"difforder"=difforder,
                           "sdummy"=sdummy,"ff.det"=ff.det,"det.type"=det.type,"y"=y,"minmax"=sc$minmax,
                           "comb"=comb,"type"=type,"direct"=direct,"fitted"=yout,"MSE"=MSE),class="elm"))
     
 }
 
-forecast.elm <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,...){
-# Produce forecast with ELM
-    
-    outplot <- outplot[1]
-    
-    if (is.null(y)){
-        y <- fit$y
-    }
-    
-    # Get time series frequency
-    if (any(class(y) == "msts")){
-      ff <- attributes(y)$msts
-      ff.n <- length(ff)
-    } else {
-      ff <- frequency(y)
-      ff.n <- 1
-    }
-    
-    if (is.null(h)){
-      h <- max(ff)
-    }
-    
-    # Get stuff from fit list
-    net <- fit$net
-    hd <- fit$hd
-    W <- fit$W
-    lags <- fit$lags
-    difforder <- fit$difforder
-    sdummy <- fit$sdummy
-    det.type <- fit$det.type
-    minmax <- fit$minmax
-    comb <- fit$comb
-    direct <- fit$direct
-    fitted <- fit$fitted
-    ff.det <- fit$ff.det
-    ff.n.det <- length(ff.det)
-    reps <- length(net$weights)
-    
-    fstart <- c(end(y)[1],end(y)[2]+1)
-    
-    # Apply differencing
-    d <- length(difforder)
-    y.d <- y.ud <- vector("list",d+1)
-    y.d[[1]] <- y
-    names(y.d)[1] <- "d0"
-    if (d>0){
-        for (i in 1:d){
-            y.d[[i+1]] <- diff(y.d[[i]],difforder[i])
-            names(y.d)[i+1] <- paste0(names(y.d)[i],"d",difforder[i])
-        }
-    }
-    Y <- as.vector(linscale(y.d[[d+1]],minmax=minmax)$x)
-
-    if (sdummy == TRUE){
-      temp <- ts(1:h,start=fstart,frequency=max(ff.det))
-      Xd <- vector("list",ff.n.det)
-      
-      for (s in 1:ff.n.det){
-        Xd[[s]] <- seasdummy(h,m=ff.det[s],y=temp,type=det.type)
-        colnames(Xd[[s]]) <- paste0("D",s,".",1:length(Xd[[s]][1,]))
-        if (det.type=="trg"){
-          Xd[[s]] <- Xd[[s]][,1:2]
-        }
-      }
-      Xd <- do.call(cbind,Xd)
-      # Xd <- seasdummy(h,y=temp,type=det.type)
-    }
-    
-    Yfrc <- array(NA,c(h,reps))
-    
-    # For each repetition
-    for (r in 1:reps){   
-        
-        frc.sc <- vector("numeric",h)
-        for (i in 1:h){
-            if (i == 1){
-                temp <- NULL
-            } else {
-                temp <- frc.sc[1:(i-1)]
-            }
-            xi <- rev(tail(c(Y,temp),max(lags)))
-            xi <- rbind(xi[lags])
-            if (sdummy == TRUE){
-              xi <- cbind(xi,Xd[i,,drop=FALSE])
-            }
-            H <- t(as.matrix(tail(compute(net,xi,r)$neurons,1)[[1]][,2:(tail(hd,1)+1)]))
-            
-            if (direct == TRUE){
-                Z <- cbind(H,xi)
-            } else {
-                Z <- H
-            }
-
-            yhat.sc <- cbind(1,Z) %*% W[[r]]
-            frc.sc[i] <- yhat.sc
-        }
-        
-        # Reverse scaling
-        frc <- linscale(frc.sc,minmax,rev=TRUE)$x
-        
-        # Reverse differencing
-        f.ud <- vector("list",d+1)
-        names(f.ud) <- names(y.ud)
-        f.ud[[d+1]] <- frc
-        if (d>0){
-            for (i in 1:d){
-                temp <- c(tail(y.d[[d+1-i]],difforder[d+1-i]),f.ud[[d+2-i]])
-                n.t <- length(temp)
-                for (j in 1:(n.t-difforder[d+1-i])){
-                    temp[difforder[d+1-i]+j] <- temp[j] + temp[difforder[d+1-i]+j]
-                }
-                f.ud[[d+1-i]] <- temp[(difforder[d+1-i]+1):n.t]
-            }
-        }
-        fout <- head(f.ud,1)[[1]]    
-        
-        Yfrc[,r] <- fout
-    }
-    
-    # If reps>1 combine forecasts
-    if (reps>1){
-        switch(comb,
-               "median" = {fout <- apply(Yfrc,1,median)},
-               "mean" = {fout <- apply(Yfrc,1,mean)},
-               "mode" = {fout <- sapply(apply(Yfrc,1,kdemode),function(x){x[[1]][1]})}
-        )
-    } else {
-        fout <- Yfrc[,1]
-    }
-    
-    fout <- ts(fout,frequency=frequency(y),start=fstart)
-    
-    if (outplot==TRUE){
-        ts.plot(y,fitted,fout,col=c("black","blue","red"))
-        if (reps>1){
-            for (r in 1:reps){
-                temp <- Yfrc[,r]
-                temp <- ts(temp,frequency=frequency(fout),end=end(fout))
-                lines(temp,col="grey")
-            }
-            lines(fout,col="red")
-        }
-        
-    }
-    
-    return(fout)
-    
+forecast.elm <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,xreg=NULL,...){
+  forecast.net(fit,h=h,outplot=outplot,y=y,xreg=xreg,...)
 }
 
 plot.elm <- function(x, r=1, ...){

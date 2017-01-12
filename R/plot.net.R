@@ -2,6 +2,9 @@ plot.net <- function(fit,r=1){
 # Plot MLP or ELM object
 
     ttl <- class(fit)
+    neuron.col <- "lightgrey"
+    xreg.col <- "lightblue"
+    season.col <- "lightpink"
     
     if (!any(c("elm","mlp")==ttl)){
         stop("Model must be the output of either mlp or elm functions.")
@@ -18,6 +21,9 @@ plot.net <- function(fit,r=1){
     layer.xx <- c(0,seq(0.1,0.9,length.out=layer.n+1),1)
     layer.yy <- vector("list",layer.n+1)
     layer.size[1] <- length(net$model.list$variables)
+    inputs.col <- rep(neuron.col,layer.size[1])
+    inputs.col[grepl("Xreg.",net$model.list$variables,fixed=TRUE)] <- xreg.col
+    inputs.col[grepl("D",net$model.list$variables,fixed=TRUE)] <- season.col
     layer.yy[[1]] <- seq(0,1,length.out=layer.size[1]+2)
     for (i in 1:layer.n){
         layer.size[i+1] <- dim(net$weights[[r]][[i]])[2]
@@ -52,9 +58,13 @@ plot.net <- function(fit,r=1){
     for (k in 1:(layer.n+1)){
         for (i in 1:layer.size[k]){
             if (ttl == "elm" & k == (layer.n)){
-                draw.circle(layer.xx[k+1],layer.yy[[k]][i+1],rd,col="lightgrey",border=cmp[i])    
+                draw.circle(layer.xx[k+1],layer.yy[[k]][i+1],rd,col=neuron.col,border=cmp[i])    
             } else {
-                draw.circle(layer.xx[k+1],layer.yy[[k]][i+1],rd,col="lightgrey")
+                if (k == 1){
+                  draw.circle(layer.xx[k+1],layer.yy[[k]][i+1],rd,col=inputs.col[i])
+                } else {
+                  draw.circle(layer.xx[k+1],layer.yy[[k]][i+1],rd,col=neuron.col)
+                }
             }
             
         }

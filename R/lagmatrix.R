@@ -26,6 +26,6 @@ lagmatrix <- function(x,lag){
         lmat[(1+lag[i]+mld):(n+lag[i]+mld),i] <- x
     }
     # Trim lmat for expansion
-    lmat <- lmat[(mld+1):(mld+n),]
+    lmat <- lmat[(mld+1):(mld+n),,drop=FALSE]
     return(lmat)
 }
