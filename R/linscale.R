@@ -57,6 +57,11 @@ linscale <- function(x,minmax=NULL,rev=c(FALSE,TRUE)){
             if (any(names.minmax == "mn") & any(names.minmax == "mx")){
                 mn <- minmax$mn
                 mx <- minmax$mx
+                # These will be used to scale mn/mx so that scale of variables remains fixed
+                if (("mn.orig" %in% names(minmax))==TRUE){
+                  mn.orig <- minmax$mn.orig
+                  mx.orig <- minmax$mx.orig  
+                }
             } else {
                 stop("Provided minmax list is not of correct type. It must contain mn and mx to apply scaling.")
             }
@@ -64,15 +69,18 @@ linscale <- function(x,minmax=NULL,rev=c(FALSE,TRUE)){
     }
     
     if (rev == FALSE){
-        # Apply scaling
+      # Apply scaling
+      if (("mn.orig" %in% names(minmax))!=TRUE){
+        # If these are missing then populate the list
         mx.orig <- max(x)
         mn.orig <- min(x)
-        x.sc <- (mx-mn)*(x-mn.orig)/(mx.orig-mn.orig)+mn
-        return(list("x"=x.sc,"minmax"=list("mn"=mn,"mx"=mx,"mn.orig"=mn.orig,"mx.orig"=mx.orig)))
+      } 
+      x.sc <- (mx-mn)*(x-mn.orig)/(mx.orig-mn.orig)+mn
+      return(list("x"=x.sc,"minmax"=list("mn"=mn,"mx"=mx,"mn.orig"=mn.orig,"mx.orig"=mx.orig)))
     } else {
-        # Reverse scaling
-        x.orig <- (mx.orig-mn.orig)*(x-mn)/(mx-mn)+mn.orig
-        return(list("x"=x.orig,"minmax"=list("mn"=mn.orig,"mx"=mx.orig,"mn.orig"=mn,"mx.orig"=mx)))
+      # Reverse scaling
+      x.orig <- (mx.orig-mn.orig)*(x-mn)/(mx-mn)+mn.orig
+      return(list("x"=x.orig,"minmax"=list("mn"=mn.orig,"mx"=mx.orig,"mn.orig"=mn,"mx.orig"=mx)))
     }
     
 }

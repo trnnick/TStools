@@ -47,6 +47,7 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     lags <- PP$lags
     xreg.lags <- PP$xreg.lags
     sc <- PP$sc
+    xreg.minmax <- PP$xreg.minmax
     d <- PP$d
     y.d <- PP$y.d
     y.ud <- PP$y.ud
@@ -65,7 +66,9 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
       # }
       
       # Use ELM to find hidden nodes
-      sz.elm <- max(1,length(X[1,])-2)
+      sz.elm <- max(1,length(X[1,])+2)
+      # sz.elm <- min(40,max(1,length(Y)-2))
+        
       net <- neuralnet(frm,cbind(Y,X),hidden=sz.elm,threshold=10^10,rep=20,err.fct="sse",linear.output=FALSE)
       hd.elm <- vector("numeric",20)
       for (r in 1:20){
@@ -77,17 +80,20 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
                "lasso" = {
                  fit <- suppressWarnings(cv.glmnet(Z,cbind(Y)))
                  cf <- as.vector(coef(fit))
-                 hd.elm[r] <- sum(cf>0)-1 # -1 for intercept
+                 hd.elm[r] <- sum(abs(cf)>0)-1 # -1 for intercept
                },
                {
                  reg.data <- as.data.frame(cbind(Y,Z))
                  colnames(reg.data) <- c("Y",paste0("X",1:sz.elm))
-                 fit <- suppressWarnings(lm(Y~.,reg.data))
-                 hd.elm[r] <- sum(summary(fit)$coefficients[,4]<0.05,na.rm=TRUE)-1
+                 # Take care of linear dependency
+                 alias.fit <- alias(Y~.,data=reg.data)
+                 alias.x <- rownames(alias.fit$Complete)
+                 frm.elm <- as.formula(paste0("Y~",paste0(setdiff(colnames(reg.data)[2:(sz.elm+1)],alias.x),collapse="+")))
+                 fit <- suppressWarnings(lm(frm.elm,reg.data))
                  if (type == "step"){
                    fit <- suppressWarnings(stepAIC(fit,trace=0,direction="backward"))
-                   hd.elm[r] <- sum(summary(fit)$coefficients[,4]<0.05,na.rm=TRUE)-1
                  }
+                 hd.elm[r] <- sum(summary(fit)$coefficients[,4]<0.05,na.rm=TRUE)-(summary(fit)$coefficients[1,4]<0.05)
                })
 
       }
@@ -165,7 +171,7 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     }
     
     return(structure(list("net"=net,"hd"=hd,"lags"=lags,"xreg.lags"=xreg.lags,"difforder"=difforder,"sdummy"=sdummy,"ff.det"=ff.det,
-                          "det.type"=det.type,"y"=y,"minmax"=sc$minmax,"comb"=comb,"fitted"=yout,
+                          "det.type"=det.type,"y"=y,"minmax"=sc$minmax,"xreg.minmax"=xreg.minmax,"comb"=comb,"fitted"=yout,
                           "MSE"=MSE),class="mlp"))
     
 }
@@ -198,6 +204,7 @@ forecast.net <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,xreg=NULL,...){
     sdummy <- fit$sdummy
     det.type <- fit$det.type
     minmax <- fit$minmax
+    xreg.minmax <- fit$xreg.minmax
     comb <- fit$comb
     fitted <- fit$fitted
     ff.det <- fit$ff.det
@@ -219,6 +226,9 @@ forecast.net <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,xreg=NULL,...){
       if (length(xreg.lags) != x.n){
         stop("Number of xreg inputs is not consistent with network specification (number of xreg.lags).")
       }
+      if (length(xreg[,1]) < length(y)+h){
+        stop("Length of xreg must be longer that y + forecast horizon.")
+      }
     } else {
       x.n <- 0
     }
@@ -238,14 +248,13 @@ forecast.net <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,xreg=NULL,...){
     
     # Scale xreg
     if (x.n > 0){
-      x.n <- length(xreg[1,])
       xreg.sc <- xreg
       for (i in 1:x.n){
-        xreg.sc[,i] <- linscale(xreg[,i],minmax=list("mn"=-.8,"mx"=0.8))$x
+        xreg.sc[,i] <- linscale(xreg[,i],minmax=xreg.minmax[[i]])$x
       }
       # Starting point of xreg
       xstart <- length(y)+1
-    }
+    } 
     
     if (sdummy == TRUE){
       temp <- ts(1:h,start=fstart,frequency=max(ff.det))
@@ -281,14 +290,15 @@ forecast.net <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,xreg=NULL,...){
             } else {
                 temp <- frc.sc[1:(i-1)]
             }
-            xi <- rev(tail(c(Y,temp),ylag))
+            xi <- rev(tail(c(Y,temp),ylag)) # Reverse for lags
             xi <- xi[lags]
             # Construct xreg inputs
             if (x.n > 0){
               Xreg <- vector("list",x.n)
               for (j in 1:x.n){
-                if (length(xreg.lags[[j]]>0)){
-                  Xreg[[j]] <- xreg.sc[(xstart+i-1):(xstart+max(xreg.lags[[j]])+i-1),j][xreg.lags[[j]]]
+                if (length(xreg.lags[[j]])>0){
+                  xreg.temp <- xreg.sc[(xstart+i-1):(xstart-max(xreg.lags[[j]])+i-1),j] # Reversing is happening in the indices
+                  Xreg[[j]] <- xreg.temp[xreg.lags[[j]]+1]
                 }
               }
               Xreg.all <- unlist(Xreg)
@@ -471,15 +481,19 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
   # Scale xregs and trim initial values for differencing of y
   if (!is.null(xreg)){
     x.n <- length(xreg[1,])
+    xreg.minmax <- vector("list",x.n)
     xreg <- xreg[sum(difforder):length(xreg[,1]),,drop=FALSE]
     xreg.sc <- xreg
     for (i in 1:x.n){
-      xreg.sc[,i] <- linscale(xreg[,i],minmax=list("mn"=-.8,"mx"=0.8))$x
+      xreg.sc.temp <- linscale(xreg[,i],minmax=list("mn"=-.8,"mx"=0.8))
+      xreg.sc[,i] <- xreg.sc.temp$x
+      xreg.minmax[[i]] <- xreg.sc.temp$minmax
     }
   } else {
     x.n <- 0
+    xreg.minmax <- NULL
   }
-
+  
   net.inputs <- create.inputs(y.sc, xreg.sc, lags, xreg.lags, n)
   Y <- net.inputs$Y
   X <- net.inputs$X
@@ -511,11 +525,11 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
     fit <- stepAIC(fit,trace=0,direction="backward")
     # Get useful lags
     cf.temp <- coef(fit)
-    X.loc <- which(colnames(X) %in% names(cf.temp))
+    X.loc <- lags[which(colnames(X) %in% names(cf.temp))]
     if (x.n>0){
       Xreg.loc <- xreg.lags
       for (i in 1:x.n){
-        Xreg.loc[[i]] <- which(colnames(Xreg[[i]]) %in% names(cf.temp))
+        Xreg.loc[[i]] <- xreg.lags[[1]][which(colnames(Xreg[[i]]) %in% names(cf.temp))]
       }
     }
     # Check if there are any lags
@@ -582,7 +596,7 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
   frm <- substr(frm,1,nchar(frm)-1)
   frm <- as.formula(paste0("Y~",frm))
   
-  return(list("Y"=Y,"X"=X.all,"sdummy"=sdummy,"difforder"=difforder,"det.type"=det.type,"lags"=lags,"xreg.lags"=xreg.lags,"lag.max"=lag.max,"sc"=sc,"d"=d,"y.d"=y.d,"y.ud"=y.ud,"frm"=frm,"ff.det"=ff.det))
+  return(list("Y"=Y,"X"=X.all,"sdummy"=sdummy,"difforder"=difforder,"det.type"=det.type,"lags"=lags,"xreg.lags"=xreg.lags,"lag.max"=lag.max,"sc"=sc,"xreg.minmax"=xreg.minmax,"d"=d,"y.d"=y.d,"y.ud"=y.ud,"frm"=frm,"ff.det"=ff.det))
   
 }
 

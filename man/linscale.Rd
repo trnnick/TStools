@@ -14,7 +14,7 @@ linscale(x,minmax=NULL,rev=c(FALSE,TRUE))
     Input vector.
     }
   \item{minmax}{
-    minmax must be a list with elements "mn", "mx", "mn.orig" and "mx.orig", where "mn" and "mx" refer to the target min and max, and the remaining two refer to the current vector min and max. By default mn=-1 and mx=1. mn.orig and mx.orig can be missing, unless the scaling is reversed.
+    minmax must be a list with elements "mn", "mx", "mn.orig" and "mx.orig", where "mn" and "mx" refer to the target min and max, and the remaining two refer to the current vector min and max. By default mn=-1 and mx=1. mn.orig and mx.orig can be missing, unless the scaling is reversed. 
     }
   \item{rev}{
     Reverse scaling back to original: TRUE or FALSE.

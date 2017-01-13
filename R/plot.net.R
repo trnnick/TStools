@@ -29,7 +29,9 @@ plot.net <- function(fit,r=1){
         layer.size[i+1] <- dim(net$weights[[r]][[i]])[2]
         layer.yy[[i+1]] <- seq(0,1,length.out=layer.size[i+1]+2)
     }
+    # Size of neurons
     rd <- max(0.015,1/((max(layer.size)+2)*1.75))
+    rd <- min(rd,0.06)
     
     plot(NA,NA,xlim=c(0,1),ylim=c(0,1),xlab="",ylab="",xaxt="n",yaxt="n",bty="n",main=toupper(ttl))
     

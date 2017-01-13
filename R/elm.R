@@ -1,6 +1,7 @@
 elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode"),
                 lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),direct=c(FALSE,TRUE),
-                allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),xreg=NULL,xreg.lags=NULL){
+                allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
+                xreg=NULL,xreg.lags=NULL){
     
     # Defaults
     type <- type[1]
@@ -48,6 +49,7 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
     lags <- PP$lags
     xreg.lags <- PP$xreg.lags
     sc <- PP$sc
+    xreg.minmax <- PP$xreg.minmax
     d <- PP$d
     y.d <- PP$y.d
     y.ud <- PP$y.ud
@@ -57,7 +59,7 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
     rm("PP")
     
     if (is.null(hd)){
-      hd <- min(100,max(1,length(Y)-2-direct*length(lags)))
+      hd <- min(100-60*(type=="step" | type=="lm"),max(1,length(Y)-2-direct*length(lags)))
     }
     
     # Create network
@@ -84,17 +86,20 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
                },
                {
                    reg.data <- as.data.frame(cbind(Y,Z))
-                   colnames(reg.data) <- c("Y",paste0("X",1:(tail(hd,1)+direct*length(lags))))
-                   fit <- suppressWarnings(lm(Y~.,reg.data))
-                   cf <- coef(fit)
+                   colnames(reg.data) <- c("Y",paste0("X",1:(tail(hd,1)+direct*length(X[1,]))))
+                   # Take care of linear dependency
+                   alias.fit <- alias(Y~.,data=reg.data)
+                   alias.x <- rownames(alias.fit$Complete)
+                   frm <- as.formula(paste0("Y~",paste0(setdiff(colnames(reg.data)[2:(hd+1)],alias.x),collapse="+")))
+                   fit <- suppressWarnings(lm(frm,reg.data))
                    if (type == "step"){
-                       fit <- suppressWarnings(stepAIC(fit,trace=0))
-                       cf.temp <- coef(fit)
-                       loc <- which(colnames(reg.data) %in% names(cf.temp))
-                       cf <- rep(0,(tail(hd,1)+1+direct*length(lags)))
-                       cf[1] <- cf.temp[1]
-                       cf[loc] <- cf.temp[2:length(cf.temp)]
+                     fit <- suppressWarnings(stepAIC(fit,trace=0)) # ,direction="backward",k=log(length(Y)))) # BIC criterion
                    }
+                   cf.temp <- coef(fit)
+                   loc <- which(colnames(reg.data) %in% names(cf.temp))
+                   cf <- rep(0,(tail(hd,1)+1+direct*length(X[1,])))
+                   cf[1] <- cf.temp[1]
+                   cf[loc] <- cf.temp[2:length(cf.temp)]
                })
         W[[r]] <- cbind(cf)
     
@@ -159,7 +164,7 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
     }
     
     return(structure(list("net"=net,"hd"=hd,"W"=W,"lags"=lags,"xreg.lags"=xreg.lags,"difforder"=difforder,
-                          "sdummy"=sdummy,"ff.det"=ff.det,"det.type"=det.type,"y"=y,"minmax"=sc$minmax,
+                          "sdummy"=sdummy,"ff.det"=ff.det,"det.type"=det.type,"y"=y,"minmax"=sc$minmax,"xreg.minmax"=xreg.minmax,
                           "comb"=comb,"type"=type,"direct"=direct,"fitted"=yout,"MSE"=MSE),class="elm"))
     
 }
