@@ -1,7 +1,7 @@
 mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
                 lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
                 allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
-                xreg=NULL, xreg.lags=NULL,...){
+                xreg=NULL, xreg.lags=NULL,hd.auto.type=c("set","valid","cv","elm"), ...){
   
     # Defaults
     comb <- comb[1]
@@ -9,6 +9,7 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     sel.lag <- sel.lag[1]
     allow.det.season <- allow.det.season[1]
     det.type <- det.type[1]
+    hd.auto.type <- hd.auto.type[1]
     
     # Check if y input is a time series
     if (!(any(class(y) == "ts") | any(class(y) == "msts"))){
@@ -58,50 +59,12 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     
     # Auto specify number of hidden nodes
     if (is.null(hd)){
-      # p <- length(X[1,])
-      # if (p > 4){
-      #   hd <- c(p,4)
-      # } else {
-      #   hd <- 4
-      # }
-      
-      # Use ELM to find hidden nodes
-      sz.elm <- max(1,length(X[1,])+2)
-      # sz.elm <- min(40,max(1,length(Y)-2))
-        
-      net <- neuralnet(frm,cbind(Y,X),hidden=sz.elm,threshold=10^10,rep=20,err.fct="sse",linear.output=FALSE)
-      hd.elm <- vector("numeric",20)
-      for (r in 1:20){
-        Z <- as.matrix(tail(compute(net,X,r)$neurons,1)[[1]][,2:(sz.elm+1)])
-
-        type <- "step"
-        # Calculate regression
-        switch(type,
-               "lasso" = {
-                 fit <- suppressWarnings(cv.glmnet(Z,cbind(Y)))
-                 cf <- as.vector(coef(fit))
-                 hd.elm[r] <- sum(abs(cf)>0)-1 # -1 for intercept
-               },
-               {
-                 reg.data <- as.data.frame(cbind(Y,Z))
-                 colnames(reg.data) <- c("Y",paste0("X",1:sz.elm))
-                 # Take care of linear dependency
-                 alias.fit <- alias(Y~.,data=reg.data)
-                 alias.x <- rownames(alias.fit$Complete)
-                 frm.elm <- as.formula(paste0("Y~",paste0(setdiff(colnames(reg.data)[2:(sz.elm+1)],alias.x),collapse="+")))
-                 fit <- suppressWarnings(lm(frm.elm,reg.data))
-                 if (type == "step"){
-                   fit <- suppressWarnings(stepAIC(fit,trace=0,direction="backward"))
-                 }
-                 hd.elm[r] <- sum(summary(fit)$coefficients[,4]<0.05,na.rm=TRUE)-(summary(fit)$coefficients[1,4]<0.05)
-               })
-
-      }
-      hd <- round(median(hd.elm))
-      if (hd<1){
-        hd <- 1
-      }
-      
+      switch(hd.auto.type,
+             "set" = {hd <- 5},
+             "valid" = {hd <- auto.hd.cv(Y,X,frm,comb,reps,type="valid")},
+             "cv" = {hd <- auto.hd.cv(Y,X,frm,comb,reps,type="cv")},
+             "elm" = {hd <- auto.hd.elm(Y,X,frm)}
+             )
     }
     
     # Create network
@@ -140,16 +103,9 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
         
     } # Close reps
     
-    # If reps>1 combine forecasts
-    if (reps>1){
-        switch(comb,
-               "median" = {yout <- apply(Yhat,1,median)},
-               "mean" = {yout <- apply(Yhat,1,mean)},
-               "mode" = {yout <- sapply(apply(Yhat,1,kdemode),function(x){x[[1]][1]})}
-        )
-    } else {
-        yout <- Yhat[,1]
-    }
+    # Combine forecasts
+    yout <- frc.comb(Yhat,comb)
+    
     # Convert to time series
     yout <- ts(yout,end=end(y),frequency=frequency(y))
     
@@ -348,16 +304,8 @@ forecast.net <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,xreg=NULL,...){
         Yfrc[,r] <- fout
     }
     
-    # If reps>1 combine forecasts
-    if (reps>1){
-        switch(comb,
-               "median" = {fout <- apply(Yfrc,1,median)},
-               "mean" = {fout <- apply(Yfrc,1,mean)},
-               "mode" = {fout <- sapply(apply(Yfrc,1,kdemode),function(x){x[[1]][1]})}
-        )
-    } else {
-        fout <- Yfrc[,1]
-    }
+    # Combine forecasts
+    yout <- frc.comb(Yfrc,comb)
     
     fout <- ts(fout,frequency=frequency(y),start=fstart)
     
@@ -479,11 +427,11 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
   n <- length(y.sc)
   
   # Scale xregs and trim initial values for differencing of y
+  xreg.sc <- xreg
   if (!is.null(xreg)){
     x.n <- length(xreg[1,])
     xreg.minmax <- vector("list",x.n)
     xreg <- xreg[sum(difforder):length(xreg[,1]),,drop=FALSE]
-    xreg.sc <- xreg
     for (i in 1:x.n){
       xreg.sc.temp <- linscale(xreg[,i],minmax=list("mn"=-.8,"mx"=0.8))
       xreg.sc[,i] <- xreg.sc.temp$x
@@ -512,8 +460,11 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
   if (sel.lag == TRUE){
     if (x.n>0){
       Xreg.all <- do.call(cbind,Xreg)
+      Xreg.all <- Xreg.all[1:length(Y),,drop=FALSE]
+    } else {
+      Xreg.all <- NULL
     }
-    reg.isel <- as.data.frame(cbind(Y,X,Xreg.all[1:length(Y),,drop=FALSE]))
+    reg.isel <- as.data.frame(cbind(Y,X,Xreg.all))
     # colnames(reg.isel) <- c("Y",paste0("X",lags),paste0("Xreg",))
     if (sdummy == FALSE){
       fit <- lm(formula=Y~.,data=reg.isel)
@@ -531,13 +482,20 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
       for (i in 1:x.n){
         Xreg.loc[[i]] <- xreg.lags[[1]][which(colnames(Xreg[[i]]) %in% names(cf.temp))]
       }
-    }
+      xreg.lags <- Xreg.loc
+    } 
     # Check if there are any lags
-    if (sum(c(length(X.loc),unlist(lapply(Xreg.loc,length))))==0){
-      X.loc <- 1
+    if (x.n>0){
+      if (sum(c(length(X.loc),unlist(lapply(Xreg.loc,length))))==0){
+        X.loc <- 1
+      }
+    } else {
+      if (length(X.loc)==0){
+        X.loc <- 1
+      }
     }
     lags <- X.loc
-    xreg.lags <- Xreg.loc
+    
     # Recreate inputs
     net.inputs <- create.inputs(y.sc, xreg.sc, lags, xreg.lags, n)
     Y <- net.inputs$Y
@@ -725,4 +683,123 @@ create.inputs <- function(y.sc,xreg.sc,lags,xreg.lags,n){
   
   return(list("Y"=Y,"X"=X,"Xreg"=Xreg,"lag.max"=lag.max))
   
+}
+
+auto.hd.elm <- function(Y,X,frm){
+
+  # Use ELM to find hidden nodes
+  sz.elm <- max(1,min(length(X[1,])+2,length(Y)-2))
+  reps.elm <- 20
+  # sz.elm <- min(40,max(1,length(Y)-2))
+  
+  net <- neuralnet(frm,cbind(Y,X),hidden=sz.elm,threshold=10^10,rep=reps.elm,err.fct="sse",linear.output=FALSE)
+  hd.elm <- vector("numeric",reps.elm)
+  for (r in 1:reps.elm){
+    Z <- as.matrix(tail(compute(net,X,r)$neurons,1)[[1]][,2:(sz.elm+1)])
+    
+    type <- "step"
+    # Calculate regression
+    switch(type,
+           "lasso" = {
+             fit <- suppressWarnings(cv.glmnet(Z,cbind(Y)))
+             cf <- as.vector(coef(fit))
+             hd.elm[r] <- sum(cf != 0)-1 # -1 for intercept
+           },
+           {
+             reg.data <- as.data.frame(cbind(Y,Z))
+             colnames(reg.data) <- c("Y",paste0("X",1:sz.elm))
+             # Take care of linear dependency
+             alias.fit <- alias(Y~.,data=reg.data)
+             alias.x <- rownames(alias.fit$Complete)
+             frm.elm <- as.formula(paste0("Y~",paste0(setdiff(colnames(reg.data)[2:(sz.elm+1)],alias.x),collapse="+")))
+             fit <- suppressWarnings(lm(frm.elm,reg.data))
+             if (type == "step"){
+               fit <- suppressWarnings(stepAIC(fit,trace=0,direction="backward"))
+             }
+             hd.elm[r] <- sum(summary(fit)$coefficients[,4]<0.05,na.rm=TRUE)-(summary(fit)$coefficients[1,4]<0.05)
+           })
+    
+  }
+  hd <- round(median(hd.elm))
+  if (hd<1){
+    hd <- 1
+  }
+  
+  return(hd)
+
+}
+
+auto.hd.cv <- function(Y,X,frm,comb,reps,type=c("cv","valid")){
+  # Find number of hidden nodes with CV
+  
+  # Setup
+  type <- type[1]
+  K <- 5                                            # Number of folds
+  val.size <- 0.2                                   # Size of validation set
+  reps <- min(c(20,max(c(2,reps))))                 # Number of NN reps, maximum 20
+  hd.max <- max(2,min(length(X[1,])+2,length(Y)-2)) # Maximum number of hidden nodes
+  
+  # Setup folds or validation set
+  n <- length(Y)
+  if (type == "cv"){
+    # Create folds
+    if (K >= n){
+      stop("Too few observations to perform cross-validation for specification of hidden nodes.")
+    }
+    # Create fold indices
+    idx.all <- sample(1:n)
+    cv.cut <- seq(0,n,length.out=K+1)
+    idx <- vector("list",K)
+    for (i in 1:K){
+      idx[[i]] <- which((idx.all <= cv.cut[i+1]) & (idx.all > cv.cut[i]))
+    }  
+  } else {
+    # Validation set
+    K <- 1
+    idx <- list(sample(1:n,round(val.size*n)))
+  }
+  
+  # Now run CV (1-step ahead)
+  err.h <- vector("numeric",hd.max)
+  for (h in 1:hd.max){
+    # For each fold
+    err.cv <- vector("numeric",K)
+    for (i in 1:K){
+      Y.trn <- Y[setdiff(1:n,idx[[i]]),,drop=FALSE]
+      X.trn <- X[setdiff(1:n,idx[[i]]),,drop=FALSE]
+      Y.tst <- Y[idx[[i]],,drop=FALSE]
+      X.tst <- X[idx[[i]],,drop=FALSE]
+      net <- neuralnet(frm,cbind(Y.trn,X.trn),hidden=h,rep=reps,err.fct="sse",linear.output=TRUE)
+      
+      # For each training repetition
+      frc <- array(NA,c(length(Y.tst),reps))
+      for (r in 1:reps){
+        frc[,r] <- compute(net,X.tst,r)$net.result  
+      }
+      frc <- frc.comb(frc,comb)
+      err.cv[i] <- mean((Y.tst - frc)^2)
+    }
+    err.h[h] <- mean(err.cv)
+  }
+  hd <- which(err.h == min(err.h))[1]
+  
+  return(hd)
+  
+}
+
+frc.comb <- function(Yhat,comb){
+  # Combine forecasts
+
+  r <- length(Yhat[1,])
+  if (r>1){
+    switch(comb,
+           "median" = {yout <- apply(Yhat,1,median)},
+           "mean" = {yout <- apply(Yhat,1,mean)},
+           "mode" = {yout <- sapply(apply(Yhat,1,kdemode),function(x){x[[1]][1]})}
+    )
+  } else {
+    yout <- Yhat[,1]
+  }
+  
+  return (yout)
 }

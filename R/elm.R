@@ -133,16 +133,9 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
         
     } # Close reps
         
-    # If reps>1 combine forecasts
-    if (reps>1){
-        switch(comb,
-               "median" = {yout <- apply(Yhat,1,median)},
-               "mean" = {yout <- apply(Yhat,1,mean)},
-               "mode" = {yout <- sapply(apply(Yhat,1,kdemode),function(x){x[[1]][1]})}
-               )
-    } else {
-        yout <- Yhat[,1]
-    }
+    # Combine forecasts
+    yout <- frc.comb(Yhat,comb)
+    
     # Convert to time series
     yout <- ts(yout,end=end(y),frequency=frequency(y))
     

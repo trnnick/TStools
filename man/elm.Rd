@@ -8,11 +8,11 @@
 \usage{
 elm(y,hd=NULL,type=c("lasso","step","lm"),reps=20,
     comb=c("median","mean","mode"),lags=NULL,
-    difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(FALSE,TRUE),
+    difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
     direct=c(FALSE,TRUE),allow.det.season=c(TRUE,FALSE),
-    det.type=c("auto","bin","trg"))
+    det.type=c("auto","bin","trg"),
+    xreg=NULL,xreg.lags=NULL)
 }
-
 \arguments{
   \item{y}{
     Input time series. Can be ts or msts object. 
@@ -50,17 +50,27 @@ elm(y,hd=NULL,type=c("lasso","step","lm"),reps=20,
   \item{det.type}{
     Type of deterministic seasonality dummies to use. This can be "bin" for binary or "trg" for a sine-cosine pair. With "auto" if ony a single seasonality is used and periodicity is up to 12 then "bin" is used, otherwise "trg".
   }
+  \item{xreg}{
+    Exogenous regressors. Each column is a different regressor and the sample size must be at least as long as the target in-sample set, but can be longer. 
+  }
+  \item{xreg.lags}{
+    This is a list containing the lags for each exogenous variable. Each list is a numeric vector containing lags. If xreg has 3 columns then the xreg.lags list must contain three elements. If NULL then it is automatically specified. 
+  }
 }
 \value{
 \item{net}{ELM networks.}
 \item{hd}{Number of hidden nodes.}
 \item{W}{Output layer weights for ech repetition.}
 \item{lags}{Input lags used.}
+\item{xreg.lags}{xreg lags used.}
 \item{difforder}{Differencing used.}
 \item{sdummy}{Use of deterministic seasonality.}
+\item{ff}{Seasonal frequencies detected in data (taken from ts or msts object).}
+\item{ff.det}{Seasonal frequencies coded using deterministic dummies.}
 \item{det.type}{Type of determistic seasonality.}
 \item{y}{Input time series.}
 \item{minmax}{Scaling structure.}
+\item{xreg.minmax}{Scaling structure for xreg variables.}
 \item{comb}{Combination operator used.}
 \item{type}{Estimation used for output layer weights.}
 \item{direct}{Presence of direct input-output connections.}

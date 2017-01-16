@@ -6,11 +6,13 @@
 \description{Fit MLP neural network.}
 
 \usage{
-elm(y,hd=50,reps=20,
+mlp(y,m=frequency(y),hd=NULL,reps=20,
     comb=c("median","mean","mode"),lags=NULL,
-    difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
-    allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
-    ...)
+    difforder=-1,outplot=c(FALSE,TRUE),
+    sel.lag=c(TRUE,FALSE),allow.det.season=c(TRUE,FALSE),
+    det.type=c("auto","bin","trg"),
+    xreg=NULL,xreg.lags=NULL,
+    hd.auto.type=c("set","valid","cv","elm"),...)
 }
 
 \arguments{
@@ -44,6 +46,15 @@ elm(y,hd=50,reps=20,
   \item{det.type}{
     Type of deterministic seasonality dummies to use. This can be "bin" for binary or "trg" for a sine-cosine pair. With "auto" if ony a single seasonality is used and periodicity is up to 12 then "bin" is used, otherwise "trg".
   }
+  \item{xreg}{
+    Exogenous regressors. Each column is a different regressor and the sample size must be at least as long as the target in-sample set, but can be longer. 
+  }
+  \item{xreg.lags}{
+    This is a list containing the lags for each exogenous variable. Each list is a numeric vector containing lags. If xreg has 3 columns then the xreg.lags list must contain three elements. If NULL then it is automatically specified. 
+  }
+  \item{hd.auto.type}{
+    Used only if hd==NULL. "set" fixes hd=5. "valid" uses a 20\% validation set (randomly) sampled to find the best number of hidden nodes. "cv" uses 5-fold cross-validation. "elm" uses ELM to estimate the number of hidden nodes (experimental).
+  }
   \item{...}{
     Additional inputs for neuralnet function. 
     }
@@ -52,11 +63,15 @@ elm(y,hd=50,reps=20,
 \item{net}{MLP networks.}
 \item{hd}{Number of hidden nodes.}
 \item{lags}{Input lags used.}
+\item{xreg.lags}{xreg lags used.}
 \item{difforder}{Differencing used.}
 \item{sdummy}{Use of deterministic seasonality.}
+\item{ff}{Seasonal frequencies detected in data (taken from ts or msts object).}
+\item{ff.det}{Seasonal frequencies coded using deterministic dummies.}
 \item{det.type}{Type of determistic seasonality.}
 \item{y}{Input time series.}
 \item{minmax}{Scaling structure.}
+\item{xreg.minmax}{Scaling structure for xreg variables.}
 \item{comb}{Combination operator used.}
 \item{fitted}{Fitted values.}
 \item{MSE}{In-sample Mean Squared Error.}
