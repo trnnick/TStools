@@ -59,7 +59,7 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
     rm("PP")
     
     if (is.null(hd)){
-      hd <- min(100-60*(type=="step" | type=="lm"),max(1,length(Y)-2-direct*length(lags)))
+      hd <- min(100-60*(type=="step" | type=="lm"),max(1,length(Y)-2-as.numeric(direct)*length(lags)))
     }
 
     # Create network
@@ -90,7 +90,7 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
                    # Take care of linear dependency
                    alias.fit <- alias(as.formula(paste0("Y~",paste0("X",1:(tail(hd,1)+as.numeric(direct)*length(X[1,])),collapse="+"))),data=reg.data)
                    alias.x <- rownames(alias.fit$Complete)
-                   frm <- as.formula(paste0("Y~",paste0(setdiff(colnames(reg.data)[2:(hd+1)],alias.x),collapse="+")))
+                   frm <- as.formula(paste0("Y~",paste0(setdiff(colnames(reg.data)[2:(hd+1+as.numeric(direct)*length(X[1,]))],alias.x),collapse="+")))
                    fit <- suppressWarnings(lm(frm,reg.data))
                    if (type == "step"){
                      fit <- suppressWarnings(stepAIC(fit,trace=0)) # ,direction="backward",k=log(length(Y)))) # BIC criterion
