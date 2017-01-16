@@ -61,7 +61,7 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
     if (is.null(hd)){
       hd <- min(100-60*(type=="step" | type=="lm"),max(1,length(Y)-2-direct*length(lags)))
     }
-    
+
     # Create network
     net <- neuralnet(frm,cbind(Y,X),hidden=hd,threshold=10^10,rep=reps,err.fct="sse",linear.output=FALSE)
     
@@ -86,9 +86,9 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
                },
                {
                    reg.data <- as.data.frame(cbind(Y,Z))
-                   colnames(reg.data) <- c("Y",paste0("X",1:(tail(hd,1)+direct*length(X[1,]))))
+                   colnames(reg.data) <- c("Y",paste0("X",1:(tail(hd,1)+as.numeric(direct)*length(X[1,]))))
                    # Take care of linear dependency
-                   alias.fit <- alias(Y~.,data=reg.data)
+                   alias.fit <- alias(as.formula(paste0("Y~",paste0("X",1:(tail(hd,1)+as.numeric(direct)*length(X[1,])),collapse="+"))),data=reg.data)
                    alias.x <- rownames(alias.fit$Complete)
                    frm <- as.formula(paste0("Y~",paste0(setdiff(colnames(reg.data)[2:(hd+1)],alias.x),collapse="+")))
                    fit <- suppressWarnings(lm(frm,reg.data))
