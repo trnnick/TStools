@@ -171,43 +171,5 @@ plot.elm <- function(x, r=1, ...){
 }
 
 print.elm <- function(x, ...){
-    
-    difforder <- x$difforder
-    sdummy <- x$sdummy
-    direct <- x$direct
-    d <- length(difforder)
-    reps <- length(x$net$weights)
-    hd <- x$hd
-    if (length(hd)>1){
-        hdt <- paste0(hd,",",collapse="")
-        hdt <- paste0("(", substr(hdt,1,nchar(hdt)-1) ,")")
-        hde <- "s"
-    } else {
-        hdt <- hd
-        if (hd>1){
-            hde <- "s"
-        } else {
-            hde <- ""
-        }
-    }
-     
-    if (direct == TRUE){
-        dtx <- ", direct output connections"
-    } else {
-        dtx <- ""
-    }
-    
-    writeLines(paste0("ELM fit with ", hdt," hidden node",hde,dtx," and ", reps, " repetition",if(reps>1){"s"},"."))
-    if (d>0){
-        writeLines(paste0("Series modelled in differences: ", paste0("D",difforder,collapse=""), "."))
-    }
-    if (sdummy == TRUE){
-      writeLines(paste0("Deterministic seasonal dummies included."))
-    }
-    if (reps>1){
-        writeLines(paste0("Forecast combined using the ", x$comb, " operator."))
-    }
-    writeLines(paste0("Output weight estimation using: ", x$type, "."))
-    writeLines(paste0("MSE: ",round(x$MSE,4),"."))
-    
+    print.net(x,...)
 }

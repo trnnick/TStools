@@ -69,6 +69,8 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     
     # Create network
     net <- neuralnet(frm,cbind(Y,X),hidden=hd,rep=reps,err.fct="sse",linear.output=TRUE,...)
+    # In case some networks did not train reduce the number of available repetitions
+    reps <- length(net$weights)
     
     # Produce forecasts
     Yhat <- array(NA,c((length(y)-sum(difforder)-lag.max),reps))
@@ -335,12 +337,17 @@ plot.mlp <- function(x, r=1, ...){
 }
 
 print.mlp <- function(x, ...){
+    print.net(x,...)
+}
+
+print.net <- function(x, ...){
     
     difforder <- x$difforder
     sdummy <- x$sdummy
     d <- length(difforder)
     reps <- length(x$net$weights)
     hd <- x$hd
+    xreg.lags <- x$xreg.lags
     if (length(hd)>1){
         hdt <- paste0(hd,",",collapse="")
         hdt <- paste0("(", substr(hdt,1,nchar(hdt)-1) ,")")
@@ -354,15 +361,43 @@ print.mlp <- function(x, ...){
         }
     }
     
-    writeLines(paste0("MLP fit with ", hdt," hidden node",hde," and ", reps, " repetition",if(reps>1){"s"},"."))
+    dtx <- ""
+    if (class(x)=="elm"){
+        if (x$direct == TRUE){
+            dtx <- ", direct output connections"
+        } 
+    } 
+    
+    writeLines(paste0(toupper(class(x))," fit with ", hdt," hidden node", hde, dtx," and ", reps, " repetition",if(reps>1){"s"},"."))
     if (d>0){
         writeLines(paste0("Series modelled in differences: ", paste0("D",difforder,collapse=""), "."))
     }
+    writeLines(paste0("Univariate lags: (",paste0(x$lags,collapse=","),")"))
+    if (!is.null(xreg.lags)){
+      null.xreg <- lapply(xreg.lags,length)==0
+      p <- length(xreg.lags) - sum(null.xreg)
+      if (p > 0){
+          if (p == 1){
+              rge <- ""
+          } else {
+              rge <- "s"
+          }
+          writeLines(paste0(p," regressor",rge," included."))
+          pi <- 1
+          for (i in which(!null.xreg)){
+              writeLines(paste0("- Regressor ",pi," lags: (",paste0(xreg.lags[[i]],collapse=","),")"))
+              pi <- pi + 1
+          }
+      }
+    }
     if (sdummy == TRUE){
-      writeLines(paste0("Deterministic seasonal dummies included."))
+        writeLines(paste0("Deterministic seasonal dummies included."))
     }
     if (reps>1){
         writeLines(paste0("Forecast combined using the ", x$comb, " operator."))
+    }
+    if (class(x)=="elm"){
+        writeLines(paste0("Output weight estimation using: ", x$type, "."))
     }
     writeLines(paste0("MSE: ",round(x$MSE,4),"."))
     
