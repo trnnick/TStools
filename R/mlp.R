@@ -71,7 +71,7 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     net <- neuralnet(frm,cbind(Y,X),hidden=hd,rep=reps,err.fct="sse",linear.output=TRUE,...)
     # In case some networks did not train reduce the number of available repetitions
     reps <- length(net$weights)
-    
+
     # Produce forecasts
     Yhat <- array(NA,c((length(y)-sum(difforder)-lag.max),reps))
     
@@ -805,6 +805,7 @@ auto.hd.cv <- function(Y,X,frm,comb,reps,type=c("cv","valid")){
       Y.tst <- Y[idx[[i]],,drop=FALSE]
       X.tst <- X[idx[[i]],,drop=FALSE]
       net <- neuralnet(frm,cbind(Y.trn,X.trn),hidden=h,rep=reps,err.fct="sse",linear.output=TRUE)
+      reps <- length(net$weights) # In case some network is untrained
       
       # For each training repetition
       frc <- array(NA,c(length(Y.tst),reps))

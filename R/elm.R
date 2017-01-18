@@ -59,7 +59,7 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
     rm("PP")
     
     if (is.null(hd)){
-      hd <- min(100-60*(type=="step" | type=="lm"),max(1,length(Y)-2-as.numeric(direct)*length(lags)))
+      hd <- min(100-60*(type=="step" | type=="lm"),max(1,length(Y)-2-as.numeric(direct)*length(X[1,])))
     }
 
     # Create network
