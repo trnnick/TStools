@@ -1,7 +1,7 @@
 elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode"),
                 lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),direct=c(FALSE,TRUE),
                 allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
-                xreg=NULL,xreg.lags=NULL){
+                xreg=NULL,xreg.lags=NULL,sel.det.season=c(FALSE,TRUE)){
     
     # Defaults
     type <- type[1]
@@ -11,6 +11,7 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
     direct <- direct[1]
     allow.det.season <- allow.det.season[1]
     det.type <- det.type[1]
+    sel.det.season <- sel.det.season[1]
     
     # Check if y input is a time series
     if (!(any(class(y) == "ts") | any(class(y) == "msts"))){
@@ -40,7 +41,7 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
     rm("xreg.ls")
     
     # Pre-process data (same for MLP and ELM)
-    PP <- preprocess(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,ff.n,xreg,xreg.lags)
+    PP <- preprocess(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,ff.n,xreg,xreg.lags,sel.det.season)
     Y <- PP$Y
     X <- PP$X
     sdummy <- PP$sdummy

@@ -1,7 +1,8 @@
 mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
                 lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
                 allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
-                xreg=NULL, xreg.lags=NULL,hd.auto.type=c("set","valid","cv","elm"), ...){
+                xreg=NULL, xreg.lags=NULL,hd.auto.type=c("set","valid","cv","elm"), 
+                sel.det.season=c(FALSE,TRUE), ...){
   
     # Defaults
     comb <- comb[1]
@@ -10,6 +11,7 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     allow.det.season <- allow.det.season[1]
     det.type <- det.type[1]
     hd.auto.type <- hd.auto.type[1]
+    sel.det.season <- sel.det.season[1]
     
     # Check if y input is a time series
     if (!(any(class(y) == "ts") | any(class(y) == "msts"))){
@@ -39,7 +41,7 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     rm("xreg.ls")
     
     # Pre-process data (same for MLP and ELM)
-    PP <- preprocess(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,ff.n,xreg,xreg.lags)
+    PP <- preprocess(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,ff.n,xreg,xreg.lags,sel.det.season)
     Y <- PP$Y
     X <- PP$X
     sdummy <- PP$sdummy
@@ -431,7 +433,7 @@ def.lags <- function(lags,ff,xreg.lags,xreg){
   return(list("lags"=lags,"xreg.lags"=xreg.lags))
 }
 
-preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,ff.n,xreg,xreg.lags){
+preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,ff.n,xreg,xreg.lags,sel.det.season){
 # Pre-process data for MLP and ELM
   
   # Check seasonality & trend
@@ -501,9 +503,11 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
     }
     reg.isel <- as.data.frame(cbind(Y,X,Xreg.all))
     # colnames(reg.isel) <- c("Y",paste0("X",lags),paste0("Xreg",))
-    if (sdummy == FALSE){
+    if (sdummy == FALSE || sel.det.season == FALSE){
       fit <- lm(formula=Y~.,data=reg.isel)
-      ff.det <- NULL
+      if (sdummy == FALSE){
+        ff.det <- NULL  
+      } 
     } else {
       lm.frm <- as.formula(paste0("Y~.+",paste(paste0("Xd[[",1:ff.n,"]]"),collapse="+")))
       fit <- lm(formula=lm.frm,data=reg.isel)
@@ -544,7 +548,7 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
       still.det <- rep(TRUE,ff.n)
       # Trigonometric dummies will not be retained by linear regression
       # so do not allow rejection by stepwise!
-      if (det.type == "bin"){
+      if (det.type == "bin" && sel.det.season == TRUE){
         for (i in 1:ff.n){
           still.det[i] <- any(grepl("Xd[[1]]",names(cf.temp),fixed=TRUE))
         }
