@@ -1,3 +1,5 @@
+utils::globalVariables(c("hm"));
+
 ##### *This function constructs intervals for the given data* #####
 intervals <- function(data,intType=c("standard","2sd","hm","mad","qr"),centre=NULL,
                       level=0.95,df=NULL,k=NULL){

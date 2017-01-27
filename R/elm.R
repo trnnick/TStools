@@ -1,5 +1,8 @@
+utils::globalVariables(c("m"));
+
 elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode"),
-                lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),direct=c(FALSE,TRUE),
+                lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
+                direct=c(FALSE,TRUE),
                 allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
                 xreg=NULL,xreg.lags=NULL,sel.det.season=c(FALSE,TRUE)){
     
@@ -168,7 +171,7 @@ forecast.elm <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,xreg=NULL,...){
 }
 
 plot.elm <- function(x, r=1, ...){
-    plot.net(x,r)
+    plot.net(fit,r)
 }
 
 print.elm <- function(x, ...){

@@ -6,18 +6,19 @@
 \description{Fit MLP neural network.}
 
 \usage{
-mlp(y,m=frequency(y),hd=NULL,reps=20,
-    comb=c("median","mean","mode"),lags=NULL,
-    difforder=-1,outplot=c(FALSE,TRUE),
-    sel.lag=c(TRUE,FALSE),allow.det.season=c(TRUE,FALSE),
-    det.type=c("auto","bin","trg"),
-    xreg=NULL,xreg.lags=NULL,
-    hd.auto.type=c("set","valid","cv","elm"),...)
+mlp(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
+    lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
+    allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
+    xreg=NULL, xreg.lags=NULL,hd.auto.type=c("set","valid","cv","elm"),
+    sel.det.season=c(FALSE,TRUE), ...)
 }
 
 \arguments{
   \item{y}{
     Input time series. Can be ts or msts object.
+    }
+  \item{m}{
+    Frequency of the data.
     }
   \item{hd}{
     Number of hidden nodes. This can be a vector.
@@ -55,6 +56,9 @@ mlp(y,m=frequency(y),hd=NULL,reps=20,
   \item{hd.auto.type}{
     Used only if hd==NULL. "set" fixes hd=5. "valid" uses a 20\% validation set (randomly) sampled to find the best number of hidden nodes. "cv" uses 5-fold cross-validation. "elm" uses ELM to estimate the number of hidden nodes (experimental).
   }
+  \item{sel.det.season}{
+    Some unknown parameter. NIKOS, PLEASE, CLARIFY THIS!
+    }
   \item{...}{
     Additional inputs for neuralnet function. 
     }

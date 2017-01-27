@@ -6,7 +6,8 @@
 \description{Perform XYZ analysis based on coefficient of variation, naive and seasonal naive fit, exponential smoothing or custom quantities.}
 
 \usage{
-xyz(x,m=NULL,prc=c(0.2,0.3,0.5),type=c("naive","ets","cv"),outplot=c(TRUE,FALSE),cex.prc=0.8,...)
+xyz(x,m=NULL,prc=c(0.2,0.3,0.5),type=c("naive","ets","cv"),
+    outplot=c(TRUE,FALSE),cex.prc=0.8,...)
 }
 
 \arguments{

@@ -38,6 +38,6 @@ Nikolaos Kourentzes
 }
 \examples{
 x <- abs(matrix(cumsum(rnorm(5400,0,1)),36,150))
-abcxyz(abc(x,outplot=FALSE),xyz(x,type="naive",outplot=FALSE))
+abcxyz(abc(x,outplot=FALSE),xyz(x,m=12,type="naive",outplot=FALSE))
 }
 
