@@ -137,7 +137,7 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
 }
 
 forecast.net <- function(fit,h=NULL,y=NULL,xreg=NULL,...){ 
-    # Produce forecast with ELM
+    # Produce forecast with NNs
     
     if (is.null(y)){
         y <- fit$y
@@ -311,7 +311,7 @@ forecast.net <- function(fit,h=NULL,y=NULL,xreg=NULL,...){
     }
     
     # Combine forecasts
-    yout <- frc.comb(Yfrc,comb)
+    fout <- frc.comb(Yfrc,comb)
     
     fout <- ts(fout,frequency=frequency(y),start=fstart)
     
@@ -865,7 +865,6 @@ auto.hd.cv <- function(Y,X,frm,comb,reps,type=c("cv","valid")){
 
 frc.comb <- function(Yhat,comb){
   # Combine forecasts
-
   r <- length(Yhat[1,])
   if (r>1){
     switch(comb,
