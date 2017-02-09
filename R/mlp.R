@@ -1,9 +1,11 @@
 mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
                 lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
                 allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
-                xreg=NULL, xreg.lags=NULL,hd.auto.type=c("set","valid","cv","elm"), 
-                sel.det.season=c(FALSE,TRUE), ...){
+                xreg=NULL, xreg.lags=NULL,hd.auto.type=c("set","valid","cv","elm"),
+                hd.max=NULL, sel.det.season=c(FALSE,TRUE), ...){
   
+    # hd.max is only relevant to valid and cv
+    
     # Defaults
     comb <- comb[1]
     outplot <- outplot[1]
@@ -62,10 +64,12 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     # Auto specify number of hidden nodes
     if (is.null(hd)){
       switch(hd.auto.type,
-             "set" = {hd <- 5},
-             "valid" = {hd <- auto.hd.cv(Y,X,frm,comb,reps,type="valid")},
-             "cv" = {hd <- auto.hd.cv(Y,X,frm,comb,reps,type="cv")},
-             "elm" = {hd <- auto.hd.elm(Y,X,frm)}
+             "set" = {hd <- 5; mse.H=NULL},
+             "valid" = {hd <- auto.hd.cv(Y,X,frm,comb,reps,type="valid",hd.max)
+                        mseH <- hd$mseH; hd <- hd$hd},
+             "cv" = {hd <- auto.hd.cv(Y,X,frm,comb,reps,type="cv",hd.max)
+                     mseH <- hd$mseH; hd <- hd$hd},
+             "elm" = {hd <- auto.hd.elm(Y,X,frm); mse.H=NULL}
              )
     }
     
@@ -132,7 +136,7 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     
     return(structure(list("net"=net,"hd"=hd,"lags"=lags,"xreg.lags"=xreg.lags,"difforder"=difforder,"sdummy"=sdummy,"ff.det"=ff.det,
                           "det.type"=det.type,"y"=y,"minmax"=sc$minmax,"xreg.minmax"=xreg.minmax,"comb"=comb,"fitted"=yout,
-                          "MSE"=MSE),class="mlp"))
+                          "MSE"=MSE,"MSEH"=mseH),class="mlp"))
     
 }
 
@@ -803,7 +807,7 @@ auto.hd.elm <- function(Y,X,frm){
 
 }
 
-auto.hd.cv <- function(Y,X,frm,comb,reps,type=c("cv","valid")){
+auto.hd.cv <- function(Y,X,frm,comb,reps,type=c("cv","valid"),hd.max=NULL){
   # Find number of hidden nodes with CV
   
   # Setup
@@ -811,7 +815,9 @@ auto.hd.cv <- function(Y,X,frm,comb,reps,type=c("cv","valid")){
   K <- 5                                            # Number of folds
   val.size <- 0.2                                   # Size of validation set
   reps <- min(c(20,max(c(2,reps))))                 # Number of NN reps, maximum 20
-  hd.max <- max(2,min(length(X[1,])+2,length(Y)-2)) # Maximum number of hidden nodes
+  if (is.null(hd.max)){
+    hd.max <- max(2,min(length(X[1,])+2,length(Y)-2)) # Maximum number of hidden nodes
+  }
   
   # Setup folds or validation set
   n <- length(Y)
@@ -834,7 +840,7 @@ auto.hd.cv <- function(Y,X,frm,comb,reps,type=c("cv","valid")){
   }
   
   # Now run CV (1-step ahead)
-  err.h <- vector("numeric",hd.max)
+  err.h <- array(NA,c(hd.max,1),dimnames=list(paste0("H.",1:hd.max),"MSE"))
   for (h in 1:hd.max){
     # For each fold
     err.cv <- vector("numeric",K)
@@ -857,8 +863,8 @@ auto.hd.cv <- function(Y,X,frm,comb,reps,type=c("cv","valid")){
     err.h[h] <- mean(err.cv)
   }
   hd <- which(err.h == min(err.h))[1]
-  
-  return(hd)
+
+  return(list("hd"=hd,"mseH"=err.h))
   
 }
 
