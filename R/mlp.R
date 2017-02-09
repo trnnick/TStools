@@ -176,7 +176,11 @@ forecast.net <- function(fit,h=NULL,y=NULL,xreg=NULL,...){
     }
     reps <- length(net$weights)
 
+    # Temporal aggregation can mess-up start/end of ts, so lets fix it
     fstart <- c(end(y)[1],end(y)[2]+1)
+    if (is.na(fstart[2])){  # If the second element of end(y) does not exist because it is fractional
+        fstart <- end(y) + deltat(y)
+    }
     
     # Check xreg inputs
     if (!is.null(xreg)){
