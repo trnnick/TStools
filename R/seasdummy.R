@@ -42,7 +42,7 @@ seasdummy <- function(n,m=NULL,y=NULL,type=c("bin","trg"),full=c(FALSE,TRUE)){
     
     # Trim co-linear dummy
     if (full==FALSE){
-        x <- x[,1:(m-1)]
+        x <- x[,1:(m-1),drop=FALSE]
     }
     
     # Shift for start
