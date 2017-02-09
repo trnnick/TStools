@@ -1,8 +1,5 @@
-utils::globalVariables(c("m"));
-
 elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode"),
-                lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
-                direct=c(FALSE,TRUE),
+                lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),direct=c(FALSE,TRUE),
                 allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
                 xreg=NULL,xreg.lags=NULL,sel.det.season=c(FALSE,TRUE)){
     
@@ -170,8 +167,43 @@ forecast.elm <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,xreg=NULL,...){
   forecast.net(fit,h=h,outplot=outplot,y=y,xreg=xreg,...)
 }
 
+elm.thief <- function(y,h=NULL,...){
+    # This is a wrapper function to use MLP with THieF
+    
+    # Remove level input from ellipsis
+    ellipsis.args <- list(...)
+    ellipsis.args$level <- NULL
+    ellipsis.args$y <- y
+    
+    # Fit network
+    fit <- do.call(elm,ellipsis.args) 
+    
+    # Default h
+    if (is.null(h)){
+        h <- frequency(y)
+    }
+    # Check if xreg was given and pass to forecast
+    if ("xreg" %in% names(ellipsis.args)){
+        xreg <- ellipsis.args$xreg
+    } else {
+        xreg <- NULL
+    }
+    
+    # Forecast
+    out <- forecast(fit,h,xreg)
+    # Make fitted values span the complete sample
+    n <- length(out$x)
+    m <- length(out$fitted)
+    if (m < n){
+        out$fitted <- ts(c(rep(NA,n-m),out$fitted),frequency=frequency(out$fitted),end=end(out$fitted))
+    }
+    
+    return(out)
+    
+}
+
 plot.elm <- function(x, r=1, ...){
-    plot.net(fit,r)
+    plot.net(x,r)
 }
 
 print.elm <- function(x, ...){

@@ -23,7 +23,8 @@ export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        residout,stlboot,get.opt.k,leadtrail,
        linscale,lagmatrix,seasdummy,
        elm,forecast.elm,
-       mlp,forecast.mlp,plot.net)
+       mlp,forecast.mlp,plot.net,
+       mlp.thief,elm.thief)
 
 S3method(print,intervalStuff)
 S3method(print,classseas)
@@ -39,3 +40,4 @@ S3method(forecast,mlp)
 S3method(plot,elm)
 S3method(plot,mlp)
 S3method(plot,net)
+S3method(plot,forecast.net)

@@ -136,10 +136,8 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     
 }
 
-forecast.net <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,xreg=NULL,...){
+forecast.net <- function(fit,h=NULL,y=NULL,xreg=NULL,...){ 
     # Produce forecast with ELM
-    
-    outplot <- outplot[1]
     
     if (is.null(y)){
         y <- fit$y
@@ -231,7 +229,7 @@ forecast.net <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,xreg=NULL,...){
       # Xd <- seasdummy(h,y=temp,type=det.type)
     }
     
-    Yfrc <- array(NA,c(h,reps))
+    Yfrc <- array(NA,c(h,reps),dimnames=list(paste0("t+",1:h),paste0("NN.",1:reps)))
     if (length(lags)>0){
       ylag <- max(lags)
     } else {
@@ -313,20 +311,54 @@ forecast.net <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,xreg=NULL,...){
     
     fout <- ts(fout,frequency=frequency(y),start=fstart)
     
-    if (outplot==TRUE){
-        ts.plot(y,fitted,fout,col=c("black","blue","red"))
-        if (reps>1){
-            for (r in 1:reps){
-                temp <- Yfrc[,r]
-                temp <- ts(temp,frequency=frequency(fout),end=end(fout))
-                lines(temp,col="grey")
-            }
-            lines(fout,col="red")
-        }
-        
+    # Prepare output
+    out <- list("method"=class(fit),"mean"=fout,
+                "all.mean"=ts(Yfrc,frequency=frequency(y),start=fstart),
+                "x"=y,"fitted"=fitted,"residuals"=y-fitted)
+    return(structure(out,class=c("forecast.net","forecast")))
+    
+}
+
+plot.forecast.net <- function(x,...){
+    # Plot function for NNs
+    reps <- dim(x$all.mean)[2]
+    ts.plot(x$x,x$all.mean,x$mean,
+            col=c("black",rep("grey",reps),"blue"),lwd=c(1,rep(1,reps),2),
+            main=paste("Forecasts from",out$method))
+}
+    
+mlp.thief <- function(y,h=NULL,...){
+# This is a wrapper function to use MLP with THieF
+    
+    # Remove level input from ellipsis
+    ellipsis.args <- list(...)
+    ellipsis.args$level <- NULL
+    ellipsis.args$y <- y
+    
+    # Fit network
+    fit <- do.call(mlp,ellipsis.args) 
+    
+    # Default h
+    if (is.null(h)){
+        h <- frequency(y)
+    }
+    # Check if xreg was given and pass to forecast
+    if ("xreg" %in% names(ellipsis.args)){
+        xreg <- ellipsis.args$xreg
+    } else {
+        xreg <- NULL
     }
     
-    return(fout)
+    # Forecast
+    out <- forecast(fit,h,xreg)
+    # Make fitted values span the complete sample
+    n <- length(out$x)
+    m <- length(out$fitted)
+    if (m < n){
+        out$fitted <- ts(c(rep(NA,n-m),out$fitted),frequency=frequency(out$fitted),end=end(out$fitted))
+    }
+    
+    return(out)
     
 }
 
