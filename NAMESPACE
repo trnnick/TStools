@@ -8,15 +8,18 @@ importFrom("stats", "cor.test", "deltat", "density", "end", "fft",
            "na.exclude", "na.omit", "nlminb", "optim", "pbinom",
            "predict", "qt", "qtukey", "quantile", "sd", "start", "stl",
            "time", "ts", "ts.plot", "uniroot")
+importFrom("graphics", "arrows")
+importFrom("stats", "alias", "as.formula", "coef", "lm")
+importFrom("utils", "head", "tail")
+importFrom("smooth", "hm")
 
 import(forecast,zoo,MAPA,RColorBrewer,neuralnet,glmnet,MASS,plotrix)
 
 export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        coxstuart,wins,rowWins,colWins,theta,abc,xyz,abcxyz,
        nzlength,init.ets,mre,mre.plot,bias.coeff,
-       graphmaker,MPE,MAPE,SMAPE,MASE,GMRAE,hm,
        sowhat,ro,intervals,intervalsSimulator,
-       sma,geomean,
+       geomean,
        residout,stlboot,get.opt.k,leadtrail,
        linscale,lagmatrix,seasdummy,
        elm,forecast.elm,
@@ -35,5 +38,4 @@ S3method(forecast,elm)
 S3method(forecast,mlp)
 S3method(plot,elm)
 S3method(plot,mlp)
-
-#useDynLib(TStools)
+S3method(plot,net)

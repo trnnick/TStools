@@ -1,4 +1,5 @@
-kdemode <- function(data,type=c("diffusion","SJ","nrd0"),weights=NULL,from=NULL,to=NULL,outplot=c(FALSE,TRUE),...){
+kdemode <- function(data,type=c("diffusion","SJ","nrd0"),
+                    weights=NULL,from=NULL,to=NULL,outplot=c(FALSE,TRUE),...){
 # Return mode of a vector as calculated using KDE
 #
 # Inputs:
@@ -71,7 +72,7 @@ kdemode <- function(data,type=c("diffusion","SJ","nrd0"),weights=NULL,from=NULL,
         args$xlim <- c(min(x),max(x))
     }
     if (!("ylim" %in% names(args))){
-        args$ylim <- c(0,max(y))
+        args$ylim <- c(0,max(f))
     }
     # Remaining defaults
     args$x <- args$y <- NA

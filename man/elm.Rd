@@ -6,12 +6,11 @@
 \description{Fit ELM neural network.}
 
 \usage{
-elm(y,hd=NULL,type=c("lasso","step","lm"),reps=20,
-    comb=c("median","mean","mode"),lags=NULL,
-    difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
-    direct=c(FALSE,TRUE),allow.det.season=c(TRUE,FALSE),
-    det.type=c("auto","bin","trg"),
-    xreg=NULL,xreg.lags=NULL)
+elm(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode"),
+    lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
+    direct=c(FALSE,TRUE),
+    allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
+    xreg=NULL,xreg.lags=NULL,sel.det.season=c(FALSE,TRUE))
 }
 \arguments{
   \item{y}{
@@ -56,6 +55,9 @@ elm(y,hd=NULL,type=c("lasso","step","lm"),reps=20,
   \item{xreg.lags}{
     This is a list containing the lags for each exogenous variable. Each list is a numeric vector containing lags. If xreg has 3 columns then the xreg.lags list must contain three elements. If NULL then it is automatically specified. 
   }
+  \item{sel.det.season}{
+    Some unknown parameter. NIKOS, PLEASE, CLARIFY THIS!
+    }
 }
 \value{
 \item{net}{ELM networks.}

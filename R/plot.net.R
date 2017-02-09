@@ -1,7 +1,7 @@
-plot.net <- function(fit,r=1){
+plot.net <- function(x, r=1, ...){
 # Plot MLP or ELM object
 
-    ttl <- class(fit)
+    ttl <- class(x)
     neuron.col <- "lightgrey"
     xreg.col <- "lightblue"
     season.col <- "lightpink"
@@ -10,7 +10,7 @@ plot.net <- function(fit,r=1){
         stop("Model must be the output of either mlp or elm functions.")
     }
     
-    net <- fit$net
+    net <- x$net
 
     if (r>length(net$weights)){
         stop(paste0("Training repetition ",r," requested, with only ", length(net$weights), " available."))
@@ -46,7 +46,7 @@ plot.net <- function(fit,r=1){
     
     cmp <- rep("black",layer.size[layer.n])
     if (ttl == "elm"){
-        w <- fit$W[[r]][2:(layer.size[layer.n]+1)] != 0
+        w <- x$W[[r]][2:(layer.size[layer.n]+1)] != 0
         
         cmp[!w] <- "grey"
         ltt <- rep(1,layer.size[layer.n])
@@ -84,8 +84,8 @@ plot.net <- function(fit,r=1){
     
     # Draw direct
     if (ttl == "elm"){
-        if (fit$direct == TRUE){
-            wd <- fit$W[[r]][(layer.size[layer.n]+2):length(fit$W[[r]])] != 0
+        if (x$direct == TRUE){
+            wd <- x$W[[r]][(layer.size[layer.n]+2):length(x$W[[r]])] != 0
             wd.n <- length(wd)
             wd.cmp <- rep("blue",wd.n)
             wd.ltt <- rep(1,wd.n)

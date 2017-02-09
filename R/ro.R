@@ -94,10 +94,10 @@ ro <- function(data,h=10,origins=10,call,value=NULL,
         h <- min(hh,obs - (in.sample+ivan41-1))
 # Make the in-sample
         if(ci==FALSE){
-            counti <- 1:(in.sample+ivan41-1);
+            counti <- 1:(in.sample+ivan41);
         }
         else{
-            counti <- ivan41:(in.sample+ivan41-1);
+            counti <- ivan41:(in.sample+ivan41);
         }
         counto <- (in.sample+ivan41):(in.sample+ivan41+h-1);
         countfull <- c(counti,counto);
@@ -120,10 +120,10 @@ ro <- function(data,h=10,origins=10,call,value=NULL,
       for (ivan41 in 1:origins){
 # Make the in-sample
         if(ci==FALSE){
-            counti <- 1:(in.sample-h+ivan41-1);
+            counti <- 1:(in.sample-h+ivan41);
         }
         else{
-            counti <- ivan41:(in.sample-h+ivan41-1);
+            counti <- ivan41:(in.sample-h+ivan41);
         }
         counto <- (in.sample+ivan41-h+1):(in.sample+ivan41);
         countfull <- c(counti,counto);

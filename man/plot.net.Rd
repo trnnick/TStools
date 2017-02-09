@@ -6,15 +6,18 @@
 \description{Plot MLP or ELM neural network.}
 
 \usage{
-plot.net(fit,r=1)
+    \method{plot}{net}(x, r=1, ...)
 }
 
 \arguments{
-  \item{fit}{
+  \item{x}{
     Output of mlp or elm functions.
     }
   \item{r}{
     Training repetition to plot. 
+    }
+  \item{...}{
+    Parameters passed to plot.
     }
 }
 \author{

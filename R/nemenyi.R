@@ -422,8 +422,8 @@ if (is.null(labels)){
   
 }
 
-summary.nemenyi <- function(x,...){
-  print(x)
+summary.nemenyi <- function(object,...){
+  print(object)
 }
 
 print.nemenyi <- function(x,...){
