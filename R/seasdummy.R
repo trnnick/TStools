@@ -4,7 +4,7 @@ seasdummy <- function(n,m=NULL,y=NULL,type=c("bin","trg"),full=c(FALSE,TRUE)){
     # Default
     type <- type[1]
     full <- full[1]
-    
+
     # Get time series information if available
     if (!is.null(y)){
       if (is.null(m)){
@@ -26,13 +26,10 @@ seasdummy <- function(n,m=NULL,y=NULL,type=c("bin","trg"),full=c(FALSE,TRUE)){
     }
     
     # Create dummies
-    x <- array(0,c(n.sim,m))
     if (type == "bin"){
-        x[seq(1,n.sim,m),1] <- 1
-        for (i in 2:m){
-            x[,i] <- c(tail(x[,i-1],1),x[1:(n.sim-1),i-1])
-        }
+        x <- matrix(rep(diag(rep(1,m)),ceiling(n.sim/m)),ncol=m,byrow=TRUE)[1:n.sim,,drop=FALSE]
     } else { # trg
+        x <- array(0,c(n.sim,m))
         t <- 1:n.sim
         for (i in 1:(m/2)){
             x[,1+(i-1)*2] <- cos((2*t*pi*i)/m)

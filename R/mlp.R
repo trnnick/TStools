@@ -221,7 +221,7 @@ forecast.net <- function(fit,h=NULL,y=NULL,xreg=NULL,...){
     if (sdummy == TRUE){
       temp <- ts(1:h,start=fstart,frequency=max(ff.det))
       Xd <- vector("list",ff.n.det)
-      
+
       for (s in 1:ff.n.det){
         Xd[[s]] <- seasdummy(h,m=ff.det[s],y=temp,type=det.type)
         colnames(Xd[[s]]) <- paste0("D",s,".",1:length(Xd[[s]][1,]))
@@ -287,7 +287,6 @@ forecast.net <- function(fit,h=NULL,y=NULL,xreg=NULL,...){
             
             frc.sc[i] <- yhat.sc
         }
-        
         # Reverse scaling
         frc <- linscale(frc.sc,minmax,rev=TRUE)$x
         
