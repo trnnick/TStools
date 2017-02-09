@@ -56,6 +56,8 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
     if (any(class(y) == "ts")){
       s <- start(y)
       s <- s[2]
+      # Temporal aggregation can mess-up s, so override if needed
+      if (is.na(s)){s<-1}
     } else {
       s <- 1
     }

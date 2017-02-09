@@ -324,7 +324,7 @@ plot.forecast.net <- function(x,...){
     reps <- dim(x$all.mean)[2]
     ts.plot(x$x,x$all.mean,x$mean,
             col=c("black",rep("grey",reps),"blue"),lwd=c(1,rep(1,reps),2),
-            main=paste("Forecasts from",out$method))
+            main=paste("Forecasts from",x$method))
 }
     
 mlp.thief <- function(y,h=NULL,...){
