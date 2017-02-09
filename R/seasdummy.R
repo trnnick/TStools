@@ -47,7 +47,7 @@ seasdummy <- function(n,m=NULL,y=NULL,type=c("bin","trg"),full=c(FALSE,TRUE)){
     
     # Shift for start
     if (start > 1){
-        x <- rbind(x[start:n,],x[1:(start-1),])
+        x <- rbind(x[start:n, ,drop=FALSE], x[1:(start - 1), ,drop=FALSE])
     }
     
     # If n.sim is larger, just retain n observations
