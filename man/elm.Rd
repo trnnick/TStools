@@ -84,7 +84,7 @@ An object of class \code{"elm"} is a list containing the following elements:
         \item{For ELMs see: Huang G.B., Zhou H., Ding X. (2006) Extreme learning machine: theory and applications. \emph{Neurocomputing}, \bold{70}(\bold{1}), 489-501.}
 }
 }
-\note{To use elm with Temporal Hierarchied (\href{https://cran.r-project.org/web/packages/thief/index.html}{thief} package) see \code{\link{elm.thief}}.}
+\note{To use elm with Temporal Hierarchied (\href{http://cran.r-project.org/package=thief}{thief} package) see \code{\link{elm.thief}}.}
 \author{
 Nikolaos Kourentzes, \email{nikolaos@kourentzes.com}
 }

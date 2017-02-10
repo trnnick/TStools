@@ -9,7 +9,7 @@
 \method{forecast}{elm}(object,h=NULL,y=NULL,xreg=NULL,...)
 }
 \arguments{
-  \item{fit}{
+  \item{object}{
     ELM network object, produced using \code{\link{elm}}.
     }
   \item{h}{

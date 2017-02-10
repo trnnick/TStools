@@ -35,7 +35,7 @@ An object of class \code{"forecast.net"} is a list containing the following elem
         \item{For ELMs see: Huang G.B., Zhou H., Ding X. (2006) Extreme learning machine: theory and applications. \emph{Neurocomputing}, \bold{70}(\bold{1}), 489-501.}
 }
 }
-\note{This function is created to work with Temporal Hierarchied (\href{https://cran.r-project.org/web/packages/thief/index.html}{thief} package). For conventional ELM networks use \code{\link{elm}}.}
+\note{This function is created to work with Temporal Hierarchied (\href{http://cran.r-project.org/package=thief}{thief} package). For conventional ELM networks use \code{\link{elm}}.}
 \author{
 Nikolaos Kourentzes, \email{nikolaos@kourentzes.com}
 }
@@ -43,7 +43,7 @@ Nikolaos Kourentzes, \email{nikolaos@kourentzes.com}
 \code{\link{elm}}, \code{\link{plot.forecast.net}}.
 }
 \examples{
-**## Not run:** 
+## **Not run:** 
 library(thief)
 frc <- thief(AirPassengers,forecastfunction=elm.thief)
 plot(frc)

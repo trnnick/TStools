@@ -9,7 +9,7 @@
 \method{forecast}{mlp}(object,h=NULL,y=NULL,xreg=NULL,...)
 }
 \arguments{
-  \item{fit}{
+  \item{object}{
     MLP network object, produced using \code{\link{mlp}}.
     }
   \item{h}{
