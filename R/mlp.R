@@ -567,7 +567,7 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
           lasso.X <- cbind(lasso.X,tempX)
         }
       }
-      fit.lasso <- cv.glmnet(x=lasso.X,y=lasso.Y)
+      fit.lasso <- suppressWarnings(cv.glmnet(x=lasso.X,y=lasso.Y))
       cf.temp <- as.vector(coef(fit.lasso))
       names(cf.temp) <- rownames(coef(fit.lasso))
       cf.temp <- cf.temp[cf.temp!=0] 
