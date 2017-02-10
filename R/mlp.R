@@ -551,9 +551,27 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
       lm.frm <- as.formula(paste0("Y~.+",paste(paste0("Xd[[",1:ff.n,"]]"),collapse="+")))
       fit <- lm(formula=lm.frm,data=reg.isel)
     }
-    fit <- stepAIC(fit,trace=0,direction="backward")
-    # Get useful lags
-    cf.temp <- coef(fit)
+    # Make selection of lags robust to sample size issues if all
+    # other checks fail by using lasso
+    cf.temp <- tryCatch({
+      fit <- stepAIC(fit,trace=0,direction="backward")
+      # Get useful lags
+      cf.temp <- coef(fit)
+    }, error = function(e) {
+      lasso.Y <- reg.isel[,1]
+      lasso.X <- data.matrix(reg.isel[,2:dim(reg.isel)[2],drop=FALSE])
+      if (sdummy == TRUE){
+        for (i in 1:ff.n){
+          tempX <- Xd[[i]]
+          colnames(tempX) <- paste0(paste0("Xd[[",i,"]]"),colnames(tempX))
+          lasso.X <- cbind(lasso.X,tempX)
+        }
+      }
+      fit.lasso <- cv.glmnet(x=lasso.X,y=lasso.Y)
+      cf.temp <- as.vector(coef(fit.lasso))
+      names(cf.temp) <- rownames(coef(fit.lasso))
+      cf.temp <- cf.temp[cf.temp!=0] 
+    })
     X.loc <- lags[which(colnames(X) %in% names(cf.temp))]
     if (x.n>0){
       Xreg.loc <- xreg.lags
@@ -589,7 +607,7 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
       # so do not allow rejection by stepwise!
       if (det.type == "bin"){
         for (i in 1:ff.n){
-          still.det[i] <- any(grepl("Xd[[1]]",names(cf.temp),fixed=TRUE))
+          still.det[i] <- any(grepl(paste0("Xd[[",i,"]]"),names(cf.temp),fixed=TRUE))
         }
       } 
       # Re-create seasonal dummies
