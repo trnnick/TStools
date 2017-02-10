@@ -22,9 +22,8 @@ export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        geomean,
        residout,stlboot,get.opt.k,leadtrail,
        linscale,lagmatrix,seasdummy,
-       elm,forecast.elm,
-       mlp,forecast.mlp,plot.net,
-       mlp.thief,elm.thief)
+       elm,forecast.elm,plot.elm,elm.thief,
+       mlp,forecast.mlp,plot.mlp,mlp.thief)
 
 S3method(print,intervalStuff)
 S3method(print,classseas)

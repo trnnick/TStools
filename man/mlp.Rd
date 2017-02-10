@@ -1,7 +1,7 @@
 \name{mlp}
 \alias{mlp}
 
-\title{Fit MLP neural network.}
+\title{MLP neural network.}
 
 \description{Fit MLP neural network.}
 
@@ -10,7 +10,7 @@ mlp(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
     allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
     xreg=NULL, xreg.lags=NULL,hd.auto.type=c("set","valid","cv","elm"),
-    sel.det.season=c(FALSE,TRUE), ...)
+    hd.max=NULL, ...)
 }
 
 \arguments{
@@ -56,14 +56,16 @@ mlp(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
   \item{hd.auto.type}{
     Used only if hd==NULL. "set" fixes hd=5. "valid" uses a 20\% validation set (randomly) sampled to find the best number of hidden nodes. "cv" uses 5-fold cross-validation. "elm" uses ELM to estimate the number of hidden nodes (experimental).
   }
-  \item{sel.det.season}{
-    Some unknown parameter. NIKOS, PLEASE, CLARIFY THIS!
+  \item{hd.max}{
+    When hd.auto.type is set to either "valid" or "cv" then this argument can be used to set the maximum number of hidden nodes to evaluate, otherwise the maximum is set automatically.
     }
   \item{...}{
     Additional inputs for neuralnet function. 
     }
 }
-\value{
+\value{An object of class "\code{mlp}".
+The function \code{plot} produces a plot the network architecture.
+An object of class \code{"mlp"} is a list containing the following elements:
 \item{net}{MLP networks.}
 \item{hd}{Number of hidden nodes.}
 \item{lags}{Input lags used.}
@@ -79,17 +81,27 @@ mlp(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
 \item{comb}{Combination operator used.}
 \item{fitted}{Fitted values.}
 \item{MSE}{In-sample Mean Squared Error.}
+\item{MSEH}{If hd.auto.type is set to either "valid" or "cv" an array of the MSE error for each network size is provided. Otherwise this is NULL.}
 }
 \references{
     \itemize{
-        \item{For combination operators see: Kourentzes N., Barrow B.K., Crone S.F. (2014) Neural network ensemble operators for time series forecasting. \emph{Expert Systems with Applications}, \bold{41}(\bold{9}), 4235-4244.}
+        \item{For combination operators see: Kourentzes N., Barrow B.K., Crone S.F. (2014) \href{http://kourentzes.com/forecasting/2014/04/19/neural-network-ensemble-operators-for-time-series-forecasting/}{Neural network ensemble operators for time series forecasting}. \emph{Expert Systems with Applications}, \bold{41}(\bold{9}), 4235-4244.}
 }
 }
+\note{To use mlp with Temporal Hierarchied (\href{https://cran.r-project.org/web/packages/thief/index.html}{thief} package) see \code{\link{mlp.thief}}.}
 \author{
 Nikolaos Kourentzes, \email{nikolaos@kourentzes.com}
 }
-\examples{
-y <- log(AirPassengers)
-fit <- mlp(y)
-frc <- forecast(fit,h=36,outplot=TRUE)
+\seealso{
+\code{\link{forecast.mlp}}, \code{\link{plot.mlp}}, \code{\link{mlp.thief}}, \code{\link{elm}}.
 }
+\examples{
+fit <- mlp(AirPassengers)
+print(fit)
+plot(fit)
+frc <- forecast(fit,h=36)
+plot(frc)
+}
+\keyword{ ~mlp }
+\keyword{ ~thief }
+\keyword{ ~ts }

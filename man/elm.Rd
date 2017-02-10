@@ -1,7 +1,7 @@
 \name{elm}
 \alias{elm}
 
-\title{Fit ELM neural network.}
+\title{ELM neural network.}
 
 \description{Fit ELM neural network.}
 
@@ -10,7 +10,7 @@ elm(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode")
     lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
     direct=c(FALSE,TRUE),
     allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
-    xreg=NULL,xreg.lags=NULL,sel.det.season=c(FALSE,TRUE))
+    xreg=NULL,xreg.lags=NULL)
 }
 \arguments{
   \item{y}{
@@ -55,11 +55,10 @@ elm(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode")
   \item{xreg.lags}{
     This is a list containing the lags for each exogenous variable. Each list is a numeric vector containing lags. If xreg has 3 columns then the xreg.lags list must contain three elements. If NULL then it is automatically specified. 
   }
-  \item{sel.det.season}{
-    Some unknown parameter. NIKOS, PLEASE, CLARIFY THIS!
-    }
 }
-\value{
+\value{An object of class "\code{elm}".
+The function \code{plot} produces a plot the network architecture.
+An object of class \code{"elm"} is a list containing the following elements:
 \item{net}{ELM networks.}
 \item{hd}{Number of hidden nodes.}
 \item{W}{Output layer weights for ech repetition.}
@@ -81,15 +80,24 @@ elm(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode")
 }
 \references{
     \itemize{
-        \item{For combination operators see: Kourentzes N., Barrow B.K., Crone S.F. (2014) Neural network ensemble operators for time series forecasting. \emph{Expert Systems with Applications}, \bold{41}(\bold{9}), 4235-4244.}
-        \item{For ELMs see: ... .}
+        \item{For combination operators see: Kourentzes N., Barrow B.K., Crone S.F. (2014) \href{http://kourentzes.com/forecasting/2014/04/19/neural-network-ensemble-operators-for-time-series-forecasting/}{Neural network ensemble operators for time series forecasting}. \emph{Expert Systems with Applications}, \bold{41}(\bold{9}), 4235-4244.}
+        \item{For ELMs see: Huang G.B., Zhou H., Ding X. (2006) Extreme learning machine: theory and applications. \emph{Neurocomputing}, \bold{70}(\bold{1}), 489-501.}
 }
 }
+\note{To use elm with Temporal Hierarchied (\href{https://cran.r-project.org/web/packages/thief/index.html}{thief} package) see \code{\link{elm.thief}}.}
 \author{
 Nikolaos Kourentzes, \email{nikolaos@kourentzes.com}
 }
-\examples{
-y <- log(AirPassengers)
-fit <- elm(y)
-frc <- forecast(fit,h=36,outplot=TRUE)
+\seealso{
+\code{\link{forecast.elm}}, \code{\link{plot.elm}}, \code{\link{elm.thief}}, \code{\link{mlp}}.
 }
+\examples{
+fit <- elm(AirPassengers)
+print(fit)
+plot(fit)
+frc <- forecast(fit,h=36)
+plot(frc)
+}
+\keyword{ ~elm }
+\keyword{ ~thief }
+\keyword{ ~ts }

@@ -2,7 +2,7 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
                 lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
                 allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
                 xreg=NULL, xreg.lags=NULL,hd.auto.type=c("set","valid","cv","elm"),
-                hd.max=NULL, sel.det.season=c(FALSE,TRUE), ...){
+                hd.max=NULL, ...){
   
     # hd.max is only relevant to valid and cv
     
@@ -13,7 +13,6 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     allow.det.season <- allow.det.season[1]
     det.type <- det.type[1]
     hd.auto.type <- hd.auto.type[1]
-    sel.det.season <- sel.det.season[1]
     
     # Check if y input is a time series
     if (!(any(class(y) == "ts") | any(class(y) == "msts"))){
@@ -43,7 +42,7 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     rm("xreg.ls")
     
     # Pre-process data (same for MLP and ELM)
-    PP <- preprocess(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,ff.n,xreg,xreg.lags,sel.det.season)
+    PP <- preprocess(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,ff.n,xreg,xreg.lags)
     Y <- PP$Y
     X <- PP$X
     sdummy <- PP$sdummy
@@ -62,14 +61,15 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     rm("PP")
     
     # Auto specify number of hidden nodes
+    mseH <- NULL
     if (is.null(hd)){
       switch(hd.auto.type,
-             "set" = {hd <- 5; mse.H=NULL},
+             "set" = {hd <- 5},
              "valid" = {hd <- auto.hd.cv(Y,X,frm,comb,reps,type="valid",hd.max)
                         mseH <- hd$mseH; hd <- hd$hd},
              "cv" = {hd <- auto.hd.cv(Y,X,frm,comb,reps,type="cv",hd.max)
                      mseH <- hd$mseH; hd <- hd$hd},
-             "elm" = {hd <- auto.hd.elm(Y,X,frm); mse.H=NULL}
+             "elm" = {hd <- auto.hd.elm(Y,X,frm)}
              )
     }
     
@@ -140,11 +140,11 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     
 }
 
-forecast.net <- function(fit,h=NULL,y=NULL,xreg=NULL,...){ 
+forecast.net <- function(object,h=NULL,y=NULL,xreg=NULL,...){ 
     # Produce forecast with NNs
     
     if (is.null(y)){
-        y <- fit$y
+        y <- object$y
     }
 
     # Get frequency
@@ -158,28 +158,28 @@ forecast.net <- function(fit,h=NULL,y=NULL,xreg=NULL,...){
     }
     
     # Get stuff from fit list
-    net <- fit$net
-    hd <- fit$hd
-    lags <- fit$lags
-    xreg.lags <- fit$xreg.lags
-    difforder <- fit$difforder
-    sdummy <- fit$sdummy
-    det.type <- fit$det.type
-    minmax <- fit$minmax
-    xreg.minmax <- fit$xreg.minmax
-    comb <- fit$comb
-    fitted <- fit$fitted
-    ff.det <- fit$ff.det
+    net <- object$net
+    hd <- object$hd
+    lags <- object$lags
+    xreg.lags <- object$xreg.lags
+    difforder <- object$difforder
+    sdummy <- object$sdummy
+    det.type <- object$det.type
+    minmax <- object$minmax
+    xreg.minmax <- object$xreg.minmax
+    comb <- object$comb
+    fitted <- object$fitted
+    ff.det <- object$ff.det
     ff.n.det <- length(ff.det)
-    if (class(fit) == "elm"){
-      W <- fit$W
-      direct <- fit$direct
+    if (class(object) == "elm"){
+        W <- object$W
+        direct <- object$direct
     } else {
-      W <- NULL
-      direct <- FALSE
+        W <- NULL
+        direct <- FALSE
     }
     reps <- length(net$weights)
-
+    
     # Temporal aggregation can mess-up start/end of ts, so lets fix it
     fstart <- c(end(y)[1],end(y)[2]+1)
     if (is.na(fstart[2])){  # If the second element of end(y) does not exist because it is fractional
@@ -188,15 +188,15 @@ forecast.net <- function(fit,h=NULL,y=NULL,xreg=NULL,...){
     
     # Check xreg inputs
     if (!is.null(xreg)){
-      x.n <- length(xreg[1,])
-      if (length(xreg.lags) != x.n){
-        stop("Number of xreg inputs is not consistent with network specification (number of xreg.lags).")
-      }
-      if (length(xreg[,1]) < length(y)+h){
-        stop("Length of xreg must be longer that y + forecast horizon.")
-      }
+        x.n <- length(xreg[1,])
+        if (length(xreg.lags) != x.n){
+            stop("Number of xreg inputs is not consistent with network specification (number of xreg.lags).")
+        }
+        if (length(xreg[,1]) < length(y)+h){
+            stop("Length of xreg must be longer that y + forecast horizon.")
+        }
     } else {
-      x.n <- 0
+        x.n <- 0
     }
     
     # Apply differencing
@@ -214,34 +214,34 @@ forecast.net <- function(fit,h=NULL,y=NULL,xreg=NULL,...){
     
     # Scale xreg
     if (x.n > 0){
-      xreg.sc <- xreg
-      for (i in 1:x.n){
-        xreg.sc[,i] <- linscale(xreg[,i],minmax=xreg.minmax[[i]])$x
-      }
-      # Starting point of xreg
-      xstart <- length(y)+1
+        xreg.sc <- xreg
+        for (i in 1:x.n){
+            xreg.sc[,i] <- linscale(xreg[,i],minmax=xreg.minmax[[i]])$x
+        }
+        # Starting point of xreg
+        xstart <- length(y)+1
     } 
     
     if (sdummy == TRUE){
-      temp <- ts(1:h,start=fstart,frequency=max(ff.det))
-      Xd <- vector("list",ff.n.det)
-
-      for (s in 1:ff.n.det){
-        Xd[[s]] <- seasdummy(h,m=ff.det[s],y=temp,type=det.type)
-        colnames(Xd[[s]]) <- paste0("D",s,".",1:length(Xd[[s]][1,]))
-        if (det.type=="trg"){
-          Xd[[s]] <- Xd[[s]][,1:2]
+        temp <- ts(1:h,start=fstart,frequency=max(ff.det))
+        Xd <- vector("list",ff.n.det)
+        
+        for (s in 1:ff.n.det){
+            Xd[[s]] <- seasdummy(h,m=ff.det[s],y=temp,type=det.type)
+            colnames(Xd[[s]]) <- paste0("D",s,".",1:length(Xd[[s]][1,]))
+            if (det.type=="trg"){
+                Xd[[s]] <- Xd[[s]][,1:2]
+            }
         }
-      }
-      Xd <- do.call(cbind,Xd)
-      # Xd <- seasdummy(h,y=temp,type=det.type)
+        Xd <- do.call(cbind,Xd)
+        # Xd <- seasdummy(h,y=temp,type=det.type)
     }
     
     Yfrc <- array(NA,c(h,reps),dimnames=list(paste0("t+",1:h),paste0("NN.",1:reps)))
     if (length(lags)>0){
-      ylag <- max(lags)
+        ylag <- max(lags)
     } else {
-      ylag <- 0
+        ylag <- 0
     }
     
     # For each repetition
@@ -249,7 +249,7 @@ forecast.net <- function(fit,h=NULL,y=NULL,xreg=NULL,...){
         
         frc.sc <- vector("numeric",h)
         for (i in 1:h){
-          
+            
             # Construct inputs
             if (i == 1){
                 temp <- NULL
@@ -260,33 +260,33 @@ forecast.net <- function(fit,h=NULL,y=NULL,xreg=NULL,...){
             xi <- xi[lags]
             # Construct xreg inputs
             if (x.n > 0){
-              Xreg <- vector("list",x.n)
-              for (j in 1:x.n){
-                if (length(xreg.lags[[j]])>0){
-                  xreg.temp <- xreg.sc[(xstart+i-1):(xstart-max(xreg.lags[[j]])+i-1),j] # Reversing is happening in the indices
-                  Xreg[[j]] <- xreg.temp[xreg.lags[[j]]+1]
+                Xreg <- vector("list",x.n)
+                for (j in 1:x.n){
+                    if (length(xreg.lags[[j]])>0){
+                        xreg.temp <- xreg.sc[(xstart+i-1):(xstart-max(xreg.lags[[j]])+i-1),j] # Reversing is happening in the indices
+                        Xreg[[j]] <- xreg.temp[xreg.lags[[j]]+1]
+                    }
                 }
-              }
-              Xreg.all <- unlist(Xreg)
-              xi <- c(xi,Xreg.all)
+                Xreg.all <- unlist(Xreg)
+                xi <- c(xi,Xreg.all)
             }
             xi <- rbind(xi)
             # Construct seasonal dummies inputs
             if (sdummy == TRUE){
-              xi <- cbind(xi,Xd[i,,drop=FALSE])
+                xi <- cbind(xi,Xd[i,,drop=FALSE])
             }
             
             # Calculate forecasts
-            if (class(fit) == "mlp"){
-              yhat.sc <- compute(net,xi,r)$net.result  
+            if (class(object) == "mlp"){
+                yhat.sc <- compute(net,xi,r)$net.result  
             } else {
-              H <- t(as.matrix(tail(compute(net,xi,r)$neurons,1)[[1]][,2:(tail(hd,1)+1)]))
-              if (direct == TRUE){
-                Z <- cbind(H,xi)
-              } else {
-                Z <- H
-              }
-              yhat.sc <- cbind(1,Z) %*% W[[r]]  
+                H <- t(as.matrix(tail(compute(net,xi,r)$neurons,1)[[1]][,2:(tail(hd,1)+1)]))
+                if (direct == TRUE){
+                    Z <- cbind(H,xi)
+                } else {
+                    Z <- H
+                }
+                yhat.sc <- cbind(1,Z) %*% W[[r]]  
             }
             
             frc.sc[i] <- yhat.sc
@@ -319,7 +319,7 @@ forecast.net <- function(fit,h=NULL,y=NULL,xreg=NULL,...){
     fout <- ts(fout,frequency=frequency(y),start=fstart)
     
     # Prepare output
-    out <- list("method"=class(fit),"mean"=fout,
+    out <- list("method"=class(object),"mean"=fout,
                 "all.mean"=ts(Yfrc,frequency=frequency(y),start=fstart),
                 "x"=y,"fitted"=fitted,"residuals"=y-fitted)
     return(structure(out,class=c("forecast.net","forecast")))
@@ -331,7 +331,7 @@ plot.forecast.net <- function(x,...){
     reps <- dim(x$all.mean)[2]
     ts.plot(x$x,x$all.mean,x$mean,
             col=c("black",rep("grey",reps),"blue"),lwd=c(1,rep(1,reps),2),
-            main=paste("Forecasts from",x$method))
+            main=paste("Forecasts from",toupper(x$method)))
 }
     
 mlp.thief <- function(y,h=NULL,...){
@@ -369,8 +369,8 @@ mlp.thief <- function(y,h=NULL,...){
     
 }
 
-forecast.mlp <- function(fit,h=NULL,outplot=c(FALSE,TRUE),y=NULL,xreg=NULL,...){
-  forecast.net(fit,h=h,outplot=outplot,y=y,xreg=xreg,...)
+forecast.mlp <- function(object,h=NULL,y=NULL,xreg=NULL,...){
+  forecast.net(object,h=h,y=y,xreg=xreg,...)
 }
 
 plot.mlp <- function(x, r=1, ...){
@@ -472,7 +472,7 @@ def.lags <- function(lags,ff,xreg.lags,xreg){
   return(list("lags"=lags,"xreg.lags"=xreg.lags))
 }
 
-preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,ff.n,xreg,xreg.lags,sel.det.season){
+preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,ff.n,xreg,xreg.lags){
 # Pre-process data for MLP and ELM
   
   # Check seasonality & trend
@@ -542,7 +542,7 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
     }
     reg.isel <- as.data.frame(cbind(Y,X,Xreg.all))
     # colnames(reg.isel) <- c("Y",paste0("X",lags),paste0("Xreg",))
-    if (sdummy == FALSE || sel.det.season == FALSE){
+    if (sdummy == FALSE){
       fit <- lm(formula=Y~.,data=reg.isel)
       if (sdummy == FALSE){
         ff.det <- NULL  
@@ -587,7 +587,7 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
       still.det <- rep(TRUE,ff.n)
       # Trigonometric dummies will not be retained by linear regression
       # so do not allow rejection by stepwise!
-      if (det.type == "bin" && sel.det.season == TRUE){
+      if (det.type == "bin"){
         for (i in 1:ff.n){
           still.det[i] <- any(grepl("Xd[[1]]",names(cf.temp),fixed=TRUE))
         }
