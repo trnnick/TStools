@@ -784,7 +784,7 @@ create.inputs <- function(y.sc,xreg.sc,lags,xreg.lags,n){
 auto.hd.elm <- function(Y,X,frm){
 
   # Use ELM to find hidden nodes
-  sz.elm <- max(1,min(length(X[1,])+2,length(Y)-2))
+  sz.elm <- max(10,min(length(X[1,])+2,length(Y)-2))
   reps.elm <- 20
   # sz.elm <- min(40,max(1,length(Y)-2))
   
