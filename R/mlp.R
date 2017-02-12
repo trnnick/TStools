@@ -413,7 +413,9 @@ print.net <- function(x, ...){
     if (d>0){
         writeLines(paste0("Series modelled in differences: ", paste0("D",difforder,collapse=""), "."))
     }
-    writeLines(paste0("Univariate lags: (",paste0(x$lags,collapse=","),")"))
+    if (all(x$lags != 0)){
+      writeLines(paste0("Univariate lags: (",paste0(x$lags,collapse=","),")"))
+    }
     if (!is.null(xreg.lags)){
       null.xreg <- lapply(xreg.lags,length)==0
       p <- length(xreg.lags) - sum(null.xreg)
@@ -543,10 +545,15 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
     reg.isel <- as.data.frame(cbind(Y,X,Xreg.all))
     # colnames(reg.isel) <- c("Y",paste0("X",lags),paste0("Xreg",))
     if (sdummy == FALSE){
-      fit <- lm(formula=Y~.,data=reg.isel)
-      if (sdummy == FALSE){
-        ff.det <- NULL  
-      } 
+      # Check if there are no inputs at all
+      if (all(colnames(reg.isel) == "Y")){
+        stop("Cannot build a network with no univariate or exogenous lags and no deterministic seasonality. Increase the maximum lags.")  
+      } else {
+        fit <- lm(formula=Y~.,data=reg.isel)
+        if (sdummy == FALSE){
+          ff.det <- NULL  
+        }  
+      }
     } else {
       lm.frm <- as.formula(paste0("Y~.+",paste(paste0("Xd[[",1:ff.n,"]]"),collapse="+")))
       fit <- lm(formula=lm.frm,data=reg.isel)
@@ -580,25 +587,6 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
       }
       xreg.lags <- Xreg.loc
     } 
-    # Check if there are any lags
-    if (x.n>0){
-      if (sum(c(length(X.loc),unlist(lapply(Xreg.loc,length))))==0){
-        X.loc <- 1
-      }
-    } else {
-      if (length(X.loc)==0){
-        X.loc <- 1
-      }
-    }
-    lags <- X.loc
-    
-    # Recreate inputs
-    net.inputs <- create.inputs(y.sc, xreg.sc, lags, xreg.lags, n)
-    Y <- net.inputs$Y
-    X <- net.inputs$X
-    Xreg <- net.inputs$Xreg
-    lag.max <- net.inputs$lag.max
-    rm("net.inputs")
     
     # Check if deterministic seasonality has remained in the model
     if (sdummy == TRUE){
@@ -626,8 +614,42 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
           }
         }
       }
-      
     }
+    
+    # Although there is an error above to avoid having no inputs, it
+    # may still happen if regession rejects all lags. Give a warning!
+    # Check if there are any lags
+    if (x.n>0){
+      # If not univariate and exogenous
+      if (sum(c(length(X.loc),unlist(lapply(Xreg.loc,length))))==0){
+        # If no deterministic seasonal
+        if (sdummy == FALSE){
+          warning("No inputs left in the network after pre-selection, forcing AR(1).")
+          X.loc <- 1
+        }
+      }
+    } else {
+      # If no univariate lags
+      if (length(X.loc)==0){
+        # If no deterministic seasonal
+        if (sdummy == FALSE){
+          warning("No inputs left in the network after pre-selection, forcing AR(1).")
+          X.loc <- 1
+        }
+      }
+    }
+    if (length(X.loc)>0){
+      lags <- X.loc
+    }
+    
+    # Recreate inputs
+    net.inputs <- create.inputs(y.sc, xreg.sc, lags, xreg.lags, n)
+    Y <- net.inputs$Y
+    X <- net.inputs$X
+    Xreg <- net.inputs$Xreg
+    lag.max <- net.inputs$lag.max
+    rm("net.inputs")
+    
   } else {
     # If no selection is done, match frequencies of dummies with frequencies of time series
     ff.det <- ff
@@ -744,7 +766,7 @@ create.inputs <- function(y.sc,xreg.sc,lags,xreg.lags,n){
     lag.max <- ylags
   }
   # Univariate
-  if (length(lags)>0){
+  if (all(ylags != 0)){
     y.sc.lag <- lagmatrix(y.sc,unique(c(0,lags)))
     Y <- y.sc.lag[(lag.max+1):n,1,drop=FALSE]
     colnames(Y) <- "Y"
