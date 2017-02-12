@@ -104,7 +104,7 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
                 Z <- H[[r]]
             }
             
-            W[[r]] <- elm.train(Y,Z,type,X,direct)
+            W[[r]] <- elm.train(Y,Z,type,X,direct,hd)
             
             # Produce fit
             yhat.sc <- cbind(1,Z) %*% W[[r]]
@@ -226,7 +226,7 @@ print.elm <- function(x, ...){
     print.net(x,...)
 }
 
-elm.train <- function(Y,Z,type,X,direct){
+elm.train <- function(Y,Z,type,X,direct,hd){
 # Find output weights for ELM
   switch(type,
          "lasso" = {

@@ -45,7 +45,7 @@ elm.fast <- function(y,x,hd=NULL,type=c("lasso","step","ls"),reps=20,
     }
     
     # Optimise last layer
-    w.out <- elm.train(y,z,type,x,direct)
+    w.out <- elm.train(y,z,type,x,direct,hd)
     
     # Distribute weights 
     B[r] <- b <- w.out[1]                             # Bias (Constant)
