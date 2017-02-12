@@ -7,7 +7,7 @@
 
 \usage{
 mlp(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
-    lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
+    lags=NULL,difforder=NULL,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
     allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
     xreg=NULL, xreg.lags=NULL,hd.auto.type=c("set","valid","cv","elm"),
     hd.max=NULL, ...)
@@ -33,7 +33,7 @@ mlp(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     Lags of y to use as inputs. If none provided then 1:frequency(y) is used. Use 0 for no univariate lags.
     }
     \item{difforder}{
-    Vector including the differencing lags. For example c(1,12) will apply first and seasonal (12) differences. For no differencing use NULL. For automatic selection use -1.
+    Vector including the differencing lags. For example c(1,12) will apply first and seasonal (12) differences. For no differencing use 0. For automatic selection use NULL.
     }
   \item{outplot}{
     Provide plot of model fit. Can be TRUE or FALSE.

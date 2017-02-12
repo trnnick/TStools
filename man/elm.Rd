@@ -7,10 +7,10 @@
 
 \usage{
 elm(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode"),
-    lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
+    lags=NULL,difforder=NULL,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
     direct=c(FALSE,TRUE),
     allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
-    xreg=NULL,xreg.lags=NULL)
+    xreg=NULL,xreg.lags=NULL,barebone=c(FALSE,TRUE))
 }
 \arguments{
   \item{y}{
@@ -32,7 +32,7 @@ elm(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode")
     Lags of y to use as inputs. If none provided then 1:frequency(y) is used. Use 0 for no univariate lags.
     }
     \item{difforder}{
-    Vector including the differencing lags. For example c(1,12) will apply first and seasonal (12) differences. For no differencing use NULL. For automatic selection use -1.
+    Vector including the differencing lags. For example c(1,12) will apply first and seasonal (12) differences. For no differencing use 0. For automatic selection use NULL.
     }
   \item{outplot}{
     Provide plot of model fit. Can be TRUE or FALSE.
@@ -55,13 +55,19 @@ elm(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode")
   \item{xreg.lags}{
     This is a list containing the lags for each exogenous variable. Each list is a numeric vector containing lags. If xreg has 3 columns then the xreg.lags list must contain three elements. If NULL then it is automatically specified. 
   }
+  \item{barebone}{
+    Use an alternative elm implementation (written in R) that is faster when the number of inputs is very high. Typically not needed.
+  }
 }
-\value{An object of class "\code{elm}".
+\value{An object of class "\code{elm}". If barebone == TRUE then the object inherits a second class "\code{elm.fast}"
 The function \code{plot} produces a plot the network architecture.
 An object of class \code{"elm"} is a list containing the following elements:
-\item{net}{ELM networks.}
-\item{hd}{Number of hidden nodes.}
-\item{W}{Output layer weights for ech repetition.}
+\item{net}{ELM networks. If it is of class "\code{elm.fast}" then this is NULL.}
+\item{hd}{Number of hidden nodes. If it is of class "\code{elm.fast}" this is a vector with a different number for each repetition.}
+\item{W}{Output layer weights for each repetition.}
+\item{W.in}{NULL unless it is of class "\code{elm.fast}". Contains the input weights.}
+\item{b}{NULL unless it is of class "\code{elm.fast}". Contains the output node bias for each training repetition.}
+\item{W.dct}{NULL unless it is of class "\code{elm.fast}" and argument direct == TRUE. Contains the direct connection weights.}
 \item{lags}{Input lags used.}
 \item{xreg.lags}{xreg lags used.}
 \item{difforder}{Differencing used.}
@@ -84,7 +90,8 @@ An object of class \code{"elm"} is a list containing the following elements:
         \item{For ELMs see: Huang G.B., Zhou H., Ding X. (2006) Extreme learning machine: theory and applications. \emph{Neurocomputing}, \bold{70}(\bold{1}), 489-501.}
 }
 }
-\note{To use elm with Temporal Hierarchied (\href{http://cran.r-project.org/package=thief}{thief} package) see \code{\link{elm.thief}}.}
+\note{To use elm with Temporal Hierarchied (\href{http://cran.r-project.org/package=thief}{thief} package) see \code{\link{elm.thief}}.
+The elm function by default calls the \code{neuralnet} function. If barebone == TRUE then it uses an alternative implementation (\code{TStools:::elm.fast}) which is more appropriate when the number of inputs is several hundreds.}
 \author{
 Nikolaos Kourentzes, \email{nikolaos@kourentzes.com}
 }

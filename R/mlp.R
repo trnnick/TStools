@@ -1,5 +1,5 @@
 mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
-                lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
+                lags=NULL,difforder=NULL,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
                 allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
                 xreg=NULL, xreg.lags=NULL,hd.auto.type=c("set","valid","cv","elm"),
                 hd.max=NULL, ...){
@@ -157,8 +157,28 @@ forecast.net <- function(object,h=NULL,y=NULL,xreg=NULL,...){
         h <- max(ff)
     }
     
-    # Get stuff from fit list
-    net <- object$net
+    # Get stuff from object list
+    cl.object <- class(object)
+    is.elm.fast <- any(cl.object == "elm.fast")
+    if (!is.elm.fast){
+        net <- object$net
+        reps <- length(net$weights)
+        if (class(object) == "elm"){
+            W <- object$W
+            direct <- object$direct
+        } else {
+            W <- NULL
+            direct <- FALSE
+        }
+    } else {
+        # Get elm.fast definition
+        direct <- object$direct
+        W.in <- object$W.in
+        W <- object$W
+        W.dct <- object$W.dct
+        b <- object$b
+        reps <- length(b)
+    }
     hd <- object$hd
     lags <- object$lags
     xreg.lags <- object$xreg.lags
@@ -171,15 +191,7 @@ forecast.net <- function(object,h=NULL,y=NULL,xreg=NULL,...){
     fitted <- object$fitted
     ff.det <- object$ff.det
     ff.n.det <- length(ff.det)
-    if (class(object) == "elm"){
-        W <- object$W
-        direct <- object$direct
-    } else {
-        W <- NULL
-        direct <- FALSE
-    }
-    reps <- length(net$weights)
-    
+
     # Temporal aggregation can mess-up start/end of ts, so lets fix it
     fstart <- c(end(y)[1],end(y)[2]+1)
     if (is.na(fstart[2])){  # If the second element of end(y) does not exist because it is fractional
@@ -277,18 +289,22 @@ forecast.net <- function(object,h=NULL,y=NULL,xreg=NULL,...){
             }
             
             # Calculate forecasts
-            if (class(object) == "mlp"){
+            if (any(class(object) == "mlp")){
                 yhat.sc <- compute(net,xi,r)$net.result  
             } else {
-                H <- t(as.matrix(tail(compute(net,xi,r)$neurons,1)[[1]][,2:(tail(hd,1)+1)]))
-                if (direct == TRUE){
-                    Z <- cbind(H,xi)
+                if (is.elm.fast){
+                    yhat.sc <- predict.elm.fast.internal(xi,W.in[[r]],W[[r]],b[r],W.dct[[r]],direct)
                 } else {
-                    Z <- H
+                    H <- t(as.matrix(tail(compute(net,xi,r)$neurons,1)[[1]][,2:(tail(hd,1)+1)]))
+                    if (direct == TRUE){
+                        Z <- cbind(H,xi)
+                    } else {
+                        Z <- H
+                    }
+                    yhat.sc <- cbind(1,Z) %*% W[[r]]  
                 }
-                yhat.sc <- cbind(1,Z) %*% W[[r]]  
+                
             }
-            
             frc.sc[i] <- yhat.sc
         }
         # Reverse scaling
@@ -328,10 +344,14 @@ forecast.net <- function(object,h=NULL,y=NULL,xreg=NULL,...){
 
 plot.forecast.net <- function(x,...){
     # Plot function for NNs
+    method <- x$method
+    if (any(method=="elm.fast")){
+        method <- "ELM"
+    }
     reps <- dim(x$all.mean)[2]
     ts.plot(x$x,x$all.mean,x$mean,
             col=c("black",rep("grey",reps),"blue"),lwd=c(1,rep(1,reps),2),
-            main=paste("Forecasts from",toupper(x$method)))
+            main=paste("Forecasts from",toupper(method)))
 }
     
 mlp.thief <- function(y,h=NULL,...){
@@ -383,19 +403,28 @@ print.mlp <- function(x, ...){
 
 print.net <- function(x, ...){
     
+    is.elm.fast <- any(class(x)=="elm.fast")
     difforder <- x$difforder
     sdummy <- x$sdummy
     d <- length(difforder)
-    reps <- length(x$net$weights)
+    if (is.elm.fast){
+        reps <- length(x$b)
+    } else {
+        reps <- length(x$net$weights)
+    }
     hd <- x$hd
     xreg.lags <- x$xreg.lags
-    if (length(hd)>1){
+    
+    if (length(hd)>1 & !is.elm.fast){
         hdt <- paste0(hd,",",collapse="")
         hdt <- paste0("(", substr(hdt,1,nchar(hdt)-1) ,")")
         hde <- "s"
     } else {
         hdt <- hd
-        if (hd>1){
+        if (is.elm.fast){
+            hdt <- paste0(min(hdt)," up to ",max(hdt))
+        }
+        if (any(hd>1)){
             hde <- "s"
         } else {
             hde <- ""
@@ -403,13 +432,23 @@ print.net <- function(x, ...){
     }
     
     dtx <- ""
-    if (class(x)=="elm"){
+    if (any(class(x)=="elm")){
         if (x$direct == TRUE){
             dtx <- ", direct output connections"
         } 
     } 
     
-    writeLines(paste0(toupper(class(x))," fit with ", hdt," hidden node", hde, dtx," and ", reps, " repetition",if(reps>1){"s"},"."))
+    method <- class(x)
+    if (any(method == "elm")){
+        method <- "elm"
+    }
+    if (is.elm.fast){
+        fst <- " (fast)"
+    } else {
+        fst <- ""
+    }
+    
+    writeLines(paste0(toupper(method),fst," fit with ", hdt," hidden node", hde, dtx," and ", reps, " repetition",if(reps>1){"s"},"."))
     if (d>0){
         writeLines(paste0("Series modelled in differences: ", paste0("D",difforder,collapse=""), "."))
     }
@@ -439,7 +478,7 @@ print.net <- function(x, ...){
     if (reps>1){
         writeLines(paste0("Forecast combined using the ", x$comb, " operator."))
     }
-    if (class(x)=="elm"){
+    if (any(class(x)=="elm")){
         writeLines(paste0("Output weight estimation using: ", x$type, "."))
     }
     writeLines(paste0("MSE: ",round(x$MSE,4),"."))
@@ -505,11 +544,12 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
   n <- length(y.sc)
   
   # Scale xregs and trim initial values for differencing of y
-  xreg.sc <- xreg
   if (!is.null(xreg)){
-    x.n <- length(xreg[1,])
+    x.n <- dim(xreg)[2]
+    xreg.sc <- array(NA,c(dim(xreg)[1]-sum(difforder),x.n))
     xreg.minmax <- vector("list",x.n)
-    xreg <- xreg[sum(difforder):length(xreg[,1]),,drop=FALSE]
+    dstart <- sum(difforder)
+    xreg <- xreg[(sum(difforder)+1):dim(xreg)[1],,drop=FALSE]
     for (i in 1:x.n){
       xreg.sc.temp <- linscale(xreg[,i],minmax=list("mn"=-.8,"mx"=0.8))
       xreg.sc[,i] <- xreg.sc.temp$x
@@ -518,6 +558,7 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
   } else {
     x.n <- 0
     xreg.minmax <- NULL
+    xreg.sc <- xreg
   }
   
   net.inputs <- create.inputs(y.sc, xreg.sc, lags, xreg.lags, n)
@@ -533,7 +574,7 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
   det.type <- seas.dum$det.type
   sdummy <- seas.dum$sdummy
   rm("seas.dum")
-  
+
   # Select lags
   if (sel.lag == TRUE){
     if (x.n>0){
@@ -586,8 +627,8 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
         Xreg.loc[[i]] <- xreg.lags[[1]][which(colnames(Xreg[[i]]) %in% names(cf.temp))]
       }
       xreg.lags <- Xreg.loc
-    } 
-    
+    }
+
     # Check if deterministic seasonality has remained in the model
     if (sdummy == TRUE){
       still.det <- rep(TRUE,ff.n)
@@ -598,22 +639,6 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
           still.det[i] <- any(grepl(paste0("Xd[[",i,"]]"),names(cf.temp),fixed=TRUE))
         }
       } 
-      # Re-create seasonal dummies
-      if (sum(still.det)==0){
-        sdummy <- FALSE
-        ff.det <- NULL
-      } else {
-        ff.det <- ff[still.det]
-        ff.n.det <- length(ff.det)
-        Xd <- vector("list",ff.n.det)
-        for (s in 1:ff.n.det){
-          Xd[[s]] <- seasdummy(length(Y),y=ts(Y,end=end(y),frequency=ff[s]),type=det.type)
-          colnames(Xd[[s]]) <- paste0("D",s,".",1:length(Xd[[s]][1,]))
-          if (det.type=="trg"){
-            Xd[[s]] <- Xd[[s]][,1:2]
-          }
-        }
-      }
     }
     
     # Although there is an error above to avoid having no inputs, it
@@ -650,6 +675,26 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
     lag.max <- net.inputs$lag.max
     rm("net.inputs")
     
+    # Recreate seasonal dummies
+    if (sdummy == TRUE){
+        # Re-create seasonal dummies
+        if (sum(still.det)==0){
+            sdummy <- FALSE
+            ff.det <- NULL
+        } else {
+            ff.det <- ff[still.det]
+            ff.n.det <- length(ff.det)
+            Xd <- vector("list",ff.n.det)
+            for (s in 1:ff.n.det){
+                Xd[[s]] <- seasdummy(length(Y),y=ts(Y,end=end(y),frequency=ff[s]),type=det.type)
+                colnames(Xd[[s]]) <- paste0("D",s,".",1:length(Xd[[s]][1,]))
+                if (det.type=="trg"){
+                    Xd[[s]] <- Xd[[s]][,1:2]
+                }
+            }
+        }
+    }
+    
   } else {
     # If no selection is done, match frequencies of dummies with frequencies of time series
     ff.det <- ff
@@ -666,10 +711,9 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
     Xd <- do.call(cbind,Xd)
     X.all <- cbind(X.all,Xd)
   } 
-  
-  # Netwrok formula
-  frm <- paste0(colnames(X.all),"+",collapse="")
-  frm <- substr(frm,1,nchar(frm)-1)
+
+  # Network formula
+  frm <- paste0(colnames(X.all),collapse="+")
   frm <- as.formula(paste0("Y~",frm))
   
   return(list("Y"=Y,"X"=X.all,"sdummy"=sdummy,"difforder"=difforder,"det.type"=det.type,"lags"=lags,"xreg.lags"=xreg.lags,"lag.max"=lag.max,"sc"=sc,"xreg.minmax"=xreg.minmax,"d"=d,"y.d"=y.d,"y.ud"=y.ud,"frm"=frm,"ff.det"=ff.det))
@@ -678,12 +722,14 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
 
 ndiffs.net <- function(difforder,y,ff,st){
   # Find differencing for neural nets
-  
+  # NULL is automatic
+  # 0 is no differencing
+    
   # Find differencing order
-  if (!is.null(difforder)){
-    if (any(difforder == -1)){
+  if (all(difforder != 0)){
+    if (is.null(difforder)){
       # Identify difforder automatically
-      difforder <- NULL
+      difforder <- 0
       if (st$trend.exist == TRUE){
         difforder <- 1
       }
@@ -709,11 +755,15 @@ ndiffs.net <- function(difforder,y,ff,st){
           if (d.order > 0){
             difforder <- c(difforder,max(ff))
           } 
-          
         }
       }
     }
   }
+    
+    # To remove differencing from the remaining it should be set to NULL
+    if (any(difforder == 0)){
+        difforder <- NULL
+    }
   
   return(difforder)
   

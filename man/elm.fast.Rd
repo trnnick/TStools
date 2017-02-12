@@ -1,0 +1,77 @@
+\name{elm.fast}
+\alias{elm.fast}
+
+\title{ELM (fast) neural network.}
+
+\description{Fit ELM (fast) neural network. This is an ELM implementation that does not rely on neuralnets package.}
+
+\usage{
+elm.fast(y,x,hd=NULL,type=c("lasso","step","ls"),reps=20,
+                     comb=c("median","mean","mode"),direct=c(FALSE,TRUE),
+                     core=c("FALSE","TRUE"))
+}
+\arguments{
+  \item{y}{
+    Target variable.
+    }
+  \item{x}{
+    Explanatory variables. Each column is a variable. 
+  }
+  \item{hd}{
+    Starting number of hidden nodes (scalar). Use NULL to automatically specify.
+    }
+  \item{type}{
+    Estimation type for output layer weights. Can be "lasso" (lasso with CV), "step" (stepwise regression with AIC) or "lm" (linear regression).
+    }
+   \item{reps}{
+    Number of networks to train.
+    }
+  \item{comb}{
+    Combination operator for forecasts when reps > 1. Can be "median", "mode" (based on KDE estimation) and "mean".
+    }
+  \item{direct}{
+    Use direct input-output connections to model strictly linear effects. Can be TRUE or FALSE. 
+    }
+  \item{core}{
+    If TRUE skips calculation of final fitted values and MSE. Called internally by \code{"elm"} function.
+  }
+}
+\value{An object of class "\code{elm.fast}".
+The function \code{plot} produces a plot the network fit.
+An object of class \code{"elm.fast"} is a list containing the following elements:
+\item{hd}{Number of hidden nodes. This is a vector with a different number for each training repetition.}
+\item{W}{Output layer weights for each training repetition.}
+\item{W.in}{Input weights for each training repetition.}
+\item{b}{Output node bias for each training repetition.}
+\item{W.dct}{Direct connection weights argument if direct == TRUE for each training repetition. Otherwuse NULL.}
+\item{fitted.all}{Fitted values for each training repetition.}
+\item{fitted}{Ensemble fitted values.}
+\item{y}{Target variable.}
+\item{type}{Estimation used for output layer weights.}
+\item{comb}{Combination operator used.}
+\item{direct}{Presence of direct input-output connections.}
+\item{MSE}{In-sample Mean Squared Error.}
+}
+\references{
+    \itemize{
+        \item{For combination operators see: Kourentzes N., Barrow B.K., Crone S.F. (2014) \href{http://kourentzes.com/forecasting/2014/04/19/neural-network-ensemble-operators-for-time-series-forecasting/}{Neural network ensemble operators for time series forecasting}. \emph{Expert Systems with Applications}, \bold{41}(\bold{9}), 4235-4244.}
+        \item{For ELMs see: Huang G.B., Zhou H., Ding X. (2006) Extreme learning machine: theory and applications. \emph{Neurocomputing}, \bold{70}(\bold{1}), 489-501.}
+}
+}
+\note{This implementation of ELM is more appropriate when the number of inputs is several hundreds. For time series modelling use \code{\link{elm}} instead.}
+\author{
+Nikolaos Kourentzes, \email{nikolaos@kourentzes.com}
+}
+\seealso{
+\code{\link{predict.elm.fast}}, \code{\link{plot.elm.fast}}, \code{\link{elm}}.
+}
+\examples{
+p <- 2000
+n <- 150
+X <- matrix(rnorm(p*n),nrow=n)
+b <- cbind(rnorm(p))
+Y <- X %*% b
+fit <- elm.fast(Y,X)
+print(fit)
+}
+\keyword{ ~elm }

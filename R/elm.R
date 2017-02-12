@@ -1,16 +1,17 @@
 elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode"),
-                lags=NULL,difforder=-1,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),direct=c(FALSE,TRUE),
+                lags=NULL,difforder=NULL,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),direct=c(FALSE,TRUE),
                 allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
-                xreg=NULL,xreg.lags=NULL){
+                xreg=NULL,xreg.lags=NULL,barebone=c(FALSE,TRUE)){
     
     # Defaults
-    type <- type[1]
-    comb <- comb[1]
+    type <- match.arg(type,c("lasso","step","lm"))
+    comb <- match.arg(comb,c("median","mean","mode"))
     outplot <- outplot[1]
     sel.lag <- sel.lag[1]
     direct <- direct[1]
     allow.det.season <- allow.det.season[1]
     det.type <- det.type[1]
+    barebone <- barebone[1]
 
     # Check if y input is a time series
     if (!(any(class(y) == "ts") | any(class(y) == "msts"))){
@@ -62,77 +63,83 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
       hd <- min(100-60*(type=="step" | type=="lm"),max(4,length(Y)-2-as.numeric(direct)*length(X[1,])))
     }
 
-    # Create network
-    net <- neuralnet(frm,cbind(Y,X),hidden=hd,threshold=10^10,rep=reps,err.fct="sse",linear.output=FALSE)
-    
-    # Get hidden nodes output and weights for each repetition
-    H <- W <- vector("list",reps)
-    Yhat <- array(NA,c((length(y)-sum(difforder)-lag.max),reps))
-    
-    for (r in 1:reps){
-        H[[r]] <- as.matrix(tail(compute(net,X,r)$neurons,1)[[1]][,2:(tail(hd,1)+1)])
-        
-        if (direct==TRUE){
-            Z <- cbind(H[[r]],X)
-        } else {
-            Z <- H[[r]]
-        }
-    
-        # Calculate regression
-        switch(type,
-               "lasso" = {
-                   fit <- suppressWarnings(cv.glmnet(Z,cbind(Y)))
-                   cf <- as.vector(coef(fit))
-               },
-               {
-                   reg.data <- as.data.frame(cbind(Y,Z))
-                   colnames(reg.data) <- c("Y",paste0("X",1:(tail(hd,1)+as.numeric(direct)*length(X[1,]))))
-                   # Take care of linear dependency
-                   alias.fit <- alias(as.formula(paste0("Y~",paste0("X",1:(tail(hd,1)+as.numeric(direct)*length(X[1,])),collapse="+"))),data=reg.data)
-                   alias.x <- rownames(alias.fit$Complete)
-                   frm <- as.formula(paste0("Y~",paste0(setdiff(colnames(reg.data)[2:(hd+1+as.numeric(direct)*length(X[1,]))],alias.x),collapse="+")))
-                   fit <- suppressWarnings(lm(frm,reg.data))
-                   if (type == "step"){
-                     fit <- suppressWarnings(stepAIC(fit,trace=0)) # ,direction="backward",k=log(length(Y)))) # BIC criterion
-                   }
-                   cf.temp <- coef(fit)
-                   loc <- which(colnames(reg.data) %in% names(cf.temp))
-                   cf <- rep(0,(tail(hd,1)+1+direct*length(X[1,])))
-                   cf[1] <- cf.temp[1]
-                   cf[loc] <- cf.temp[2:length(cf.temp)]
-               })
-        W[[r]] <- cbind(cf)
-    
-        # Produce fit
-        yhat.sc <- cbind(1,Z) %*% W[[r]]
-        yhat <- linscale(yhat.sc,sc$minmax,rev=TRUE)$x
-    
-        # # Check unscaled, but differenced fit
-        # plot(1:length(tail(y.d,1)[[1]]),tail(y.d,1)[[1]], type="l")
-        # lines((max(lags)+1):length(tail(y.d,1)[[1]]),yhat,col="red")
-    
-        # Undifference - this is 1-step ahead undifferencing
-        y.ud[[d+1]] <- yhat
-        if (d>0){
-            for (i in 1:d){
-                n.ud <- length(y.ud[[d+2-i]])
-                n.d <- length(y.d[[d+1-i]])
-                y.ud[[d+1-i]] <- y.d[[d+1-i]][(n.d-n.ud-difforder[d+1-i]+1):(n.d-difforder[d+1-i])] + y.ud[[d+2-i]]
+    # Train ELM
+    # If single hidden layer switch to fast, unless requested otherwise
+    if (length(hd)==1 & barebone == TRUE){
+        # Switch to elm.fast
+        f.elm <- elm.fast(Y,X,hd=hd,reps=reps,comb=comb,type=type,direct=direct,core=TRUE)
+        # Post-process output
+        Yhat <- f.elm$fitted.all
+        for (r in 1:reps){
+            # Reverse scaling
+            yhat <- linscale(Yhat[,r],sc$minmax,rev=TRUE)$x
+            # Undifference - this is 1-step ahead undifferencing
+            y.ud[[d+1]] <- yhat
+            if (d>0){
+                for (i in 1:d){
+                    n.ud <- length(y.ud[[d+2-i]])
+                    n.d <- length(y.d[[d+1-i]])
+                    y.ud[[d+1-i]] <- y.d[[d+1-i]][(n.d-n.ud-difforder[d+1-i]+1):(n.d-difforder[d+1-i])] + y.ud[[d+2-i]]
+                }
             }
+            Yhat[,r] <- head(y.ud,1)[[1]]
         }
-        yout <- head(y.ud,1)[[1]]
         
-        # yout <- ts(yout,end=end(y),frequency=frequency(y))
-        # # Check undifferences and unscaled
-        # plot(y)
-        # lines(yout,col="red")
-        # # plot(1:length(y),y,type="l")
-        # # lines((max(lags)+1+sum(difforder)):length(y),y.ud[[1]],col="red")
+    } else {
+        # Rely on neuralnet, very slow when number of inputs is large
+        
+        # Create network
+        net <- neuralnet(frm,cbind(Y,X),hidden=hd,threshold=10^10,rep=reps,err.fct="sse",linear.output=FALSE)
+        
+        # Get hidden nodes output and weights for each repetition
+        H <- W <- vector("list",reps)
+        Yhat <- array(NA,c((length(y)-sum(difforder)-lag.max),reps))
+        
+        for (r in 1:reps){
+            H[[r]] <- as.matrix(tail(compute(net,X,r)$neurons,1)[[1]][,2:(tail(hd,1)+1)])
+            
+            if (direct==TRUE){
+                Z <- cbind(H[[r]],X)
+            } else {
+                Z <- H[[r]]
+            }
+            
+            W[[r]] <- elm.train(Y,Z,type,X,direct)
+            
+            # Produce fit
+            yhat.sc <- cbind(1,Z) %*% W[[r]]
+            
+            # Post-process
+            yhat <- linscale(yhat.sc,sc$minmax,rev=TRUE)$x
+            
+            # # Check unscaled, but differenced fit
+            # plot(1:length(tail(y.d,1)[[1]]),tail(y.d,1)[[1]], type="l")
+            # lines((max(lags)+1):length(tail(y.d,1)[[1]]),yhat,col="red")
+            
+            # Undifference - this is 1-step ahead undifferencing
+            y.ud[[d+1]] <- yhat
+            if (d>0){
+                for (i in 1:d){
+                    n.ud <- length(y.ud[[d+2-i]])
+                    n.d <- length(y.d[[d+1-i]])
+                    y.ud[[d+1-i]] <- y.d[[d+1-i]][(n.d-n.ud-difforder[d+1-i]+1):(n.d-difforder[d+1-i])] + y.ud[[d+2-i]]
+                }
+            }
+            yout <- head(y.ud,1)[[1]]
+            
+            # yout <- ts(yout,end=end(y),frequency=frequency(y))
+            # # Check undifferences and unscaled
+            # plot(y)
+            # lines(yout,col="red")
+            # # plot(1:length(y),y,type="l")
+            # # lines((max(lags)+1+sum(difforder)):length(y),y.ud[[1]],col="red")
+            
+            Yhat[,r] <- yout
+            
+        } # Close reps
+        
+    } # Close elm.fast if
     
-        Yhat[,r] <- yout
-        
-    } # Close reps
-        
     # Combine forecasts
     yout <- frc.comb(Yhat,comb)
     
@@ -156,9 +163,19 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
         
     }
     
-    return(structure(list("net"=net,"hd"=hd,"W"=W,"lags"=lags,"xreg.lags"=xreg.lags,"difforder"=difforder,
-                          "sdummy"=sdummy,"ff.det"=ff.det,"det.type"=det.type,"y"=y,"minmax"=sc$minmax,"xreg.minmax"=xreg.minmax,
-                          "comb"=comb,"type"=type,"direct"=direct,"fitted"=yout,"MSE"=MSE),class="elm"))
+    if (barebone == FALSE){
+        out <- structure(list("net"=net,"hd"=hd,"W"=W,"W.in"=NULL,"b"=NULL,"W.dct"=NULL,
+                              "lags"=lags,"xreg.lags"=xreg.lags,"difforder"=difforder,
+                              "sdummy"=sdummy,"ff.det"=ff.det,"det.type"=det.type,"y"=y,"minmax"=sc$minmax,"xreg.minmax"=xreg.minmax,
+                              "comb"=comb,"type"=type,"direct"=direct,"fitted"=yout,"MSE"=MSE),class="elm")
+    } else {
+        out <- structure(list("net"=NULL,"hd"=f.elm$hd,"W"=f.elm$W,"W.in"=f.elm$W.in,"b"=f.elm$b,"W.dct"=f.elm$W.dct,
+                              "lags"=lags,"xreg.lags"=xreg.lags,"difforder"=difforder,
+                              "sdummy"=sdummy,"ff.det"=ff.det,"det.type"=det.type,"y"=y,"minmax"=sc$minmax,"xreg.minmax"=xreg.minmax,
+                              "comb"=comb,"type"=type,"direct"=direct,"fitted"=yout,"MSE"=MSE),class=c("elm","elm.fast"))
+    }
+    
+    return(out)
     
 }
 
@@ -207,4 +224,31 @@ plot.elm <- function(x, r=1, ...){
 
 print.elm <- function(x, ...){
     print.net(x,...)
+}
+
+elm.train <- function(Y,Z,type,X,direct){
+# Find output weights for ELM
+  switch(type,
+         "lasso" = {
+           fit <- suppressWarnings(cv.glmnet(Z,cbind(Y)))
+           cf <- as.vector(coef(fit))
+         },
+         {
+           reg.data <- as.data.frame(cbind(Y,Z))
+           colnames(reg.data) <- c("Y",paste0("X",1:(tail(hd,1)+as.numeric(direct)*length(X[1,]))))
+           # Take care of linear dependency
+           alias.fit <- alias(as.formula(paste0("Y~",paste0("X",1:(tail(hd,1)+as.numeric(direct)*length(X[1,])),collapse="+"))),data=reg.data)
+           alias.x <- rownames(alias.fit$Complete)
+           frm <- as.formula(paste0("Y~",paste0(setdiff(colnames(reg.data)[2:(hd+1+as.numeric(direct)*length(X[1,]))],alias.x),collapse="+")))
+           fit <- suppressWarnings(lm(frm,reg.data))
+           if (type == "step"){
+             fit <- suppressWarnings(stepAIC(fit,trace=0)) # ,direction="backward",k=log(length(Y)))) # BIC criterion
+           }
+           cf.temp <- coef(fit)
+           loc <- which(colnames(reg.data) %in% names(cf.temp))
+           cf <- rep(0,(tail(hd,1)+1+direct*length(X[1,])))
+           cf[1] <- cf.temp[1]
+           cf[loc] <- cf.temp[2:length(cf.temp)]
+         })
+  return(cbind(cf))
 }
