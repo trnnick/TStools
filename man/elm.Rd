@@ -29,7 +29,7 @@ elm(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode")
     Combination operator for forecasts when reps > 1. Can be "median", "mode" (based on KDE estimation) and "mean".
     }
   \item{lags}{
-    Lags of y to use as inputs. If none provided then 1:frequency(y) is used.
+    Lags of y to use as inputs. If none provided then 1:frequency(y) is used. Use 0 for no univariate lags.
     }
     \item{difforder}{
     Vector including the differencing lags. For example c(1,12) will apply first and seasonal (12) differences. For no differencing use NULL. For automatic selection use -1.
