@@ -15,6 +15,12 @@ elm.fast <- function(y,x,hd=NULL,type=c("lasso","step","ls"),reps=20,
       type <- "lasso"
   }
 
+  n.y <- length(y)
+  x.rc <- dim(x)
+  n.x <- x.rc[1]
+  p <- x.rc[2]
+  x.names <- colnames(x)
+  
   if (linscale){
       # Scale target
       if (output == "logistic"){
@@ -24,20 +30,15 @@ elm.fast <- function(y,x,hd=NULL,type=c("lasso","step","ls"),reps=20,
       }
       y.sc <- sc.y$x
       minmax.y <- sc.y$minmax
-      minmax.x <- list("mn"=-0.8,"mx"=0.8)
-      x <- apply(x,2,function(y){linscale(y,minmax=minmax.x)$x})
+      # Scale all x's
+      x.sc <- apply(x,2,linscale,minmax=list("mn"=-.8,"mx"=0.8))
+      minmax.x <- sapply(x.sc, "[", 2)
+      x <- do.call(cbind,sapply(x.sc, "[", 1))
   } else {
       y.sc <- y
       sc.y <- sc.x <- NULL
       minmax.x <- minmax.y <- NULL
   }
-  
-  n.y <- length(y)
-  x.rc <- dim(x)
-  n.x <- x.rc[1]
-  p <- x.rc[2]
-  
-  x.names <- colnames(x)
   
   if (n.y != n.x){
     stop("Number of fitting sample and input observations do not match")
@@ -147,7 +148,7 @@ predict.elm.fast.internal <- function(x,w.in,w.out,b,w.dct,direct){
 
 predict.elm.fast <- function(object,newx,...){
 # Prediction for elm.fast object
-    
+
     if (any(class(object) != "elm.fast")){
         stop("Use exclusively with objects that are of elm.fast class only!")
     }
@@ -158,16 +159,18 @@ predict.elm.fast <- function(object,newx,...){
     minmax.y <- object$minmax
     minmax.x <- object$minmax.x
     
-    # Apply scaling to xnew
-    if (!is.null(minmax.x)){
-        newx <- apply(newx,2,function(y){linscale(y,minmax=minmax.x)$x})
-    }
-
     n <- dim(newx)[1]
     p <- dim(newx)[2]
     elm.p <- dim(W.in[[1]])[1]-1    # -1 for bias
     if (p != elm.p){
-        stop(paste0("newx has incorrect number of variables. ELM trained with ",elm.p,"variables"))
+      stop(paste0("newx has incorrect number of variables. ELM trained with ",elm.p,"variables"))
+    }
+    
+    # Apply scaling to xnew
+    if (!is.null(minmax.x)){
+      for (i in 1:p){
+        newx[,i] <- linscale(newx[,i],minmax=minmax.x[[i]])$x
+      }
     }
     
     Y.all <- array(NA,c(n,reps))
