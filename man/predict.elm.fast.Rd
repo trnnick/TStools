@@ -34,7 +34,7 @@ p <- 2000
 n <- 150
 X <- matrix(rnorm(p*n),nrow=n)
 b <- cbind(rnorm(p))
-Y <- X %*% b
+Y <- X \%*\% b
 fit <- elm.fast(Y,X)
 predict(fit,X)
 }

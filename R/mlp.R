@@ -21,7 +21,7 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     
     # Check xreg inputs
     if (!is.null(xreg)){
-      x.n <- length(xreg[1,])
+      x.n <- dim(xreg)[2]
       if (!is.null(xreg.lags)){
         if (length(xreg.lags) != x.n){
           stop("Argument xreg.lags must be a list with as many elements as xreg variables (columns).")
@@ -160,25 +160,23 @@ forecast.net <- function(object,h=NULL,y=NULL,xreg=NULL,...){
     # Get stuff from object list
     cl.object <- class(object)
     is.elm.fast <- any(cl.object == "elm.fast")
+    # Get information when neuralnets is used
     if (!is.elm.fast){
         net <- object$net
         reps <- length(net$weights)
-        if (class(object) == "elm"){
-            W <- object$W
-            direct <- object$direct
-        } else {
-            W <- NULL
-            direct <- FALSE
-        }
-    } else {
-        # Get elm.fast definition
+    } 
+    # Get additional ELM definitions
+    if (any(class(object) == "elm")){
         direct <- object$direct
         W.in <- object$W.in
         W <- object$W
-        W.dct <- object$W.dct
         b <- object$b
+        W.dct <- object$W.dct
         reps <- length(b)
+    } else {
+        direct <- FALSE
     }
+    # Remaining common definitions
     hd <- object$hd
     lags <- object$lags
     xreg.lags <- object$xreg.lags
@@ -200,11 +198,11 @@ forecast.net <- function(object,h=NULL,y=NULL,xreg=NULL,...){
     
     # Check xreg inputs
     if (!is.null(xreg)){
-        x.n <- length(xreg[1,])
+        x.n <- dim(xreg)[2]
         if (length(xreg.lags) != x.n){
             stop("Number of xreg inputs is not consistent with network specification (number of xreg.lags).")
         }
-        if (length(xreg[,1]) < length(y)+h){
+        if (dim(xreg)[1] < length(y)+h){
             stop("Length of xreg must be longer that y + forecast horizon.")
         }
     } else {
@@ -240,7 +238,7 @@ forecast.net <- function(object,h=NULL,y=NULL,xreg=NULL,...){
         
         for (s in 1:ff.n.det){
             Xd[[s]] <- seasdummy(h,m=ff.det[s],y=temp,type=det.type)
-            colnames(Xd[[s]]) <- paste0("D",s,".",1:length(Xd[[s]][1,]))
+            colnames(Xd[[s]]) <- paste0("D",s,".",1:dim(Xd[[s]])[2])
             if (det.type=="trg"){
                 Xd[[s]] <- Xd[[s]][,1:2]
             }
@@ -296,12 +294,7 @@ forecast.net <- function(object,h=NULL,y=NULL,xreg=NULL,...){
                     yhat.sc <- predict.elm.fast.internal(xi,W.in[[r]],W[[r]],b[r],W.dct[[r]],direct)
                 } else {
                     H <- t(as.matrix(tail(compute(net,xi,r)$neurons,1)[[1]][,2:(tail(hd,1)+1)]))
-                    if (direct == TRUE){
-                        Z <- cbind(H,xi)
-                    } else {
-                        Z <- H
-                    }
-                    yhat.sc <- cbind(1,Z) %*% W[[r]]  
+                    yhat.sc <- H %*% W[[r]] + b[r] + if(direct!=TRUE){0}else{xi %*% W.dct[[r]]}
                 }
                 
             }
@@ -514,7 +507,7 @@ def.lags <- function(lags,ff,xreg.lags,xreg){
     }
   }
   if (!is.null(xreg) && is.null(xreg.lags)){
-    x.n <- length(xreg[1,])
+    x.n <- dim(xreg)[2]
     xreg.lags <- rep(list(lags),x.n)
   }
   return(list("lags"=lags,"xreg.lags"=xreg.lags))
@@ -836,8 +829,8 @@ create.inputs <- function(y.sc,xreg.sc,lags,xreg.lags,n){
   }
   # Exogenous
   if (!is.null(xreg.sc)){
-    x.p <- length(xreg.sc[1,])
-    x.n <- length(xreg.sc[,1])
+    x.p <- dim(xreg.sc)[2]
+    x.n <- dim(xreg.sc)[1]
     Xreg <- vector("list",x.p)
     for (i in 1:x.p){
       if (length(xreg.lags[[i]]>0)){
@@ -863,7 +856,7 @@ create.inputs <- function(y.sc,xreg.sc,lags,xreg.lags,n){
 auto.hd.elm <- function(Y,X,frm){
 
   # Use ELM to find hidden nodes
-  sz.elm <- max(10,min(length(X[1,])+2,length(Y)-2))
+  sz.elm <- max(10,min(dim(X)[2]+2,length(Y)-2))
   reps.elm <- 20
   # sz.elm <- min(40,max(1,length(Y)-2))
   
@@ -913,7 +906,7 @@ auto.hd.cv <- function(Y,X,frm,comb,reps,type=c("cv","valid"),hd.max=NULL){
   val.size <- 0.2                                   # Size of validation set
   reps <- min(c(20,max(c(2,reps))))                 # Number of NN reps, maximum 20
   if (is.null(hd.max)){
-    hd.max <- max(2,min(length(X[1,])+2,length(Y)-2)) # Maximum number of hidden nodes
+    hd.max <- max(2,min(dim(X)[2]+2,length(Y)-2)) # Maximum number of hidden nodes
   }
   
   # Setup folds or validation set
@@ -967,7 +960,7 @@ auto.hd.cv <- function(Y,X,frm,comb,reps,type=c("cv","valid"),hd.max=NULL){
 
 frc.comb <- function(Yhat,comb){
   # Combine forecasts
-  r <- length(Yhat[1,])
+  r <- dim(Yhat)[2]
   if (r>1){
     switch(comb,
            "median" = {yout <- apply(Yhat,1,median)},

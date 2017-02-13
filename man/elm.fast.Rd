@@ -40,8 +40,8 @@ elm.fast(y,x,hd=NULL,type=c("lasso","step","ls"),reps=20,
 The function \code{plot} produces a plot the network fit.
 An object of class \code{"elm.fast"} is a list containing the following elements:
 \item{hd}{Number of hidden nodes. This is a vector with a different number for each training repetition.}
-\item{W}{Output layer weights for each training repetition.}
 \item{W.in}{Input weights for each training repetition.}
+\item{W}{Output layer weights for each training repetition.}
 \item{b}{Output node bias for each training repetition.}
 \item{W.dct}{Direct connection weights argument if direct == TRUE for each training repetition. Otherwuse NULL.}
 \item{fitted.all}{Fitted values for each training repetition.}
@@ -70,7 +70,7 @@ p <- 2000
 n <- 150
 X <- matrix(rnorm(p*n),nrow=n)
 b <- cbind(rnorm(p))
-Y <- X %*% b
+Y <- X \%*\% b
 fit <- elm.fast(Y,X)
 print(fit)
 }

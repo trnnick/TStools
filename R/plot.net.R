@@ -10,6 +10,7 @@ plot.net <- function(x, r=1, ...){
         stop("Model must be the output of either mlp or elm functions.")
     }
 
+    # If elm.fast change title to ELM
     is.elm.fast <- any(ttl=="elm.fast")
     if (is.elm.fast && any(ttl == "elm")){
         ttl <- setdiff(ttl,"elm.fast")
@@ -22,7 +23,7 @@ plot.net <- function(x, r=1, ...){
         reps <- length(x$net$weights)    
     }
     if (r>reps){
-        stop(paste0("Training repetition ",r," requested, with only ", reps, " available."))
+        stop(paste0("Requested training repetition ",r," with only ", reps, " available."))
     }
     
     # Get network information
@@ -124,11 +125,7 @@ plot.net <- function(x, r=1, ...){
     # Draw direct
     if (ttl == "elm"){
         if (x$direct == TRUE){
-            if (is.elm.fast){
-                wd <- x$W.dct[[r]]
-            } else {
-                wd <- x$W[[r]][(layer.size[layer.n]+2):length(x$W[[r]])] != 0
-            }
+            wd <- x$W.dct[[r]]
             wd.n <- length(wd)
             if (wd.n > 0){
                 for (i in 1:wd.n){

@@ -24,7 +24,7 @@ elm.fast <- function(y,x,hd=NULL,type=c("lasso","step","ls"),reps=20,
   
   # Initialise variables to store elm
   W.in <- W <- W.dct <- vector("list",reps)
-  B <- H <- vector("numeric",reps)
+  B <- Hd <- vector("numeric",reps)
   Y.all <- array(NA,c(n.y,reps))
   
   # Iterate for each training replication
@@ -48,7 +48,7 @@ elm.fast <- function(y,x,hd=NULL,type=c("lasso","step","ls"),reps=20,
     w.out <- elm.train(y,z,type,x,direct,hd)
     
     # Distribute weights 
-    B[r] <- b <- w.out[1]                             # Bias (Constant)
+    B[r] <- w.out[1]                             # Bias (Constant)
     if (direct == TRUE){                              # Direct connections
         w.dct <- w.out[(1+hd+1):(1+hd+p),,drop=FALSE]
         if (!is.null(x.names)){
@@ -56,15 +56,15 @@ elm.fast <- function(y,x,hd=NULL,type=c("lasso","step","ls"),reps=20,
         }
         W.dct[[r]] <- w.dct
     }
-    w.out <- w.out[(2):(1+hd),,drop=FALSE]            # Hidden layer
+    w.out <- w.out[2:(1+hd),,drop=FALSE]              # Hidden layer
     
     # Eliminate unused neurons
-    W.in[[r]] <- w.in <- w.in[,w.out != 0, drop=FALSE]
-    H[r] <- dim(w.in)[2]
-    W[[r]] <- w.out <- w.out[w.out != 0,, drop=FALSE]
+    W.in[[r]] <- w.in[,w.out != 0, drop=FALSE]
+    Hd[r] <- dim(W.in[[r]])[2]
+    W[[r]] <- w.out[w.out != 0,, drop=FALSE]
     
     # Predict fitted values
-    Y.all[,r] <- predict.elm.fast.internal(x,w.in,w.out,b,w.dct,direct)
+    Y.all[,r] <- predict.elm.fast.internal(x,W.in[[r]],W[[r]],B[r],W.dct[[r]],direct)
         #fast.sig(cbind(1,x) %*% w.in) %*% w.out + b + if(direct!=TRUE){0}else{x %*% w.dct}
 
   } 
@@ -80,8 +80,8 @@ elm.fast <- function(y,x,hd=NULL,type=c("lasso","step","ls"),reps=20,
     Y.hat <- NULL
     MSE <- NULL
   }
-  
-  return(structure(list("hd"=H,"W"=W,"W.in"=W.in,"b"=B,"W.dct"=W.dct,
+
+  return(structure(list("hd"=Hd,"W"=W,"W.in"=W.in,"b"=B,"W.dct"=W.dct,
                         "fitted.all"=Y.all,"fitted"=Y.hat,"y"=y,
                         "type"=type,"comb"=comb,"direct"=direct,
                         "MSE"=MSE),class="elm.fast"))
@@ -172,6 +172,8 @@ print.elm.fast <- function(x, ...){
         writeLines(paste0("Forecast combined using the ", x$comb, " operator."))
     }
     writeLines(paste0("Output weight estimation using: ", x$type, "."))
-    writeLines(paste0("MSE: ",round(x$MSE,4),"."))
+    if (!is.null(x$MSE)){
+        writeLines(paste0("MSE: ",round(x$MSE,4),"."))
+    }
     
 }

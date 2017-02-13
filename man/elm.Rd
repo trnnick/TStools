@@ -64,10 +64,10 @@ The function \code{plot} produces a plot the network architecture.
 An object of class \code{"elm"} is a list containing the following elements:
 \item{net}{ELM networks. If it is of class "\code{elm.fast}" then this is NULL.}
 \item{hd}{Number of hidden nodes. If it is of class "\code{elm.fast}" this is a vector with a different number for each repetition.}
-\item{W}{Output layer weights for each repetition.}
 \item{W.in}{NULL unless it is of class "\code{elm.fast}". Contains the input weights.}
-\item{b}{NULL unless it is of class "\code{elm.fast}". Contains the output node bias for each training repetition.}
-\item{W.dct}{NULL unless it is of class "\code{elm.fast}" and argument direct == TRUE. Contains the direct connection weights.}
+\item{W}{Output layer weights for each repetition.}
+\item{b}{Contains the output node bias for each training repetition.}
+\item{W.dct}{Contains the direct connection weights if argument direct == TRUE. Otherwise is NULL.}
 \item{lags}{Input lags used.}
 \item{xreg.lags}{xreg lags used.}
 \item{difforder}{Differencing used.}

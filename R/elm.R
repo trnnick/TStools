@@ -87,27 +87,34 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
         
     } else {
         # Rely on neuralnet, very slow when number of inputs is large
-        
-        # Create network
         net <- neuralnet(frm,cbind(Y,X),hidden=hd,threshold=10^10,rep=reps,err.fct="sse",linear.output=FALSE)
         
-        # Get hidden nodes output and weights for each repetition
-        H <- W <- vector("list",reps)
+        # Get weights for each repetition
+        W <- W.dct <- vector("list",reps)
+        B <- vector("numeric",reps)
         Yhat <- array(NA,c((length(y)-sum(difforder)-lag.max),reps))
+        x.names <- colnames(X)
         
         for (r in 1:reps){
-            H[[r]] <- as.matrix(tail(compute(net,X,r)$neurons,1)[[1]][,2:(tail(hd,1)+1)])
-            
+            H <- as.matrix(tail(compute(net,X,r)$neurons,1)[[1]][,2:(tail(hd,1)+1)])
             if (direct==TRUE){
-                Z <- cbind(H[[r]],X)
+                Z <- cbind(H,X)
             } else {
-                Z <- H[[r]]
+                Z <- H
             }
-            
-            W[[r]] <- elm.train(Y,Z,type,X,direct,hd)
+            w.out <- elm.train(Y,Z,type,X,direct,hd)
+            B[r] <- w.out[1]                                  # Bias (Constant)
+            if (direct == TRUE){                              # Direct connections
+                w.dct <- w.out[(1+hd+1):(1+hd+dim(X)[2]),,drop=FALSE]
+                if (!is.null(x.names)){
+                    rownames(w.dct) <- x.names
+                }
+                W.dct[[r]] <- w.dct
+            }
+            W[[r]] <- w.out[2:(1+hd),,drop=FALSE]             # Hidden layer
             
             # Produce fit
-            yhat.sc <- cbind(1,Z) %*% W[[r]]
+            yhat.sc <- H %*% W[[r]] + B[r] + if(direct!=TRUE){0}else{X %*% W.dct[[r]]}
             
             # Post-process
             yhat <- linscale(yhat.sc,sc$minmax,rev=TRUE)$x
@@ -164,18 +171,22 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
     }
     
     if (barebone == FALSE){
-        out <- structure(list("net"=net,"hd"=hd,"W"=W,"W.in"=NULL,"b"=NULL,"W.dct"=NULL,
-                              "lags"=lags,"xreg.lags"=xreg.lags,"difforder"=difforder,
-                              "sdummy"=sdummy,"ff.det"=ff.det,"det.type"=det.type,"y"=y,"minmax"=sc$minmax,"xreg.minmax"=xreg.minmax,
-                              "comb"=comb,"type"=type,"direct"=direct,"fitted"=yout,"MSE"=MSE),class="elm")
+        W.in <- NULL
+        class.type <- "elm"
     } else {
-        out <- structure(list("net"=NULL,"hd"=f.elm$hd,"W"=f.elm$W,"W.in"=f.elm$W.in,"b"=f.elm$b,"W.dct"=f.elm$W.dct,
-                              "lags"=lags,"xreg.lags"=xreg.lags,"difforder"=difforder,
-                              "sdummy"=sdummy,"ff.det"=ff.det,"det.type"=det.type,"y"=y,"minmax"=sc$minmax,"xreg.minmax"=xreg.minmax,
-                              "comb"=comb,"type"=type,"direct"=direct,"fitted"=yout,"MSE"=MSE),class=c("elm","elm.fast"))
+        net <- NULL
+        hd <- f.elm$hd
+        W <- f.elm$W
+        B <- f.elm$b
+        W.in <- f.elm$W.in
+        W.dct <- f.elm$W.dct
+        class.type <- c("elm","elm.fast")
     }
     
-    return(out)
+    return(structure(list("net"=net,"hd"=hd,"W.in"=W.in,"W"=W,"b"=B,"W.dct"=W.dct,
+                          "lags"=lags,"xreg.lags"=xreg.lags,"difforder"=difforder,
+                          "sdummy"=sdummy,"ff.det"=ff.det,"det.type"=det.type,"y"=y,"minmax"=sc$minmax,"xreg.minmax"=xreg.minmax,
+                          "comb"=comb,"type"=type,"direct"=direct,"fitted"=yout,"MSE"=MSE),class=class.type))
     
 }
 
