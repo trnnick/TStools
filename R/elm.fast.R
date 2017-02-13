@@ -201,9 +201,17 @@ predict.elm.fast <- function(object,newx,...){
 }
 
 plot.elm.fast <- function(x, ...){
-
-    plot(x$fitted,x$y,xlab="Fitted",ylab="Actual",main=paste0("RMSE ",round(sqrt(x$MSE),4)))
-    
+  
+  reps <- length(x$b)
+  yy <- range(cbind(x$y,x$fitted,x$fitted.all))
+  yy <- xx <- c(min(yy),max(yy)) + c(-1,+1)*0.04*diff(yy)
+  plot(NA,NA,xlab="Fitted",ylab="Actual",xlim=xx,ylim=yy)
+  lines(xx+c(-1,1)*0.2*diff(xx),yy+c(-1,1)*0.2*diff(yy),col="grey")
+  for (r in 1:reps){
+    points(x$fitted.all[,r],x$y,col="gray30",pch=".")
+  }
+  points(x$fitted,x$y,pch=20)
+  
 }
 
 print.elm.fast <- function(x, ...){
