@@ -177,7 +177,7 @@ predict.elm.fast <- function(object,newx,...){
         # Reverse scaling or apply logistic
         if (!is.null(minmax.y)){
             if (output != "logistic"){
-                Y.all[,r] <- linscale(Y.all[,r],minmax.y$minmax,rev=TRUE)$x
+                Y.all[,r] <- linscale(Y.all[,r],minmax.y,rev=TRUE)$x
             } 
         }
         if (output == "logistic"){
