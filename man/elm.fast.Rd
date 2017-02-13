@@ -8,6 +8,7 @@
 \usage{
 elm.fast(y,x,hd=NULL,type=c("lasso","step","ls"),reps=20,
                      comb=c("median","mean","mode"),direct=c(FALSE,TRUE),
+                     linscale=c(TRUE,FALSE),output=c("linear","logistic"),
                      core=c("FALSE","TRUE"))
 }
 \arguments{
@@ -32,6 +33,12 @@ elm.fast(y,x,hd=NULL,type=c("lasso","step","ls"),reps=20,
   \item{direct}{
     Use direct input-output connections to model strictly linear effects. Can be TRUE or FALSE. 
     }
+  \item{linscale}{
+    Scale inputs linearly between -0.8 to 0.8. If output == "logistic" then scaling is between 0 and 1.
+  }
+  \item{output}{
+    Type of output layer. It can be "linear" or "logistic". If "logistic" then type must be set to "lasso".
+  }
   \item{core}{
     If TRUE skips calculation of final fitted values and MSE. Called internally by \code{"elm"} function.
   }
@@ -50,6 +57,9 @@ An object of class \code{"elm.fast"} is a list containing the following elements
 \item{type}{Estimation used for output layer weights.}
 \item{comb}{Combination operator used.}
 \item{direct}{Presence of direct input-output connections.}
+\item{output}{Type of output node.}
+\item{minmax}{If scaling is used this contains the scaling information for the target variable.}
+\item{minmax.x}{If scaling is used this contains the scaling information for the input variables.}
 \item{MSE}{In-sample Mean Squared Error.}
 }
 \references{

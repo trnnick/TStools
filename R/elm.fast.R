@@ -1,11 +1,36 @@
 elm.fast <- function(y,x,hd=NULL,type=c("lasso","step","ls"),reps=20,
                      comb=c("median","mean","mode"),direct=c(FALSE,TRUE),
+                     linscale=c(TRUE,FALSE),output=c("linear","logistic"),
                      core=c("FALSE","TRUE")){
   
   type <- match.arg(type,c("lasso","step","ls"))
   comb <- match.arg(comb,c("median","mean","mode"))
+  output <- match.arg(output,c("linear","logistic"))
   direct <- direct[1]
   core <- core[1]
+  linscale <- linscale[1]
+  
+  if (output == "logistic" & type != "lasso"){
+      warning("Logisitc output can only be used with lasso, switching to lasso.")
+      type <- "lasso"
+  }
+
+  if (linscale){
+      # Scale target
+      if (output == "logistic"){
+          sc.y <- linscale(y,minmax=list("mn"=-0,"mx"=1))
+      } else {
+          sc.y <- linscale(y,minmax=list("mn"=-.8,"mx"=0.8))
+      }
+      y.sc <- sc.y$x
+      minmax.y <- sc.y$minmax
+      minmax.x <- list("mn"=-0.8,"mx"=0.8)
+      x <- apply(x,2,function(y){linscale(y,minmax=minmax.x)$x})
+  } else {
+      y.sc <- y
+      sc.y <- sc.x <- NULL
+      minmax.x <- minmax.y <- NULL
+  }
   
   n.y <- length(y)
   x.rc <- dim(x)
@@ -43,12 +68,11 @@ elm.fast <- function(y,x,hd=NULL,type=c("lasso","step","ls"),reps=20,
     } else {
       z <- hd.hat
     }
-    
     # Optimise last layer
-    w.out <- elm.train(y,z,type,x,direct,hd)
+    w.out <- elm.train(y.sc,z,type,x,direct,hd,output)
     
     # Distribute weights 
-    B[r] <- w.out[1]                             # Bias (Constant)
+    B[r] <- w.out[1]                                  # Bias (Constant)
     if (direct == TRUE){                              # Direct connections
         w.dct <- w.out[(1+hd+1):(1+hd+p),,drop=FALSE]
         if (!is.null(x.names)){
@@ -65,8 +89,17 @@ elm.fast <- function(y,x,hd=NULL,type=c("lasso","step","ls"),reps=20,
     
     # Predict fitted values
     Y.all[,r] <- predict.elm.fast.internal(x,W.in[[r]],W[[r]],B[r],W.dct[[r]],direct)
-        #fast.sig(cbind(1,x) %*% w.in) %*% w.out + b + if(direct!=TRUE){0}else{x %*% w.dct}
-
+    
+    # Reverse scaling or apply logistic
+    if (linscale){
+        if (output != "logistic"){
+            Y.all[,r] <- linscale(Y.all[,r],sc.y$minmax,rev=TRUE)$x
+        } 
+    }
+    if (output == "logistic"){
+        Y.all[,r] <- linscale(fast.sig(Y.all[,r]),minmax=list("mn"=0,"mx"=1))$x
+    }
+    
   } 
   
   if (core == FALSE){
@@ -84,6 +117,7 @@ elm.fast <- function(y,x,hd=NULL,type=c("lasso","step","ls"),reps=20,
   return(structure(list("hd"=Hd,"W"=W,"W.in"=W.in,"b"=B,"W.dct"=W.dct,
                         "fitted.all"=Y.all,"fitted"=Y.hat,"y"=y,
                         "type"=type,"comb"=comb,"direct"=direct,
+                        "output"=output,"minmax"=minmax.y,"minmax.x"=minmax.x,
                         "MSE"=MSE),class="elm.fast"))
   
   
@@ -120,7 +154,15 @@ predict.elm.fast <- function(object,newx,...){
     
     reps <- length(object$b)
     W.in <- object$W.in
+    output <- object$output
+    minmax.y <- object$minmax
+    minmax.x <- object$minmax.x
     
+    # Apply scaling to xnew
+    if (!is.null(minmax.x)){
+        newx <- apply(newx,2,function(y){linscale(y,minmax=minmax.x)$x})
+    }
+
     n <- dim(newx)[1]
     p <- dim(newx)[2]
     elm.p <- dim(W.in[[1]])[1]-1    # -1 for bias
@@ -131,6 +173,17 @@ predict.elm.fast <- function(object,newx,...){
     Y.all <- array(NA,c(n,reps))
     for (r in 1:reps){
         Y.all[,r] <- predict.elm.fast.internal(newx,W.in[[r]],object$W[[r]],object$b[r],object$W.dct[[r]],object$direct)
+        
+        # Reverse scaling or apply logistic
+        if (!is.null(minmax.y)){
+            if (output != "logistic"){
+                Y.all[,r] <- linscale(Y.all[,r],minmax.y$minmax,rev=TRUE)$x
+            } 
+        }
+        if (output == "logistic"){
+            Y.all[,r] <- linscale(fast.sig(Y.all[,r]),minmax=list("mn"=0,"mx"=1))$x
+        }
+        
     }
     
     if (reps > 1){

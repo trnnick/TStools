@@ -290,6 +290,7 @@ forecast.net <- function(object,h=NULL,y=NULL,xreg=NULL,...){
             if (any(class(object) == "mlp")){
                 yhat.sc <- compute(net,xi,r)$net.result  
             } else {
+                # EML
                 if (is.elm.fast){
                     yhat.sc <- predict.elm.fast.internal(xi,W.in[[r]],W[[r]],b[r],W.dct[[r]],direct)
                 } else {

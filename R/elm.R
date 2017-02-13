@@ -67,7 +67,7 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
     # If single hidden layer switch to fast, unless requested otherwise
     if (length(hd)==1 & barebone == TRUE){
         # Switch to elm.fast
-        f.elm <- elm.fast(Y,X,hd=hd,reps=reps,comb=comb,type=type,direct=direct,core=TRUE)
+        f.elm <- elm.fast(Y,X,hd=hd,reps=reps,comb=comb,type=type,direct=direct,linscale=FALSE,output="linear",core=TRUE)
         # Post-process output
         Yhat <- f.elm$fitted.all
         for (r in 1:reps){
@@ -102,7 +102,7 @@ elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","m
             } else {
                 Z <- H
             }
-            w.out <- elm.train(Y,Z,type,X,direct,hd)
+            w.out <- elm.train(Y,Z,type,X,direct,hd,output="linear")
             B[r] <- w.out[1]                                  # Bias (Constant)
             if (direct == TRUE){                              # Direct connections
                 w.dct <- w.out[(1+hd+1):(1+hd+dim(X)[2]),,drop=FALSE]
@@ -237,12 +237,16 @@ print.elm <- function(x, ...){
     print.net(x,...)
 }
 
-elm.train <- function(Y,Z,type,X,direct,hd){
+elm.train <- function(Y,Z,type,X,direct,hd,output="linear"){
 # Find output weights for ELM
   switch(type,
          "lasso" = {
-           fit <- suppressWarnings(cv.glmnet(Z,cbind(Y)))
-           cf <- as.vector(coef(fit))
+             if (output=="logistic"){
+                fit <- suppressWarnings(cv.glmnet(Z,cbind(Y),family="binomial"))
+             } else {
+                fit <- suppressWarnings(cv.glmnet(Z,cbind(Y)))
+             }
+             cf <- as.vector(coef(fit))
          },
          {
            reg.data <- as.data.frame(cbind(Y,Z))
