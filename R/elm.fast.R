@@ -62,7 +62,6 @@ elm.fast <- function(y,x,hd=NULL,type=c("lasso","step","ls"),reps=20,
         rownames(w.in) <- c("Bias",x.names)
     }
     hd.hat <- fast.sig(cbind(1,x) %*% w.in)
-    
     # Allow direct connections
     if (direct==TRUE){
       z <- cbind(hd.hat,x)
