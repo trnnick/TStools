@@ -24,7 +24,8 @@ export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        linscale,lagmatrix,seasdummy,
        elm,forecast.elm,plot.elm,elm.thief,
        mlp,forecast.mlp,plot.mlp,mlp.thief,
-       elm.fast,plot.elm.fast,predict.elm.fast)
+       elm.fast,plot.elm.fast,predict.elm.fast,
+       lambdaseq)
 
 S3method(print,intervalStuff)
 S3method(print,classseas)
