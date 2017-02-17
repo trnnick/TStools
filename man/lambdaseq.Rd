@@ -63,7 +63,7 @@ Parameter \code{alpha} allows to define the elastic net mixing value or the rela
 Hastie, T., Tibshirani, R. and Wainwright, M. 2015. Statistical Learning with Sparsity. The Lasso and Generalizations. Boca Raton: CRC Press.
 }
 \author{
-Oliver Schaer, \email{info@oliverschaer.ch}, \n
+Oliver Schaer, \email{info@oliverschaer.ch},
 Nikolaos Kourentzes, \email{nikolaos@kourentzes.com}.
 }
 \note{
@@ -87,6 +87,6 @@ fit.lasso <- cv.glmnet(y = y, x = x, family = "gaussian", alpha = 1,
                        standardize = T, lambda = lambda, intercept = T)
 
 coef.lasso <- coef(fit.lasso, s = "lambda.1se")
-
+}
 \keyword{ ~lasso }
 
