@@ -63,8 +63,8 @@ Parameter \code{alpha} allows to define the elastic net mixing value or the rela
 Hastie, T., Tibshirani, R. and Wainwright, M. 2015. Statistical Learning with Sparsity. The Lasso and Generalizations. Boca Raton: CRC Press.
 }
 \author{
-Nikolaos Kourentzes, \email{nikolaos@kourentzes.com}, \n
-Oliver Schaer, \email{info@oliverschaer.ch}
+Oliver Schaer, \email{info@oliverschaer.ch}, \n
+Nikolaos Kourentzes, \email{nikolaos@kourentzes.com}.
 }
 \note{
 \code{nullMSE} is the MSE of the fit using just a constant term. It is provided in this function as a convenience, because it needs to be calculated in the same context as \code{lambdaMax} whenever \code{lambdaMax} is calculated.
@@ -77,7 +77,7 @@ y <- mtcars[,1]
 x <- as.matrix(mtcars[,2:11])
 
 # Create lambda sequence
-lambda <- lambdaSeq(x, y, standardise = T, lambdaRatio = 0.0001,
+lambda <- lambdaseq(x, y, standardise = T, lambdaRatio = 0.0001,
                     nLambda = 100, addZeroLambda = F)$lambda
 
 # fit and obtain coefficients from LASSO model using glmnet package

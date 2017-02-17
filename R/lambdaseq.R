@@ -1,4 +1,4 @@
-lambdaSeq <- function(x, y, weight = NA, alpha = 1, standardise = T,
+lambdaseq <- function(x, y, weight = NA, alpha = 1, standardise = T,
                       lambdaRatio = 0.0001, nLambda = 100, addZeroLambda = F){
   
   # Calculates the lambdaMax value, which is the penalty term (lambda) beyond
