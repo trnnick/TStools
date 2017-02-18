@@ -6,7 +6,7 @@
 \description{Calculate predictions for ELM (fast) network.}
 
 \usage{
-\method{predict}{elm.fast}(object, newx, ...)
+\method{predict}{elm.fast}(object, newx, na.rm=c(FALSE,TRUE),...)
 }
 \arguments{
   \item{object}{
@@ -15,6 +15,9 @@
   \item{newx}{
     Explanatory variables. Each column is a variable. 
     }
+  \item{na.rm}{
+    If TRUE remove columns and object produces an ensemble forecast, then remove any members that give NA in their forecasts.
+  }
   \item{...}{
     Unused argument. 
   }
