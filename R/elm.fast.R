@@ -145,13 +145,15 @@ predict.elm.fast.internal <- function(x,w.in,w.out,b,w.dct,direct){
     return(y)
 }
 
-predict.elm.fast <- function(object,newx,...){
+predict.elm.fast <- function(object,newx,na.rm=c(FALSE,TRUE),...){
 # Prediction for elm.fast object
 
     if (any(class(object) != "elm.fast")){
         stop("Use exclusively with objects that are of elm.fast class only!")
     }
     
+    na.rm <- na.rm[1]
+  
     reps <- length(object$b)
     W.in <- object$W.in
     output <- object$output
@@ -189,7 +191,7 @@ predict.elm.fast <- function(object,newx,...){
     }
     
     if (reps > 1){
-        Y.hat <- frc.comb(Y.all,object$comb)    
+        Y.hat <- frc.comb(Y.all,object$comb,na.rm)    
     } else {
         Y.hat <- Y.all
     }

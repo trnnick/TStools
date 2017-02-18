@@ -959,14 +959,19 @@ auto.hd.cv <- function(Y,X,frm,comb,reps,type=c("cv","valid"),hd.max=NULL){
   
 }
 
-frc.comb <- function(Yhat,comb){
+frc.comb <- function(Yhat,comb,na.rm=c(FALSE,TRUE)){
   # Combine forecasts
+  
+  na.rm <- na.rm[1]
   r <- dim(Yhat)[2]
+
   if (r>1){
     switch(comb,
-           "median" = {yout <- apply(Yhat,1,median)},
-           "mean" = {yout <- apply(Yhat,1,mean)},
-           "mode" = {yout <- sapply(apply(Yhat,1,kdemode),function(x){x[[1]][1]})}
+           "median" = {yout <- apply(Yhat,1,median,na.rm=na.rm)},
+           "mean" = {yout <- apply(Yhat,1,mean,na.rm=na.rm)},
+           "mode" = {Ytemp <- Yhat
+                     Ytemp <- Ytemp[, colSums(is.na(Ytemp))==0]
+                     yout <- sapply(apply(Ytemp,1,kdemode),function(x){x[[1]][1]})}
     )
   } else {
     yout <- Yhat[,1]
