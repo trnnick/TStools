@@ -961,7 +961,6 @@ auto.hd.cv <- function(Y,X,frm,comb,reps,type=c("cv","valid"),hd.max=NULL){
 
 frc.comb <- function(Yhat,comb,na.rm=c(FALSE,TRUE)){
   # Combine forecasts
-  
   na.rm <- na.rm[1]
   r <- dim(Yhat)[2]
 
@@ -969,10 +968,23 @@ frc.comb <- function(Yhat,comb,na.rm=c(FALSE,TRUE)){
     switch(comb,
            "median" = {yout <- apply(Yhat,1,median,na.rm=na.rm)},
            "mean" = {yout <- apply(Yhat,1,mean,na.rm=na.rm)},
-           "mode" = {Ytemp <- Yhat
+           "mode" = {# Remove NAs
+                     Ytemp <- Yhat
                      Ytemp <- Ytemp[, colSums(is.na(Ytemp))==0]
-                     yout <- sapply(apply(Ytemp,1,kdemode),function(x){x[[1]][1]})}
-    )
+                     # Calculate only for non-constants
+                     idx <- !apply(Ytemp,1,is.constant)
+                     k <- sum(idx)
+                     yout <- Yhat[,1]
+                     if (k>0){
+                       Ycomb <- Ytemp[idx,]
+                       if (k>1){
+                         Ycomb <- sapply(apply(Ycomb,1,kdemode),function(x){x[[1]][1]})
+                       } else {
+                         Ycomb <- kdemode(Ycomb)$mode
+                       }
+                       yout[idx] <- Ycomb
+                     } 
+                    })
   } else {
     yout <- Yhat[,1]
   }

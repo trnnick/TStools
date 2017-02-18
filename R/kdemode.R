@@ -35,7 +35,7 @@ kdemode <- function(data,type=c("diffusion","SJ","nrd0"),
 #
 # Nikolaos Kourentzes, 2014 <nikolaos@kourentzes.com>
 # Updated 2016
-  
+
   # Defaults  
   type <- type[1]
   outplot <- outplot[1]
