@@ -11,13 +11,13 @@ abcxyz(imp,frc,outplot=c(TRUE,FALSE),error=NULL,...)
 
 \arguments{
   \item{imp}{
-    Output of abc. 
+    Importance: \code{"abc"} class object, produced using \code{\link{abc}}.
   }
   \item{frc}{
-    Output of xyz.
+    Forecastability: \code{"abc"} class object, produced using \code{\link{xyz}}.
   }
   \item{outplot}{
-    If TRUE provide a visualisation of the ABC analysis result.
+    If TRUE provide a visualisation of the ABC-XYZ analysis result.
   }
   \item{error}{
     Vector of errors for each item that will be averaged in each class.
@@ -34,10 +34,9 @@ abcxyz(imp,frc,outplot=c(TRUE,FALSE),error=NULL,...)
 Nikolaos Kourentzes
 }
 \seealso{
-\code{\link{abc}}, \code{\link{xyz}}.
+\code{\link{abc}}, \code{\link{xyz}}, \code{\link{plot.abc}}.
 }
 \examples{
 x <- abs(matrix(cumsum(rnorm(5400,0,1)),36,150))
-abcxyz(abc(x,outplot=FALSE),xyz(x,m=12,type="naive",outplot=FALSE))
+abcxyz(abc(x),xyz(x,m=12,type="naive"))
 }
-

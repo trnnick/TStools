@@ -6,8 +6,7 @@
 \description{Perform XYZ analysis based on coefficient of variation, naive and seasonal naive fit, exponential smoothing or custom quantities.}
 
 \usage{
-xyz(x,m=NULL,prc=c(0.2,0.3,0.5),type=c("naive","ets","cv"),
-    outplot=c(TRUE,FALSE),cex.prc=0.8,...)
+xyz(x,m=NULL,prc=c(0.2,0.3,0.5),type=c("naive","ets","cv"))
 }
 
 \arguments{
@@ -33,7 +32,11 @@ xyz(x,m=NULL,prc=c(0.2,0.3,0.5),type=c("naive","ets","cv"),
     Additional arguments can be passed for the plot. User can override default values. For example main="" will remove the title from the plot.
   }
 }
-\value{
+\value{An object of class "\code{abc}". 
+The function \code{plot} produces a plot of the analysis.
+An object of class \code{"abc"} is a list containing the following elements:
+\item{type}{The type of analysis.}
+\item{prc}{The requested percentage for each class.}
 \item{value}{A vector containing the importance value of each series.}
 \item{class}{A vector containing the class membership of each series.}
 \item{rank}{A vector containing the rank of each series. Highest value is 1.}
@@ -44,10 +47,9 @@ xyz(x,m=NULL,prc=c(0.2,0.3,0.5),type=c("naive","ets","cv"),
 Nikolaos Kourentzes
 }
 \seealso{
-\code{\link{abc}}, \code{\link{abcxyz}}.
+\code{\link{abc}}, \code{\link{plot.abc}}, \code{\link{abcxyz}}.
 }
 \examples{
 x <- abs(matrix(cumsum(rnorm(5400,0,1)),36,150))
-xyz(x,m=12,outplot=TRUE)
+xyz(x,m=12)
 }
-
