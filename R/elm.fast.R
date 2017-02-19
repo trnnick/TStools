@@ -1,4 +1,4 @@
-elm.fast <- function(y,x,hd=NULL,type=c("lasso","step","ls"),reps=20,
+elm.fast <- function(y,x,hd=NULL,type=c("lasso","ridge","step","ls"),reps=20,
                      comb=c("median","mean","mode"),direct=c(FALSE,TRUE),
                      linscale=c(TRUE,FALSE),output=c("linear","logistic"),
                      core=c("FALSE","TRUE")){

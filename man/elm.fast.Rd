@@ -6,7 +6,7 @@
 \description{Fit ELM (fast) neural network. This is an ELM implementation that does not rely on neuralnets package.}
 
 \usage{
-elm.fast(y,x,hd=NULL,type=c("lasso","step","ls"),reps=20,
+elm.fast(y,x,hd=NULL,type=c("lasso","ridge",step","ls"),reps=20,
                      comb=c("median","mean","mode"),direct=c(FALSE,TRUE),
                      linscale=c(TRUE,FALSE),output=c("linear","logistic"),
                      core=c("FALSE","TRUE"))
@@ -22,7 +22,7 @@ elm.fast(y,x,hd=NULL,type=c("lasso","step","ls"),reps=20,
     Starting number of hidden nodes (scalar). Use NULL to automatically specify.
     }
   \item{type}{
-    Estimation type for output layer weights. Can be "lasso" (lasso with CV), "step" (stepwise regression with AIC) or "lm" (linear regression).
+    Estimation type for output layer weights. Can be "lasso" (lasso with CV), "ridge" (ridge regression with CV), "step" (stepwise regression with AIC) or "lm" (linear regression).
     }
    \item{reps}{
     Number of networks to train.
