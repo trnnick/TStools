@@ -6,7 +6,7 @@
 \description{Fit ELM (fast) neural network. This is an ELM implementation that does not rely on neuralnets package.}
 
 \usage{
-elm.fast(y,x,hd=NULL,type=c("lasso","ridge",step","ls"),reps=20,
+elm.fast(y,x,hd=NULL,type=c("lasso","ridge","step","ls"),reps=20,
                      comb=c("median","mean","mode"),direct=c(FALSE,TRUE),
                      linscale=c(TRUE,FALSE),output=c("linear","logistic"),
                      core=c("FALSE","TRUE"))

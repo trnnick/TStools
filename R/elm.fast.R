@@ -3,7 +3,7 @@ elm.fast <- function(y,x,hd=NULL,type=c("lasso","ridge","step","ls"),reps=20,
                      linscale=c(TRUE,FALSE),output=c("linear","logistic"),
                      core=c("FALSE","TRUE")){
   
-  type <- match.arg(type,c("lasso","step","ls"))
+  type <- match.arg(type,c("lasso","ridge","step","ls"))
   comb <- match.arg(comb,c("median","mean","mode"))
   output <- match.arg(output,c("linear","logistic"))
   direct <- direct[1]

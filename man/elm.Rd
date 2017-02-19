@@ -6,11 +6,12 @@
 \description{Fit ELM neural network.}
 
 \usage{
-elm(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode"),
-    lags=NULL,difforder=NULL,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
-    direct=c(FALSE,TRUE),
-    allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
-    xreg=NULL,xreg.lags=NULL,barebone=c(FALSE,TRUE))
+elm(y,hd=NULL,type=c("lasso","ridge","step","lm"),reps=20,
+    comb=c("median","mean","mode"),lags=NULL,difforder=NULL,
+    outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
+    direct=c(FALSE,TRUE),allow.det.season=c(TRUE,FALSE),
+    det.type=c("auto","bin","trg"),xreg=NULL,xreg.lags=NULL,
+    barebone=c(FALSE,TRUE))
 }
 \arguments{
   \item{y}{
@@ -20,7 +21,7 @@ elm(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode")
     Number of hidden nodes. This can be a vector. Use NULL to automatically specify.
     }
   \item{type}{
-    Estimation type for output layer weights. Can be "lasso" (lasso with CV), "step" (stepwise regression with AIC) or "lm" (linear regression).
+    Estimation type for output layer weights. Can be "lasso" (lasso with CV), "ridge" (ridge regression with CV), "step" (stepwise regression with AIC) or "lm" (linear regression).
     }
    \item{reps}{
     Number of networks to train.

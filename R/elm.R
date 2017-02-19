@@ -1,10 +1,10 @@
-elm <- function(y,hd=NULL,type=c("lasso","step","lm"),reps=20,comb=c("median","mean","mode"),
+elm <- function(y,hd=NULL,type=c("lasso","ridge","step","lm"),reps=20,comb=c("median","mean","mode"),
                 lags=NULL,difforder=NULL,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),direct=c(FALSE,TRUE),
                 allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
                 xreg=NULL,xreg.lags=NULL,barebone=c(FALSE,TRUE)){
   
   # Defaults
-  type <- match.arg(type,c("lasso","step","lm"))
+  type <- match.arg(type,c("lasso","ridge","step","lm"))
   comb <- match.arg(comb,c("median","mean","mode"))
   outplot <- outplot[1]
   sel.lag <- sel.lag[1]
