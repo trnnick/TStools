@@ -16,7 +16,7 @@ importFrom("smooth", "hm")
 import(forecast,zoo,MAPA,RColorBrewer,neuralnet,glmnet,MASS,plotrix)
 
 export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
-       coxstuart,wins,rowWins,colWins,theta,
+       coxstuart,wins,rowWins,colWins,
        nzlength,init.ets,mre,mre.plot,bias.coeff,
        sowhat,ro,intervals,intervalsSimulator,
        geomean, lambdaseq,
@@ -27,7 +27,9 @@ export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        mlp,forecast.mlp,plot.mlp,mlp.thief,
        elm.fast,plot.elm.fast,predict.elm.fast,
        # ABC-XYZ analysis
-       abc,xyz,abcxyz,plot.abc)
+       abc,xyz,abcxyz,plot.abc,
+       # Theta method
+       theta,forecast.theta,plot.theta,theta.thief)
 
 S3method(print,intervalStuff)
 S3method(print,classseas)
@@ -35,12 +37,18 @@ S3method(print,nemenyi)
 S3method(summary,classseas)
 S3method(summary,nemenyi)
 
+# Theta method
+S3method(forecast,theta)
+S3method(plot,theta)
+S3method(print,theta)
+S3method(summary,theta)
+
 # ABC-XYZ analysis
 S3method(plot,abc)
 S3method(print,abc)
 S3method(summary,abc)
 
-# Neural network functions
+# Neural networks
 S3method(print,elm)
 S3method(print,elm.fast)
 S3method(print,mlp)

@@ -28,7 +28,7 @@ An object of class \code{"abc"} is a list containing the following elements:
 \item{conc}{The total importance of each class, as percentage of total value.}
 }
 \author{
-Nikolaos Kourentzes
+Nikolaos Kourentzes, \email{nikolaos@kourentzes.com}
 }
 \seealso{
 \code{\link{xyz}}, \code{\link{plot.abc}}, \code{\link{abcxyz}}.

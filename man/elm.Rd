@@ -91,7 +91,7 @@ An object of class \code{"elm"} is a list containing the following elements:
         \item{For ELMs see: Huang G.B., Zhou H., Ding X. (2006) Extreme learning machine: theory and applications. \emph{Neurocomputing}, \bold{70}(\bold{1}), 489-501.}
 }
 }
-\note{To use elm with Temporal Hierarchied (\href{http://cran.r-project.org/package=thief}{thief} package) see \code{\link{elm.thief}}.
+\note{To use elm with Temporal Hierarchies (\href{http://cran.r-project.org/package=thief}{thief} package) see \code{\link{elm.thief}}.
 The elm function by default calls the \code{neuralnet} function. If barebone == TRUE then it uses an alternative implementation (\code{TStools:::elm.fast}) which is more appropriate when the number of inputs is several hundreds.}
 \author{
 Nikolaos Kourentzes, \email{nikolaos@kourentzes.com}

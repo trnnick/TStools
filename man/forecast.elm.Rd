@@ -32,7 +32,7 @@ An object of class \code{"forecast.net"} is a list containing the following elem
 \item{method}{The name of the forecasting method as a character string}
 \item{mean}{Point forecasts as a time series}
 \item{all.mean}{An array h x reps of all ensemble members forecasts, where reps are the number of ensemble members.}
-\item{x}{The original time series (either \code{fit} used to create the network.}
+\item{x}{The original time series used to create the network.}
 \item{fitted}{Fitted values.}
 \item{residuals}{Residuals from the fitted network.}
 }

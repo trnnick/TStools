@@ -31,7 +31,7 @@ abcxyz(imp,frc,outplot=c(TRUE,FALSE),error=NULL,...)
 \item{error}{Matrix containing the average error for each class.}
 }
 \author{
-Nikolaos Kourentzes
+Nikolaos Kourentzes, \email{nikolaos@kourentzes.com}
 }
 \seealso{
 \code{\link{abc}}, \code{\link{xyz}}, \code{\link{plot.abc}}.

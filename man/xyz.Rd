@@ -44,7 +44,7 @@ An object of class \code{"abc"} is a list containing the following elements:
 \item{model}{Fitted model for each series.}
 }
 \author{
-Nikolaos Kourentzes
+Nikolaos Kourentzes, \email{nikolaos@kourentzes.com}
 }
 \seealso{
 \code{\link{abc}}, \code{\link{plot.abc}}, \code{\link{abcxyz}}.

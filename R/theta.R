@@ -1,4 +1,4 @@
-theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
+theta <- function(y,m=NULL,sign.level=0.05,
                   cost0=c("MSE","MdSE","MAE","MdAE"),
                   cost2=c("MSE","MdSE","MAE","MdAE"),
                   costs=c("MSE","MdSE","MAE","MdAE"),
@@ -16,11 +16,6 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
 #   y               Time series to model. Can be either a vector or a ts object
 #   m               Periods in a season of the time series. If insample is a ts object then 
 #                   this is taken from its frequency, unless overriden. 
-#   h               Forecast horizon. Default is 10.
-#   outplot         Provide plot:
-#                     0: No plot
-#                     1: Series and forecast
-#                     2: As above with theta lines
 #   sign.level      Significance level for trend and seasoanlity statistical tests.
 #   cost0           Cost function of theta0 line.
 #   cost2           Cost function of theta2 line.
@@ -34,25 +29,32 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
 #                   These will be included in theta0 estimation. To consider no outliers then use NULL.
 #
 # Output
-#   frc         Forecasts.
-#   exist       exist[1] is the result for trend, exist[2] is for season.
-#   theta0      Forecasted values of theta0 line.
-#   theta2      Forecasted values of theta2 line.
-#   season      Forecasted values of seasonal element.
-#   a           SES parameters of theta2.
-#   b           Regression parameters of theta0.
-#   p           Coefficients of outliers from theta0 and theta2 estimation.
-#   g           Pure seasonal exponential smoothing parameters of season.
+#   method          Forecasting method.
+#   y               Input time series.
+#   m               Periods in a season of the time series.
+#   exist           exist[1] is the result for trend, exist[2] is for season.
+#   multiplicative  If TRUE seasonality is modelled multiplicatively.
+#   theta0          Fitted theta0 line values.
+#   theta2          Fitted theta2 line values.
+#   season          Seasonal profile.
+#   a               SES parameters of theta2.
+#   b               Regression parameters of theta0.
+#   p               Coefficients of outliers from theta0 and theta2 estimation.
+#   g               Pure seasonal exponential smoothing parameters of season.
+#   fitted          Fitted values.
+#   redisuals       In-sample residuals.
+#   MSE             In-sample Mean Squared Error.
 #
 # Example:
-#   theta(referrals,outplot=2)
+#   theta(referrals)
 #  
 # Nikolaos Kourentzes, 2014 <nikolaos@kourentzes.com>
+# Updates 2017.2: Use S3method
 
   # Defaults
-  cost0 <- cost0[1]
-  cost2 <- cost2[1]
-  costs <- costs[1]
+  cost0 <- match.arg(cost0,c("MSE","MdSE","MAE","MdAE"))
+  cost2 <- match.arg(cost2,c("MSE","MdSE","MAE","MdAE"))
+  costs <- match.arg(costs,c("MSE","MdSE","MAE","MdAE"))
   multiplicative <- multiplicative[1]
   
   n <- length(y)
@@ -172,102 +174,24 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
   b <- matrix(b,ncol=1)
   a <- matrix(a[1:2],ncol=1)
 
-  # Prediction
-  frc.theta0 <- b[1] + b[2]*((n+1):(n+h))
-  if (!is.null(X.out)){
-    a.frc <- rbind(a,array(p[,2],c(n.out,1)))
-  } else {
-    a.frc <- a
-  }
-  frc.theta2 <- fun.ses(theta2,a.frc,X.out)$outs * rep(1,h)
-  frc <- (frc.theta0 + frc.theta2)/2
-  
-  # Convert to ts object
-  if (class(y) == "ts"){
-    s <- end(y)
-    if (length(s)==2){
-      if (s[2]==m){
-        s[1] <- s[1]+1
-        s[2] <- 1
-      } else {
-        s[2] <- s[2]+1
-      }
-    } else {
-      s <- s + 1/m
-    }
-    frc <- ts(frc,start=s,frequency=m)  
-  } 
-
   # Reseasonalise
   if (season.exist == TRUE){
     # Seasonality is modelled with a pure seasonal smoothing
     sout <- opt.sfit(ynt,costs,n,m,y,in.fit,multiplicative,outliers)
     season <- sout$season
-    # sstd <- sd(season)
-    season <- rep(season, h %/% m + 1)[1:h]
     g <- sout$g
     if (n.out > 0){
       p <- cbind(p,matrix(sout$p,ncol=1,dimnames=list(NULL,'Season')))
     }
     # sout$in.season includes the outlier
     if (multiplicative == TRUE){
-      frc <- frc * season
       in.fit <- in.fit * sout$in.season
     } else {
-      frc <- frc + season
       in.fit <- in.fit + sout$in.season
     }
   } else {
     g <- NULL
     season <- NULL
-    # sstd <- NULL
-  }
-
-  if (outplot==1){
-    # Simple in-sample and forecast
-    if (class(y) == "ts"){
-      ts.plot(y,frc,gpars=list(col=c("black","blue"),lwd=c(1,2)))
-    } else {
-      ymin <- min(min(y),min(frc))
-      ymax <- max(min(y),max(frc))
-      yminmax <- c(ymin-0.1*(ymax-ymin),ymax+0.1*(ymax-ymin))
-      plot(1:n,y,type="l",xlim=c(1,(n+h)),ylab="",xlab="Time",ylim=yminmax)
-      lines((n+1):(n+h),frc,col="blue",type="l",lwd=2)
-    }
-  } 
-  
-  if (outplot==2){
-    # As previous, including theta lines
-    if (class(y) == "ts"){
-      s <- end(y)
-      s <- end(y)
-      if (length(s)==2){
-        if (s[2]==m){
-          s[1] <- s[1]+1
-          s[2] <- 1
-        } else {
-          s[2] <- s[2]+1
-        }
-      } else {
-        s <- s + 1/m
-      }
-      frc.theta0 <- ts(frc.theta0,start=s,frequency=m)  
-      frc.theta2 <- ts(frc.theta2,start=s,frequency=m)  
-      ts.plot(y,in.theta0+y*0,frc.theta0,in.theta2+y*0,frc.theta2,frc,in.fit,
-              gpars=list(col=c("black","forestgreen","forestgreen","red","red","blue","blue"),
-                         lwd=c(1,1,1,1,1,2,1),lty=c(1,1,2,1,2,1,1)))
-    } else {
-    ymin <- min(min(y),min(theta0),min(theta2),min(frc),min(frc.theta0),min(frc.theta2))
-    ymax <- max(min(y),max(theta0),max(theta2),max(frc),max(frc.theta0),max(frc.theta2))
-    yminmax <- c(ymin-0.1*(ymax-ymin),ymax+0.1*(ymax-ymin))
-    plot(1:n,y,type="l",xlim=c(1,(n+h)),ylab="",xlab="Time",ylim=yminmax)
-    lines(1:n,in.theta0,col="forestgreen",type="l")
-    lines(1:n,in.theta2,col="red",type="l")
-    lines((n+1):(n+h),frc.theta0,col="forestgreen",type="l",lty=2)
-    lines((n+1):(n+h),frc.theta2,col="red",type="l",lty=2)
-    lines((n+1):(n+h),frc,col="blue",type="l",lwd=2)
-    lines(1:n,in.fit,col="blue",lwd=1)
-    }
   }
   
   # Prepare output
@@ -281,9 +205,197 @@ theta <- function(y,m=NULL,h=10,outplot=0,sign.level=0.05,
   }
   costf <- rbind(cost0,cost2,costs)
   rownames(costf) <- c("Theta0","Theta2","Seasonal")
-  return(list("frc"=frc,"exist"=exist,"theta0"=frc.theta0,"theta2"=frc.theta2,
-              "season"=season,"cost"=costf,"a"=a,"b"=b,"p"=p,"g"=g, "fit"=in.fit)) # ,"std.season"=sstd))
+  if (class(y) == "ts"){
+    in.fit <- ts(in.fit,frequency=m,end=end(y))    
+    theta0 <- ts(theta0,frequency=m,end=end(y))    
+    theta2 <- ts(theta2,frequency=m,end=end(y))    
+  }
   
+  return(structure(list("method"="Theta","y"=y,"m"=m,"exist"=exist,
+                        "multiplicative"=multiplicative,
+                        "theta0"=theta0,"theta2"=theta2,
+                        "season"=season,"x.out"=X.out,
+                        "cost"=costf,"a"=a,"b"=b,"p"=p,"g"=g,
+                        "fitted"=in.fit,"residuals"=y-in.fit,
+                        "MSE"=mean((y-in.fit)^2))
+                   ,class="theta")) 
+  
+}
+
+forecast.theta <- function(object,h=NULL,...){
+    # Produce forecasts with Theta
+    
+    a <- object$a
+    b <- object$b
+    p <- object$p
+    m <- object$m
+    n <- length(object$y)
+    X.out <- object$x.out
+    theta2 <- object$theta2
+    y <- object$y
+    
+    if (is.null(h)){
+        h <- m
+    }
+    
+    # Forecast theta line
+    frc.theta0 <- b[1] + b[2]*((n+1):(n+h))
+    if (!is.null(X.out)){
+        a.frc <- rbind(a,array(p[,2],c(n.out,1)))
+    } else {
+        a.frc <- a
+    }
+    frc.theta2 <- fun.ses(theta2,a.frc,X.out)$outs * rep(1,h)
+    frc <- (frc.theta0 + frc.theta2)/2
+    
+    # Include seasonality
+    if (object$exist[2] == TRUE){
+        season <- rep(object$season, h %/% m + 1)[1:h]
+        if (object$multiplicative == TRUE){
+            frc <- frc * season
+        } else {
+            frc <- frc + season
+        }
+    } else {
+        season <- NULL
+    }
+    
+    # Convert to ts
+    if (class(y) == "ts"){
+        fstart <- c(end(y)[1],end(y)[2]+1)
+        if (is.na(fstart[2])){  # If the second element of end(y) does not exist because it is fractional
+            fstart <- end(y) + deltat(y)
+        }
+        frc <- ts(frc,start=fstart,frequency=m)  
+        frc.theta0 <- ts(frc.theta0,start=fstart,frequency=m)  
+        frc.theta2 <- ts(frc.theta2,start=fstart,frequency=m)  
+    } 
+    
+    return(structure(list("method"=class(object),"mean"=frc,
+                "frc.theta0"=frc.theta0,"frc.theta2"=frc.theta2,
+                "frc.season"=season,"x"=y,
+                "fitted"=object$fitted,"residuals"=object$residuals),
+                class="forecast"))
+    
+}
+
+plot.theta <- function(x,thetalines=c(TRUE,FALSE),...){
+    # Produce in-sample fit plot
+    
+    thetalines = thetalines[1]
+    is.ts <- class(x$y) == "ts"
+    
+    # Default limits of plot
+    yy <- range(c(x$y,x$fitted,x$theta0,x$theta2))
+    yy <- yy+c(-1,1)*0.04*diff(yy)
+    if (is.ts){
+        xx <- time(x$y)[c(1,length(x$y))]
+    } else {
+        xx <- 1:length(x$y)
+    }
+    
+    # Allow user to override plot defaults
+    args <- list(...)
+    if (!("main" %in% names(args))){
+        args$main <- "Theta method"
+    }
+    if (!("xlab" %in% names(args))){
+        args$xlab <- "Time"
+    }
+    if (!("ylab" %in% names(args))){
+        args$ylab <- ""
+    }
+    if (!("xlim" %in% names(args))){
+        args$xlim <- xx
+    }
+    if (!("ylim" %in% names(args))){
+        args$ylim <- yy
+    }
+    # Remaining defaults
+    args$x <- args$y <- NA
+    # Use do.call to use manipulated ellipsis (...)
+    do.call(plot,args)
+    # Plot the rest
+    lines(x$y,col="black")
+    lines(x$fitted,col="blue")
+    if (thetalines == TRUE){
+        lines(x$theta0, col="red")
+        lines(x$theta2, col="forestgreen")
+    }
+    
+}
+
+summary.theta <- function(object,...){
+    print(object)
+}
+
+print.theta <- function(x,...){
+    
+    if (all(x$exist == FALSE)){
+        mdl <- ""
+    } else {
+        mdl <- "("
+        if (x$exist[1]){
+            mdl <- paste0(mdl,"trend")
+        }
+        if (all(x$exist)){
+            mdl <- paste0(mdl,",")
+        }
+        if (x$exist[2]){
+            if (x$multiplicative){
+                stp <- "multiplicative "
+            } else {
+                stp <- "additive "
+            }
+            mdl <- paste0(mdl,stp,"season (",x$m,")")
+        }
+        mdl <- paste0(mdl,")")
+    }
+    
+    writeLines(paste("Theta method",mdl))
+    writeLines("")
+    writeLines("Parameters:")
+    writeLines(paste("    Theta 0, intercept =",round(x$b[1],3)))
+    if (x$exist[1]){
+        writeLines(paste("    Theta 0, slope     =",round(x$b[2],3)))
+    }
+    writeLines(paste("    Theta 2, alpha     =",round(x$a[1],3)))
+    if (x$exist[2]){
+        writeLines(paste("    Season, gamma      =",round(x$g[1],3)))
+    }
+    writeLines("")
+    writeLines("Initial states:")
+    writeLines(paste("    Theta 2            =",round(x$a[2],3)))
+    if (x$exist[2]){
+        writeLines(paste("    Season             =",
+                         paste(round(x$g[2:(x$m+1)],3),collapse=", ")))
+    }
+    writeLines("")
+    writeLines(paste0("RMSE: ",round(sqrt(x$MSE),3)))
+
+}
+
+theta.thief <- function(y,h=NULL,...){
+    # This is a wrapper function to use Theta with THieF
+    
+    # Remove level input from ellipsis
+    ellipsis.args <- list(...)
+    ellipsis.args$level <- NULL
+    ellipsis.args$y <- y
+    
+    # Fit network
+    fit <- do.call(theta,ellipsis.args) 
+    
+    # Default h
+    if (is.null(h)){
+        h <- frequency(y)
+    }
+    
+    # Forecast
+    out <- forecast(fit,h)
+
+    return(out)
+    
 }
 
 opt.sfit <- function(ynt,costs,n,m,y,in.fit,multiplicative,outliers){
