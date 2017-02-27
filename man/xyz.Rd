@@ -22,15 +22,6 @@ xyz(x,m=NULL,prc=c(0.2,0.3,0.5),type=c("naive","ets","cv"))
   \item{type}{
     The type of forecastability calculation: 1: "naive" - fit naive and seasonal naive and calculate fit RMSE/mean level; 2: "ets" - fit ets and calculate fit RMSE/mean level; 3: "cv" - use coefficient of variation as a proxy of forecastability
   }
-  \item{outplot}{
-    If TRUE provide a visualisation of the ABC analysis result.
-  }
-  \item{cex.prc}{
-    Font size of percentage reported in plot.
-  }
-  \item{...}{
-    Additional arguments can be passed for the plot. User can override default values. For example main="" will remove the title from the plot.
-  }
 }
 \value{An object of class "\code{abc}". 
 The function \code{plot} produces a plot of the analysis.
