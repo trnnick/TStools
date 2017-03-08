@@ -9,7 +9,7 @@
 elm.fast(y,x,hd=NULL,type=c("lasso","ridge","step","ls"),reps=20,
                      comb=c("median","mean","mode"),direct=c(FALSE,TRUE),
                      linscale=c(TRUE,FALSE),output=c("linear","logistic"),
-                     core=c("FALSE","TRUE"))
+                     core=c("FALSE","TRUE"),ortho=c(FALSE,TRUE))
 }
 \arguments{
   \item{y}{
@@ -41,6 +41,9 @@ elm.fast(y,x,hd=NULL,type=c("lasso","ridge","step","ls"),reps=20,
   }
   \item{core}{
     If TRUE skips calculation of final fitted values and MSE. Called internally by \code{"elm"} function.
+  }
+  \item{ortho}{
+    If TRUE then the initial weights between the input and hidden layers are orthogonal.
   }
 }
 \value{An object of class "\code{elm.fast}".

@@ -1,7 +1,7 @@
 elm.fast <- function(y,x,hd=NULL,type=c("lasso","ridge","step","ls"),reps=20,
                      comb=c("median","mean","mode"),direct=c(FALSE,TRUE),
                      linscale=c(TRUE,FALSE),output=c("linear","logistic"),
-                     core=c("FALSE","TRUE")){
+                     core=c("FALSE","TRUE"),ortho=c(FALSE,TRUE)){
   
   type <- match.arg(type,c("lasso","ridge","step","ls"))
   comb <- match.arg(comb,c("median","mean","mode"))
@@ -9,6 +9,7 @@ elm.fast <- function(y,x,hd=NULL,type=c("lasso","ridge","step","ls"),reps=20,
   direct <- direct[1]
   core <- core[1]
   linscale <- linscale[1]
+  ortho <- ortho[1]
   
   if (output == "logistic" & type != "lasso"){
       warning("Logisitc output can only be used with lasso, switching to lasso.")
@@ -58,6 +59,10 @@ elm.fast <- function(y,x,hd=NULL,type=c("lasso","ridge","step","ls"),reps=20,
   
     # Calculate hidden layer values
     w.in <- init.w(p,hd)
+    if (ortho == TRUE){
+    # Orthogonal weights
+        w.in <- svd(t(w.in))$v
+    }
     if (!is.null(x.names)){
         rownames(w.in) <- c("Bias",x.names)
     }
