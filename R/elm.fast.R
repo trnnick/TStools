@@ -61,14 +61,12 @@ elm.fast <- function(y,x,hd=NULL,type=c("lasso","ridge","step","ls"),reps=20,
     w.in <- init.w(p,hd)
     if (ortho == TRUE){
     # Orthogonal weights
-      # browser()
-      sz <- dim(w.in)
-      if (sx[1] >= sz[2]){
+      if ((p+1) >= hd){
         w.in <- svd(t(w.in))$v
       } # else {
-        # w.in <- t(svd(t(w.in))$u)
+        # w.in <- svd(init.w(hd,hd))$v[1:(p+1),]
       # }
-    }
+    } 
     if (!is.null(x.names)){
         rownames(w.in) <- c("Bias",x.names)
     }
