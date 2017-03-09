@@ -43,7 +43,7 @@ elm.fast(y,x,hd=NULL,type=c("lasso","ridge","step","ls"),reps=20,
     If TRUE skips calculation of final fitted values and MSE. Called internally by \code{"elm"} function.
   }
   \item{ortho}{
-    If TRUE then the initial weights between the input and hidden layers are orthogonal.
+    If TRUE then the initial weights between the input and hidden layers are orthogonal (only when number of input variable <= sample size).
   }
 }
 \value{An object of class "\code{elm.fast}".

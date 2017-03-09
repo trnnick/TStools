@@ -60,12 +60,10 @@ elm.fast <- function(y,x,hd=NULL,type=c("lasso","ridge","step","ls"),reps=20,
     # Calculate hidden layer values
     w.in <- init.w(p,hd)
     if (ortho == TRUE){
-    # Orthogonal weights
+    # Orthogonal weights (when possible)
       if ((p+1) >= hd){
         w.in <- svd(t(w.in))$v
-      } # else {
-        # w.in <- svd(init.w(hd,hd))$v[1:(p+1),]
-      # }
+      } 
     } 
     if (!is.null(x.names)){
         rownames(w.in) <- c("Bias",x.names)
