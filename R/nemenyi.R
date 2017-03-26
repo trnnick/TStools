@@ -228,10 +228,6 @@ nemenyi <- function(data, conf.int=0.95, sort=c(TRUE,FALSE),
         xmax <- xmax + 0.1*(xmax-xmin)
         xmin <- xmin - 0.1*(xmax-xmin)
         
-        # Find max label size
-        lbl.size <- nchar(labels)
-        lbl.size <- max(lbl.size)
-        
         if (!("main" %in% names(args))){
             args$main <- paste0("Friedman: ", format(round(fried.pval,3),nsmall=3), " (", fried.H, ") \n MCB interval: ", format(round(r.stat[2],3),nsmall=3))
         }
