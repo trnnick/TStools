@@ -54,7 +54,7 @@ nemenyi <- function(data, conf.int=0.95, sort=c(TRUE,FALSE),
     
     # Save the current par() values
     if(plottype!="none"){
-        parDefault <- par(no.readonly = TRUE);
+        parDefault <- par(no.readonly=TRUE);
         par.mar <- parDefault$mar;
     }
     
@@ -293,7 +293,6 @@ nemenyi <- function(data, conf.int=0.95, sort=c(TRUE,FALSE),
         # Highlight identical
         idx <- !((ranks.intervals[2,select] < ranks.intervals[1,]) | (ranks.intervals[1,select] > ranks.intervals[2,]))
         points(ranks.means[idx],(1:cols.number)[idx],pch=20,lwd=4,col=cmp[1])
-        # par(mar=temp.mar)
     }
     
     # Line style plot (as in ISF)
@@ -389,7 +388,6 @@ nemenyi <- function(data, conf.int=0.95, sort=c(TRUE,FALSE),
         if (!is.null(select)){
             points(select,0,pch=20,col=brewer.pal(3,"Set1")[1],cex=2)
         }
-        # par(mar=temp.mar)
     }
     
     # Line style plot (as in ISF) - vertical
@@ -483,12 +481,11 @@ nemenyi <- function(data, conf.int=0.95, sort=c(TRUE,FALSE),
         if (!is.null(select)){
             points(0,select,pch=20,col=brewer.pal(3,"Set1")[1],cex=2)
         }
-        # par(mar=temp.mar)
     }
     
     # Revert to the original par() values
     if(plottype!="none"){
-        par(parDefault);
+        par(parDefault)
     }
     
     return(structure(list("means"=ranks.means,"intervals"=ranks.intervals,"fpval"=fried.pval,"fH"=fried.H,"cd"=r.stat[2],"conf.int"=conf.int,"k"=cols.number,"n"=rows.number),class="nemenyi"))

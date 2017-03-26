@@ -61,7 +61,7 @@ data[,4] <- data[,4]+0.5
 colnames(data) <- c("Method A","Method B","Method C - long name","Method D");
 nemenyi(data,conf.int=0.95,plottype="vline")
 
-par(mar=rep(0,4))
-nemenyi(data,conf.int=0.95,plottype="vline",main="")
+par(mar=c(2,0,2,0),cex=1.5)
+nemenyi(data,conf.int=0.95,plottype="vline",main="",xlim=range(0,1.5))
 }
 \keyword{ ~friedman.test }
