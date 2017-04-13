@@ -21,7 +21,7 @@ export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        sowhat,ro,intervals,intervalsSimulator,
        geomean, lambdaseq,
        residout,stlboot,get.opt.k,leadtrail,
-       smooth.thief,
+       smooth.thief,trendtest,
        # Neural networks
        linscale,lagmatrix,seasdummy,
        elm,forecast.elm,plot.elm,elm.thief,
