@@ -7,9 +7,10 @@
 
 \usage{
 mlp(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
-    lags=NULL,difforder=NULL,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
-    allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
-    xreg=NULL, xreg.lags=NULL,hd.auto.type=c("set","valid","cv","elm"),
+    lags=NULL,keep=NULL,difforder=NULL,outplot=c(FALSE,TRUE),
+    sel.lag=c(TRUE,FALSE),allow.det.season=c(TRUE,FALSE),
+    det.type=c("auto","bin","trg"),xreg=NULL, xreg.lags=NULL,
+    xreg.keep=NULL,hd.auto.type=c("set","valid","cv","elm"),
     hd.max=NULL, ...)
 }
 
@@ -32,6 +33,9 @@ mlp(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
   \item{lags}{
     Lags of y to use as inputs. If none provided then 1:frequency(y) is used. Use 0 for no univariate lags.
     }
+    \item{keep}{
+    Logical vector to force lags to stay in the model if sel.lag == TRUE. If NULL then it keep = rep(FALSE,length(lags)).
+    }
     \item{difforder}{
     Vector including the differencing lags. For example c(1,12) will apply first and seasonal (12) differences. For no differencing use 0. For automatic selection use NULL.
     }
@@ -53,6 +57,9 @@ mlp(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
   \item{xreg.lags}{
     This is a list containing the lags for each exogenous variable. Each list is a numeric vector containing lags. If xreg has 3 columns then the xreg.lags list must contain three elements. If NULL then it is automatically specified. 
   }
+  \item{xreg.keep}{
+    List of logical vectors to force lags of xreg to stay in the model if sel.lag == TRUE. If NULL then all exogenous lags can be removed.
+    }
   \item{hd.auto.type}{
     Used only if hd==NULL. "set" fixes hd=5. "valid" uses a 20\% validation set (randomly) sampled to find the best number of hidden nodes. "cv" uses 5-fold cross-validation. "elm" uses ELM to estimate the number of hidden nodes (experimental).
   }

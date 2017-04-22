@@ -1,7 +1,7 @@
 elm <- function(y,hd=NULL,type=c("lasso","ridge","step","lm"),reps=20,comb=c("median","mean","mode"),
-                lags=NULL,difforder=NULL,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),direct=c(FALSE,TRUE),
+                lags=NULL,keep=NULL,difforder=NULL,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),direct=c(FALSE,TRUE),
                 allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
-                xreg=NULL,xreg.lags=NULL,barebone=c(FALSE,TRUE)){
+                xreg=NULL,xreg.lags=NULL,xreg.keep=NULL,barebone=c(FALSE,TRUE)){
   
   # Defaults
   type <- match.arg(type,c("lasso","ridge","step","lm"))
@@ -35,13 +35,15 @@ elm <- function(y,hd=NULL,type=c("lasso","ridge","step","lm"),reps=20,comb=c("me
   rm("ff.ls")
   
   # Default lagvector
-  xreg.ls <- def.lags(lags,ff,xreg.lags,xreg)
+  xreg.ls <- def.lags(lags,keep,ff,xreg.lags,xreg.keep,xreg)
   lags <- xreg.ls$lags
+  keep <- xreg.ls$keep
   xreg.lags <- xreg.ls$xreg.lags
+  xreg.keep <- xreg.ls$xreg.keep
   rm("xreg.ls")
   
   # Pre-process data (same for MLP and ELM)
-  PP <- preprocess(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,ff.n,xreg,xreg.lags)
+  PP <- preprocess(y,m,lags,keep,difforder,sel.lag,allow.det.season,det.type,ff,ff.n,xreg,xreg.lags,xreg.keep)
   Y <- PP$Y
   X <- PP$X
   sdummy <- PP$sdummy

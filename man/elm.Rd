@@ -7,11 +7,11 @@
 
 \usage{
 elm(y,hd=NULL,type=c("lasso","ridge","step","lm"),reps=20,
-    comb=c("median","mean","mode"),lags=NULL,difforder=NULL,
+    comb=c("median","mean","mode"),lags=NULL,keep=NULL,difforder=NULL,
     outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
     direct=c(FALSE,TRUE),allow.det.season=c(TRUE,FALSE),
     det.type=c("auto","bin","trg"),xreg=NULL,xreg.lags=NULL,
-    barebone=c(FALSE,TRUE))
+    xreg.keep=NULL,barebone=c(FALSE,TRUE))
 }
 \arguments{
   \item{y}{
@@ -31,6 +31,9 @@ elm(y,hd=NULL,type=c("lasso","ridge","step","lm"),reps=20,
     }
   \item{lags}{
     Lags of y to use as inputs. If none provided then 1:frequency(y) is used. Use 0 for no univariate lags.
+    }
+    \item{keep}{
+    Logical vector to force lags to stay in the model if sel.lag == TRUE. If NULL then it keep = rep(FALSE,length(lags)).
     }
     \item{difforder}{
     Vector including the differencing lags. For example c(1,12) will apply first and seasonal (12) differences. For no differencing use 0. For automatic selection use NULL.
@@ -56,6 +59,9 @@ elm(y,hd=NULL,type=c("lasso","ridge","step","lm"),reps=20,
   \item{xreg.lags}{
     This is a list containing the lags for each exogenous variable. Each list is a numeric vector containing lags. If xreg has 3 columns then the xreg.lags list must contain three elements. If NULL then it is automatically specified. 
   }
+  \item{xreg.keep}{
+    List of logical vectors to force lags of xreg to stay in the model if sel.lag == TRUE. If NULL then all exogenous lags can be removed.
+    }
   \item{barebone}{
     Use an alternative elm implementation (written in R) that is faster when the number of inputs is very high. Typically not needed.
   }

@@ -1,7 +1,7 @@
 mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
-                lags=NULL,difforder=NULL,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
+                lags=NULL,keep=NULL,difforder=NULL,outplot=c(FALSE,TRUE),sel.lag=c(TRUE,FALSE),
                 allow.det.season=c(TRUE,FALSE),det.type=c("auto","bin","trg"),
-                xreg=NULL, xreg.lags=NULL,hd.auto.type=c("set","valid","cv","elm"),
+                xreg=NULL, xreg.lags=NULL,xreg.keep=NULL,hd.auto.type=c("set","valid","cv","elm"),
                 hd.max=NULL, ...){
   
     # hd.max is only relevant to valid and cv
@@ -36,13 +36,15 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     rm("ff.ls")
     
     # Default lagvector
-    xreg.ls <- def.lags(lags,ff,xreg.lags,xreg)
+    xreg.ls <- def.lags(lags,keep,ff,xreg.lags,xreg.keep,xreg)
     lags <- xreg.ls$lags
+    keep <- xreg.ls$keep
     xreg.lags <- xreg.ls$xreg.lags
+    xreg.keep <- xreg.ls$xreg.keep
     rm("xreg.ls")
     
     # Pre-process data (same for MLP and ELM)
-    PP <- preprocess(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,ff.n,xreg,xreg.lags)
+    PP <- preprocess(y,m,lags,keep,difforder,sel.lag,allow.det.season,det.type,ff,ff.n,xreg,xreg.lags,xreg.keep)
     Y <- PP$Y
     X <- PP$X
     sdummy <- PP$sdummy
@@ -498,7 +500,7 @@ get.ff <- function(y){
   return(list("ff"=ff,"ff.n"=ff.n))
 }
 
-def.lags <- function(lags,ff,xreg.lags,xreg){
+def.lags <- function(lags,keep,ff,xreg.lags,xreg.keep,xreg){
   # Default lagvector
   if (is.null(lags)){
     if (max(ff)>3){
@@ -511,10 +513,27 @@ def.lags <- function(lags,ff,xreg.lags,xreg){
     x.n <- dim(xreg)[2]
     xreg.lags <- rep(list(lags),x.n)
   }
-  return(list("lags"=lags,"xreg.lags"=xreg.lags))
+    
+    # Check keep options
+    if (!is.null(keep)){
+        if (length(keep) != length(lags)){
+            stop("Argument `keep' must be a logical vector of length equal to lags.")
+        }
+    } else {
+        keep <- rep(FALSE,length(lags))
+    }
+    if (!is.null(xreg.keep)){
+        if (all(unlist(lapply(xreg.lags,length)) == unlist(lapply(xreg.keep,length)))==FALSE){
+            stop("Argument `xreg.keep' must be a list of logical vectors of length equal to the length of the lags in xreg.lags.")
+        }
+    } else {
+        xreg.keep <- lapply(unlist(lapply(xreg.lags,length)),function(x){rep(FALSE,x)})
+    }
+    
+  return(list("lags"=lags,"keep"=keep,"xreg.lags"=xreg.lags,"xreg.keep"=xreg.keep))
 }
 
-preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,ff.n,xreg,xreg.lags){
+preprocess <- function(y,m,lags,keep,difforder,sel.lag,allow.det.season,det.type,ff,ff.n,xreg,xreg.lags,xreg.keep){
 # Pre-process data for MLP and ELM
   
   # Check seasonality & trend
@@ -603,7 +622,9 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
     # Make selection of lags robust to sample size issues if all
     # other checks fail by using lasso
     cf.temp <- tryCatch({
-      fit <- stepAIC(fit,trace=0,direction="backward")
+      keep.all <- c(keep,unlist(xreg.keep),rep(FALSE,ff.n))
+      scp <- list(lower = as.formula(paste("~",paste(attributes(fit$terms)$term.labels[keep.all],collapse=" + "))))
+      fit <- stepAIC(fit,trace=0,direction="backward",scope=scp)
       # Get useful lags
       cf.temp <- coef(fit)
     }, error = function(e) {
@@ -615,6 +636,9 @@ preprocess <- function(y,m,lags,difforder,sel.lag,allow.det.season,det.type,ff,f
           colnames(tempX) <- paste0(paste0("Xd[[",i,"]]"),colnames(tempX))
           lasso.X <- cbind(lasso.X,tempX)
         }
+      }
+      if (any(keep.all)){
+          warning("Cannot execute backwards variable selection, reverting to Lasso. Arguments `keep' and `xreg.keep' will be ignored.")
       }
       fit.lasso <- suppressWarnings(cv.glmnet(x=lasso.X,y=lasso.Y))
       cf.temp <- as.vector(coef(fit.lasso))
