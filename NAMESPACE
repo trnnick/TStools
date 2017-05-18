@@ -18,7 +18,11 @@ import(forecast,zoo,MAPA,RColorBrewer,neuralnet,glmnet,MASS,plotrix)
 export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        coxstuart,wins,rowWins,colWins,
        nzlength,init.ets,mre,mre.plot,bias.coeff,
-       sowhat,ro,intervals,intervalsSimulator,
+       sowhat,ro,
+       # Intervals
+       intervals,intervalsSimulator,
+       twoSigmas,
+       # Other stuff
        geomean, lambdaseq,
        residout,stlboot,get.opt.k,leadtrail,
        smooth.thief,trendtest,
