@@ -6,10 +6,10 @@
 \description{Function produces forecasts with Temporal Hierarchies using models from the smooth package.}
 
 \usage{
-smooth.thief(y,h,type=c("es","ssarima","ces","ges"),...)
+smooth.thief(data,h,type=c("es","ssarima","ces","ges"),...)
 }
 \arguments{
-  \item{y}{
+  \item{data}{
     Input time series. Can be ts object. 
     }
   \item{h}{

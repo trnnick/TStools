@@ -35,5 +35,5 @@ Nikolaos Kourentzes, \email{nikolaos@kourentzes.com}
 }
 \examples{
 x <- abs(matrix(cumsum(rnorm(5400,0,1)),36,150))
-abc(x,outplot=TRUE)
+abc(x)
 }

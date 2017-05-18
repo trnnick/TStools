@@ -11,8 +11,8 @@ Calculates the lambdaMax value, which is the penalty term (lambda) beyond which 
 
 
 \usage{
-lambdaseq(x, y, weight = NA, alpha = 1, standardise = T,
-          lambdaRatio = 0.0001, nLambda = 100, addZeroLambda = F)
+lambdaseq(x, y, weight = NA, alpha = 1, standardise = TRUE,
+          lambdaRatio = 0.0001, nLambda = 100, addZeroLambda = FALSE)
 }
 
 \arguments{
@@ -77,14 +77,14 @@ y <- mtcars[,1]
 x <- as.matrix(mtcars[,2:11])
 
 # Create lambda sequence
-lambda <- lambdaseq(x, y, standardise = T, lambdaRatio = 0.0001,
-                    nLambda = 100, addZeroLambda = F)$lambda
+lambda <- lambdaseq(x, y, standardise = TRUE, lambdaRatio = 0.0001,
+                    nLambda = 100, addZeroLambda = FALSE)$lambda
 
 # fit and obtain coefficients from LASSO model using glmnet package
 library(glmnet)
 
 fit.lasso <- cv.glmnet(y = y, x = x, family = "gaussian", alpha = 1,
-                       standardize = T, lambda = lambda, intercept = T)
+                       standardize = TRUE, lambda = lambda, intercept = TRUE)
 
 coef.lasso <- coef(fit.lasso, s = "lambda.1se")
 }
