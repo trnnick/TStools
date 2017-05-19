@@ -1,16 +1,18 @@
-\name{intervals.twoSigmas}
-\alias{intervals.twoSigmas}
+\name{intervals.ts}
+\alias{intervals.ts}
 \alias{intervals.hm}
+\alias{intervals.qr}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-    Prediction intervals based on two standard deviations
+    Prediction intervals
 }
 \description{
-    This function returns prediction intervals based on two separate sigmas for left and right sides of the distribution
+    These function return prediction intervals based on the estimated "smooth" model.
 }
 \usage{
-    intervals.twoSigmas(model, level=0.95)
+    intervals.ts(model, level=0.95)
     intervals.hm(model, level=0.95)
+    intervals.qr(model, level=0.95)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -18,7 +20,11 @@
   \item{level}{Confidence level for the intervals construction.}
 }
 \details{
-    Nothing here yet.
+    \itemize{
+        \item \code{intervals.ts()} - intervals produced using two sigma values;
+        \item \code{intervals.hm()} - intervals produced using half moment;
+        \item \code{intervals.qr()} - intervals produced using quantile regressions;
+    }
 }
 \value{
   \item{lower}{Lower bound of prediction interval.}
@@ -40,7 +46,8 @@
     library(smooth)
 
     ourModel <- es(rnorm(100,100,10))
-    intervals.twoSigmas(ourModel)
+    intervals.ts(ourModel)
     intervals.hm(ourModel)
+    intervals.qr(ourModel)
 }
 \keyword{ htest }

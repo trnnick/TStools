@@ -21,8 +21,7 @@ export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        nzlength,init.ets,mre,mre.plot,bias.coeff,
        sowhat,ro,
        # Intervals
-       intervals,intervalsSimulator,
-       intervals.twoSigmas,intervals.hm,
+       intervals.ts,intervals.hm,intervals.qr,
        # Other stuff
        geomean, lambdaseq,
        residout,stlboot,get.opt.k,leadtrail,
@@ -37,7 +36,6 @@ export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        # Theta method
        theta,forecast.theta,plot.theta,theta.thief)
 
-S3method(print,intervalStuff)
 S3method(print,classseas)
 S3method(print,nemenyi)
 S3method(summary,classseas)

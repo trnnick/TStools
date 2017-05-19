@@ -24,11 +24,10 @@ intervals.hm <- function(model, level=0.95){
     quantValues <- qnorm(c((1-level)/2,(1+level)/2));
     hmValues <- apply(errors,2,hm,C=0);
     
-    lower <- c(model$forecast + quantValues[1] * Im(hmValues)^2 / hsmN^2);
-    upper <- c(model$forecast + quantValues[2] * Re(hmValues)^2 / hsmN^2);
+    lower <- (model$forecast + quantValues[1] * Im(hmValues)^2 / hsmN^2);
+    upper <- (model$forecast + quantValues[2] * Re(hmValues)^2 / hsmN^2);
 
     names(hmValues) <- paste0("h",1:h);
-    names(lower) <- paste0("h",1:h);
-    names(upper) <- paste0("h",1:h);
+    
     return(list(lower=lower,upper=upper,hmValues=hmValues));
 }
