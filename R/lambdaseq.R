@@ -1,5 +1,5 @@
-lambdaseq <- function(x, y, weight = NA, alpha = 1, standardise = T,
-                      lambdaRatio = 0.0001, nLambda = 100, addZeroLambda = F){
+lambdaseq <- function(x, y, weight = NA, alpha = 1, standardise = TRUE,
+                      lambdaRatio = 0.0001, nLambda = 100, addZeroLambda = FALSE){
   
   # Calculates the lambdaMax value, which is the penalty term (lambda) beyond
   # which coefficients are guaranteed to be all zero using 0*OLS solution and

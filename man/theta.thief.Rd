@@ -31,7 +31,7 @@ It has a list containing the following elements:
 \item{fitted}{Fitted values.}
 \item{residuals}{Residuals.}
 }
-\note{This function is created to work with Temporal Hierarchies (\href{http://cran.r-project.org/package=thief}{thief} package). For conventional Theta method use \code{\link{theta}}.}
+\note{This function is created to work with Temporal Hierarchies (\href{https://cran.r-project.org/package=thief}{thief} package). For conventional Theta method use \code{\link{theta}}.}
 \author{
 Nikolaos Kourentzes, \email{nikolaos@kourentzes.com}
 }

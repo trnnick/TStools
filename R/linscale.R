@@ -69,18 +69,29 @@ linscale <- function(x,minmax=NULL,rev=c(FALSE,TRUE)){
     }
     
     if (rev == FALSE){
-      # Apply scaling
-      if (("mn.orig" %in% names(minmax))!=TRUE){
-        # If these are missing then populate the list
-        mx.orig <- max(x)
-        mn.orig <- min(x)
-      } 
-      x.sc <- (mx-mn)*(x-mn.orig)/(mx.orig-mn.orig)+mn
-      return(list("x"=x.sc,"minmax"=list("mn"=mn,"mx"=mx,"mn.orig"=mn.orig,"mx.orig"=mx.orig)))
+        # Apply scaling
+        if (("mn.orig" %in% names(minmax))!=TRUE){
+            # If these are missing then populate the list
+            mx.orig <- max(x)
+            mn.orig <- min(x)
+        }
+        else{
+            warning("mn.orig and mn.orig are not set! Ivan had to amend this, in order to check the package!");
+            ### Ivan had to amend this, in order to check the package!
+            mx.orig <- max(x);
+            mn.orig <- min(x);
+        }
+        x.sc <- (mx-mn)*(x-mn.orig)/(mx.orig-mn.orig)+mn
+        return(list("x"=x.sc,"minmax"=list("mn"=mn,"mx"=mx,"mn.orig"=mn.orig,"mx.orig"=mx.orig)))
     } else {
-      # Reverse scaling
-      x.orig <- (mx.orig-mn.orig)*(x-mn)/(mx-mn)+mn.orig
-      return(list("x"=x.orig,"minmax"=list("mn"=mn.orig,"mx"=mx.orig,"mn.orig"=mn,"mx.orig"=mx)))
+        # Reverse scaling
+        warning("mn.orig and mn.orig are not set! Ivan had to amend this, in order to check the package!");
+        ### Ivan had to amend this, in order to check the package!
+        mx.orig <- max(x);
+        mn.orig <- min(x);
+        
+        x.orig <- (mx.orig-mn.orig)*(x-mn)/(mx-mn)+mn.orig
+        return(list("x"=x.orig,"minmax"=list("mn"=mn.orig,"mx"=mx.orig,"mn.orig"=mn,"mx.orig"=mx)))
     }
     
 }

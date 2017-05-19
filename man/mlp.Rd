@@ -95,7 +95,7 @@ An object of class \code{"mlp"} is a list containing the following elements:
         \item{For combination operators see: Kourentzes N., Barrow B.K., Crone S.F. (2014) \href{http://kourentzes.com/forecasting/2014/04/19/neural-network-ensemble-operators-for-time-series-forecasting/}{Neural network ensemble operators for time series forecasting}. \emph{Expert Systems with Applications}, \bold{41}(\bold{9}), 4235-4244.}
 }
 }
-\note{To use mlp with Temporal Hierarchies (\href{http://cran.r-project.org/package=thief}{thief} package) see \code{\link{mlp.thief}}.}
+\note{To use mlp with Temporal Hierarchies (\href{https://cran.r-project.org/package=thief}{thief} package) see \code{\link{mlp.thief}}.}
 \author{
 Nikolaos Kourentzes, \email{nikolaos@kourentzes.com}
 }

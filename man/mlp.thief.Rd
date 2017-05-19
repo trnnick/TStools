@@ -33,7 +33,7 @@ An object of class \code{"forecast.net"} is a list containing the following elem
         \item{For combination operators see: Kourentzes N., Barrow B.K., Crone S.F. (2014) \href{http://kourentzes.com/forecasting/2014/04/19/neural-network-ensemble-operators-for-time-series-forecasting/}{Neural network ensemble operators for time series forecasting}. \emph{Expert Systems with Applications}, \bold{41}(\bold{9}), 4235-4244.}
 }
 }
-\note{This function is created to work with Temporal Hierarchied (\href{http://cran.r-project.org/package=thief}{thief} package). For conventional MLP networks use \code{\link{mlp}}.}
+\note{This function is created to work with Temporal Hierarchied (\href{https://cran.r-project.org/package=thief}{thief} package). For conventional MLP networks use \code{\link{mlp}}.}
 \author{
 Nikolaos Kourentzes, \email{nikolaos@kourentzes.com}
 }

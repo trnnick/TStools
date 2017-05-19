@@ -63,7 +63,7 @@ An object of class \code{"theta"} is a list containing the following elements:
 \item{MSE}{In-sample Mean Squared Error.}
 }
 \note{This implementation of Theta method tests automatically for seasonality and trend. Seasonal decomposition can be done either additively or multiplicatively and the seasonality is treated as a pure seasonal model. The various components of Theta can be optimised using different cost functions. The originally proposed Theta method always assumes multiplicative seasonality and presence of trend, while all theta lines are optimised using MSE. Seasonality is estimated using classical decomposition.
-To use Theta with Temporal Hierarchies (\href{http://cran.r-project.org/package=thief}{thief} package) see \code{\link{theta.thief}}.
+To use Theta with Temporal Hierarchies (\href{https://cran.r-project.org/package=thief}{thief} package) see \code{\link{theta.thief}}.
 }
 \author{
 Nikolaos Kourentzes, \email{nikolaos@kourentzes.com}

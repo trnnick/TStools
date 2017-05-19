@@ -30,12 +30,12 @@ It has a list containing the following elements:
 \item{x}{Actuals provided in the call of the model.}
 \item{mean}{Point forecasts of the model.}
 }
-\note{This function is created to work with Temporal Hierarchies (\href{http://cran.r-project.org/package=thief}{thief} package).}
+\note{This function is created to work with Temporal Hierarchies (\href{https://cran.r-project.org/package=thief}{thief} package).}
 \author{
 Nikolaos Kourentzes, \email{nikolaos@kourentzes.com}
 }
 \seealso{
-\code{\link{es}, \code{\link{auto.ssarima}}, \code{\link{auto.ces}}}
+\code{\link{es}}, \code{\link{auto.ssarima}}, \code{\link{auto.ces}}
 }
 \examples{
 ## **Not run:** 

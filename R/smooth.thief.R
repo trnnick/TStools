@@ -43,13 +43,13 @@ smooth.thief <- function(data,h,type=c("es","ssarima","ces","ges"),...){
     type <- match.arg(type,c("es","ssarima","ces","ges"))
     switch(type,
            "es" = {
-             fit <- es(data,silent=TRUE,...)
+             fit <- smooth::es(data,silent=TRUE,...)
            },
            "ssarima" = {
-             fit <- auto.ssarima(data,silent=TRUE,...)
+             fit <- smooth::auto.ssarima(data,silent=TRUE,...)
            },
            "ces" = {
-             fit <- auto.ces(data,silent=TRUE,...)
+             fit <- smooth::auto.ces(data,silent=TRUE,...)
            },
            "ges" = {stop("No automatic GES model fitting yet")})
     
