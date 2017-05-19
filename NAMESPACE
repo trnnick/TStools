@@ -8,6 +8,7 @@ importFrom("stats", "cor.test", "deltat", "density", "end", "fft",
            "na.exclude", "na.omit", "nlminb", "optim", "pbinom",
            "predict", "qt", "qtukey", "quantile", "sd", "start", "stl",
            "time", "ts", "ts.plot", "uniroot")
+importFrom("stats", "qnorm", "runif")
 importFrom("graphics", "arrows")
 importFrom("stats", "alias", "as.formula", "coef", "lm")
 importFrom("utils", "head", "tail")
@@ -21,7 +22,7 @@ export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        sowhat,ro,
        # Intervals
        intervals,intervalsSimulator,
-       twoSigmas,
+       intervals.twoSigmas,intervals.hm,
        # Other stuff
        geomean, lambdaseq,
        residout,stlboot,get.opt.k,leadtrail,
