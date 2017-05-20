@@ -53,11 +53,13 @@ kdemode <- function(data,type=c("diffusion","SJ","nrd0"),
     ks <- density(data,bw="SJ",n=512,from=from,to=to,weights=weights)
     x <- ks$x
     f <- ks$y
+    h <- ks$bw
   } else {
     if (!is.null(weights)){stop("Weighted KDE not implemented with diffusion estimation for bandwidth.")}
     ks <- kde(data, n=512,MIN=from,MAX=to)
-    x <- ks[1,]
-    f <- ks[2,]
+    x <- ks$out[1,]
+    f <- ks$out[2,]
+    h <- ks$bandwidth
   }
   
   # Find mode
@@ -92,7 +94,7 @@ kdemode <- function(data,type=c("diffusion","SJ","nrd0"),
            col=c("red","yellow","green"), pch=19, bty="n")
   }
   
-  return(list(mode=mo,xd=x,fd=f))
+  return(list(mode=mo,xd=x,fd=f,h=h))
 
 }
 
@@ -146,7 +148,27 @@ kde <- function(data,n,MIN,MAX){
   w=hist(data,xmesh,plot=FALSE);initial_data=(w$counts)/N;
   initial_data=initial_data/sum(initial_data);
   
-  dct1d <- function(data){
+  a=dct1d(initial_data); # discrete cosine transform of initial data
+  # now compute the optimal bandwidth^2 using the referenced method
+  I=(1:(n-1))^2; a2=(a[2:n]/2)^2;
+  # use  fzero to solve the equation t=zeta*gamma^[5](t)
+  
+  t_star=tryCatch(uniroot(fixed_point,c(0,.1),N=N,I=I,a2=a2,tol=10^(-14))$root,error=function(e) .28*N^(-2/5));
+  # smooth the discrete cosine transform of initial data using t_star
+  a_t=a*exp(-(0:(n-1))^2*pi^2*t_star/2);
+  # now apply the inverse discrete cosine transform
+  
+  density=idct1d(a_t)/R;
+  # take the rescaling of the data into account
+  bandwidth=sqrt(t_star)*R;
+  xmesh=seq(MIN,MAX,R/(n-1));
+  out=matrix(c(xmesh,density),nrow=2,byrow=TRUE);
+  
+  return(list(out=out,bandwidth=bandwidth))
+  
+}
+
+dct1d <- function(data){
     # computes the discrete cosine transform of the column vector data
     n= length(data);
     # Compute weights to multiply DFT coefficients
@@ -156,31 +178,21 @@ kde <- function(data,n,MIN,MAX){
     # Multiply FFT by weights:
     data= Re(weight* fft(data));
     data}
-  
-  a=dct1d(initial_data); # discrete cosine transform of initial data
-  # now compute the optimal bandwidth^2 using the referenced method
-  I=(1:(n-1))^2; a2=(a[2:n]/2)^2;
-  # use  fzero to solve the equation t=zeta*gamma^[5](t)
-  
-  fixed_point <-  function(t,N,I,a2){
+
+fixed_point <-  function(t,N,I,a2){
     # this implements the function t-zeta*gamma^[l](t)
     l=7;
     f=2*(pi^(2*l))*sum((I^l)*a2*exp(-I*(pi^2)*t));
     for (s in (l-1):2){
-      
-      K0=prod(seq(1,2*s-1,2))/sqrt(2*pi);  const=(1+(1/2)^(s+1/2))/3;
-      time=(2*const*K0/N/f)^(2/(3+2*s));
-      f=2*pi^(2*s)*sum(I^s*a2*exp(-I*pi^2*time));
+        
+        K0=prod(seq(1,2*s-1,2))/sqrt(2*pi);  const=(1+(1/2)^(s+1/2))/3;
+        time=(2*const*K0/N/f)^(2/(3+2*s));
+        f=2*pi^(2*s)*sum(I^s*a2*exp(-I*pi^2*time));
     }
     out=t-(2*N*sqrt(pi)*f)^(-2/5);
-  }
-  
-  t_star=tryCatch(uniroot(fixed_point,c(0,.1),N=N,I=I,a2=a2,tol=10^(-14))$root,error=function(e) .28*N^(-2/5));
-  # smooth the discrete cosine transform of initial data using t_star
-  a_t=a*exp(-(0:(n-1))^2*pi^2*t_star/2);
-  # now apply the inverse discrete cosine transform
-  
-  idct1d <-  function(data){
+}
+
+idct1d <-  function(data){
     # computes the inverse discrete cosine transform
     n=length(data);
     # Compute weights
@@ -193,11 +205,4 @@ kde <- function(data,n,MIN,MAX){
     out[seq(1,n,2)] = data[1:(n/2)];
     out[seq(2,n,2)] = data[n:(n/2+1)];
     out;
-  }
-  
-  density=idct1d(a_t)/R;
-  # take the rescaling of the data into account
-  bandwidth=sqrt(t_star)*R;
-  xmesh=seq(MIN,MAX,R/(n-1));
-  out=matrix(c(xmesh,density),nrow=2,byrow=TRUE);
 }

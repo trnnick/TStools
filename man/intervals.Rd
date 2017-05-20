@@ -2,6 +2,7 @@
 \alias{intervals.ts}
 \alias{intervals.hm}
 \alias{intervals.qr}
+\alias{intervals.kde}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
     Prediction intervals
@@ -13,17 +14,22 @@
     intervals.ts(model, level=0.95)
     intervals.hm(model, level=0.95)
     intervals.qr(model, level=0.95)
+    intervals.kde(model,level=0.95,type=c("multi","single"),
+                          kdetype=c("diffusion","SJ","nrd0"))
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{model}{Object of the class 'smooth'.}
   \item{level}{Confidence level for the intervals construction.}
+  \item{type}{Type of multi-step interval calculation: `multi' for using multiple steps ahead errors and `single' for using one step ahead error only.}
+  \item{kdetype}{Type of kernel used for intervals.kde. See \code{\link{kdemode}} for details.}
 }
 \details{
     \itemize{
         \item \code{intervals.ts()} - intervals produced using two sigma values;
         \item \code{intervals.hm()} - intervals produced using half moment;
         \item \code{intervals.qr()} - intervals produced using quantile regressions;
+        \item \code{intervals.kde()} - intervals produced using kernel density estimation;
     }
 }
 \value{
@@ -36,7 +42,7 @@
     Nothing here yet.
 }
 \author{
-    Ivan Svetunkov
+    Ivan Svetunkov and Nikolaos Kourentzes
 }
 
 \seealso{
@@ -49,5 +55,6 @@
     intervals.ts(ourModel)
     intervals.hm(ourModel)
     intervals.qr(ourModel)
+    intervals.kde(ourModel)
 }
 \keyword{ htest }

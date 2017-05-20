@@ -37,6 +37,7 @@ kdemode(data,type=c("diffusion","SJ","nrd0"),
 \item{mode}{Estimated mode value.}
 \item{xd}{Estimated values.}
 \item{fd}{Estimated density.}
+\item{h}{BAndwidth.}
 }
 \references{
 Kourentzes, Nikolaos, Devon K. Barrow, and Sven F. Crone. "Neural network ensemble operators for time series forecasting." Expert Systems with Applications 41.9 (2014): 4235-4244.
