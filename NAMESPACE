@@ -21,7 +21,7 @@ export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        nzlength,init.ets,mre,mre.plot,bias.coeff,
        sowhat,ro,
        # Intervals
-       intervals.ts,intervals.hm,intervals.qr,intervals.kde,
+       intervals.ts,intervals.hm,intervals.qr,intervals.kde,intervals.empir,
        # Other stuff
        geomean, lambdaseq,
        residout,stlboot,get.opt.k,leadtrail,
