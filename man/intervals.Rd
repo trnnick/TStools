@@ -4,6 +4,7 @@
 \alias{intervals.qr}
 \alias{intervals.kde}
 \alias{intervals.empir}
+\alias{intervals.spline}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
     Prediction intervals
@@ -18,6 +19,7 @@
     intervals.kde(model, level=0.95, type=c("multi","single"),
                           kdetype=c("diffusion","SJ","nrd0"))
     intervals.empir(model, level=0.95, quantiletype=7)
+    intervals.spline(model, level=0.95, quantiletype=7)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -34,6 +36,7 @@
         \item \code{intervals.qr()} - intervals produced using quantile regressions;
         \item \code{intervals.kde()} - intervals produced using kernel density estimation;
         \item \code{intervals.empir()} - intervals produced using empirical distribution;
+        \item \code{intervals.spline()} - intervals produced using monotonic cubic spline distribution;
     }
 }
 \value{
@@ -61,5 +64,6 @@
     intervals.qr(ourModel)
     intervals.kde(ourModel)
     intervals.empir(ourModel)
+    intervals.spline(ourModel)
 }
 \keyword{ htest }
