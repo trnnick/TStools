@@ -1,4 +1,4 @@
-intervals.spline <- function(model,level=0.95,type=c("multi","single"),quantiletype=7){
+intervals.lowess <- function(model,level=0.95,type=c("multi","single"),quantiletype=7){
   # Calculate empirical PIs 
     
   # Arguments checks
@@ -30,8 +30,8 @@ intervals.spline <- function(model,level=0.95,type=c("multi","single"),quantilet
   }
     
   for (j in 1:J){
-    spl <- stats::spline(x=1:length(eh[,j]), y=sort(eh[,j]), method="hyman")
-    x <- as.numeric(quantile(spl$y,b,type=quantiletype))
+    lws <- stats::lowess(x=1:length(eh[,j]), y=sort(eh[,j]),f=.2)
+    x <- as.numeric(quantile(lws$y,b,type=quantiletype))
     lower[j] <- x[1]
     upper[j] <- x[2]
   }
