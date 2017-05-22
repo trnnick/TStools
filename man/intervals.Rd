@@ -1,7 +1,11 @@
-\name{intervals.ts}
+\name{intervals}
+\alias{intervals.sd}
+\alias{intervals.mad}
+\alias{intervals.mae}
 \alias{intervals.ts}
 \alias{intervals.hm}
 \alias{intervals.qr}
+\alias{intervals.qr2}
 \alias{intervals.kde}
 \alias{intervals.empir}
 \alias{intervals.lowess}
@@ -13,13 +17,17 @@
     These function return prediction intervals based on the estimated "smooth" model.
 }
 \usage{
+    intervals.sd(model, level=0.95)
+    intervals.mae(model, level=0.95)
+    intervals.mad(model, level=0.95)
     intervals.ts(model, level=0.95)
     intervals.hm(model, level=0.95)
     intervals.qr(model, level=0.95)
+    intervals.qr2(model, level=0.95)
     intervals.kde(model, level=0.95, type=c("multi","single"),
                           kdetype=c("diffusion","SJ","nrd0"))
-    intervals.empir(model, level=0.95, quantiletype=7)
-    intervals.lowess(model, level=0.95, quantiletype=7)
+    intervals.empir(model, level=0.95, type=c("multi","single"), quantiletype=7)
+    intervals.lowess(model, level=0.95, type=c("multi","single"), quantiletype=7)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -31,12 +39,16 @@
 }
 \details{
     \itemize{
+        \item \code{intervals.sd()} - intervals produced using sigma values for each horizon;
+        \item \code{intervals.mae()} - intervals produced using MAE (Mean Absolute Error) for each horizon;
+        \item \code{intervals.mad()} - intervals produced using MAD (Median Absolute Deviation) for each horizon;
         \item \code{intervals.ts()} - intervals produced using two sigma values;
         \item \code{intervals.hm()} - intervals produced using half moment;
-        \item \code{intervals.qr()} - intervals produced using quantile regressions;
+        \item \code{intervals.qr()} - intervals produced using quantile regressions Taylor and Bunn (1999) style;
+        \item \code{intervals.qr2()} - intervals produced using quantile regressions based on power function;
         \item \code{intervals.kde()} - intervals produced using kernel density estimation;
         \item \code{intervals.empir()} - intervals produced using empirical distribution;
-        \item \code{intervals.spline()} - intervals produced using lowess smoothing of edf;
+        \item \code{intervals.lowess()} - intervals produced using lowess smoothing of edf;
     }
 }
 \value{
@@ -59,9 +71,13 @@
     library(smooth)
 
     ourModel <- es(rnorm(100,100,10))
+    intervals.sd(ourModel)
+    intervals.mae(ourModel)
+    intervals.mad(ourModel)
     intervals.ts(ourModel)
     intervals.hm(ourModel)
     intervals.qr(ourModel)
+    intervals.qr2(ourModel)
     intervals.kde(ourModel)
     intervals.empir(ourModel)
     intervals.lowess(ourModel)

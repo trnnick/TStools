@@ -66,7 +66,7 @@ intervals.qr2 <- function(model, level=0.95){
         level <- level/100;
     }
     t <- matrix(c(1:h),byrow=TRUE,nrow=obs,ncol=h);
-    C <- rep(0.5,2);
+    C <- rep(1,2);
     res1 <- nlminb(C,QFunction,alpha=(1-level)/2);
     res2 <- nlminb(C,QFunction,alpha=(1+level)/2);
     

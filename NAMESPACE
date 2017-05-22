@@ -10,7 +10,7 @@ importFrom("stats", "cor.test", "deltat", "density", "end", "fft",
            "time", "ts", "ts.plot", "uniroot")
 importFrom("stats", "qnorm", "runif")
 importFrom("graphics", "arrows")
-importFrom("stats", "alias", "as.formula", "coef", "lm")
+importFrom("stats", "alias", "as.formula", "coef", "lm", "approx", "mad")
 importFrom("utils", "head", "tail")
 importFrom("smooth", "hm")
 
@@ -23,6 +23,7 @@ export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        # Intervals
        intervals.ts,intervals.hm,intervals.qr,intervals.kde,
        intervals.empir,intervals.lowess,intervals.qr2,
+       intervals.sd,intervals.mad,intervals.mae,
        # Other stuff
        geomean, lambdaseq,
        residout,stlboot,get.opt.k,leadtrail,
