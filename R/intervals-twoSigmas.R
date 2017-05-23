@@ -1,4 +1,4 @@
-intervals.ts <- function(model, level=0.95){
+intervals.ts <- function(model, level=0.95, centre=TRUE){
     if(length(class(model))==1){
         if(class(model)!="smooth"){
             stop("Sorry, but we need smooth object for this stuff. And your model is not it...");
@@ -11,6 +11,13 @@ intervals.ts <- function(model, level=0.95){
     errors <- model$errors;
     h <- ncol(errors);
     errors <- errors[-c(1:(h-1)),];
+    if(centre){
+        centre <- colMeans(errors);
+        errors <- errors - matrix(centre,nrow=nrow(errors),ncol=h,byrow=TRUE);
+    }
+    else{
+        centre <- 0;
+    }
     
     if(level>1){
         if(level>100){
@@ -36,8 +43,8 @@ intervals.ts <- function(model, level=0.95){
         upper[i] <- sigmaU[i] * quantValues[2];
     }
     
-    lower <- model$forecast + lower;
-    upper <- model$forecast + upper;
+    lower <- model$forecast + centre + lower;
+    upper <- model$forecast + centre + upper;
     
     sigma <- rbind(sigmaL,sigmaU);
     dimnames(sigma) <- list(c("Lower sigma","Upper sigma"),paste0("h",1:h));

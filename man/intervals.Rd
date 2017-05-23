@@ -17,11 +17,11 @@
     These function return prediction intervals based on the estimated "smooth" model.
 }
 \usage{
-    intervals.sd(model, level=0.95)
-    intervals.mae(model, level=0.95)
-    intervals.mad(model, level=0.95)
-    intervals.ts(model, level=0.95)
-    intervals.hm(model, level=0.95)
+    intervals.sd(model, level=0.95, centre=TRUE)
+    intervals.mae(model, level=0.95, centre=TRUE)
+    intervals.mad(model, level=0.95, centre=TRUE)
+    intervals.ts(model, level=0.95, centre=TRUE)
+    intervals.hm(model, level=0.95, centre=TRUE)
     intervals.qr(model, level=0.95)
     intervals.qr2(model, level=0.95)
     intervals.kde(model, level=0.95, type=c("multi","single"),
@@ -33,6 +33,7 @@
 \arguments{
   \item{model}{Object of the class 'smooth'.}
   \item{level}{Confidence level for the intervals construction.}
+  \item{centre}{Defines whether the centering is needed for errors. If \code{FALSE}, then the errors are assumed to have zero mean.}
   \item{type}{Type of multi-step interval calculation: `multi' for using multiple steps ahead errors and `single' for using one step ahead error only.}
   \item{kdetype}{Type of kernel used for intervals.kde. See \code{\link{kdemode}} for details.}
   \item{quantiletype}{Quantile algorithm used. See \code{\link{quantile}} for details.}
