@@ -61,8 +61,10 @@ linscale <- function(x,minmax=NULL,rev=c(FALSE,TRUE)){
                 mx <- minmax$mx
                 # These will be used to scale mn/mx so that scale of variables remains fixed
                 if (("mn.orig" %in% names(minmax))==TRUE){
-                  mn.orig <- minmax$mn.orig
-                  mx.orig <- minmax$mx.orig  
+                  if (!is.null(minmax$mn.orig)){
+                    mn.orig <- minmax$mn.orig
+                    mx.orig <- minmax$mx.orig  
+                  }
                 }
             } else {
                 stop("Provided minmax list is not of correct type. It must contain mn and mx to apply scaling.")
@@ -72,7 +74,7 @@ linscale <- function(x,minmax=NULL,rev=c(FALSE,TRUE)){
     
     if (rev == FALSE){
         # Apply scaling
-        if (("mn.orig" %in% names(minmax))!=TRUE){
+        if (("mn.orig" %in% names(minmax))!=TRUE | is.null(minmax$mn.orig)){
             # If these are missing then populate the list
             mx.orig <- max(x)
             mn.orig <- min(x)
