@@ -95,7 +95,7 @@ mre <- function(e,op=c("mean","sum","gm")){
   
 }
 
-mre.plot <- function(mre,main=NULL,plot.legend=c(TRUE,FALSE)){
+mre.plot <- function(mre,main=NULL,plot.legend=c(TRUE,FALSE),maxmag=NULL,ts=1,class=NULL){
 # Mean Root Error Bias Plot
 # Plots the `Bias Plot' for MRE.
 #
@@ -103,6 +103,8 @@ mre.plot <- function(mre,main=NULL,plot.legend=c(TRUE,FALSE)){
 #   mre         k Root or Mean Root Errors to be plotted. These must already be complex numbers.
 #   main        Main title for plot
 #   plot.legend Plot legend if k > 1. Default is TRUE.
+#   maxmag      Maximum MRE magnitude
+#   ts          Text size cex
 #
 # Example
 #   # Create some random MRE
@@ -118,9 +120,14 @@ mre.plot <- function(mre,main=NULL,plot.legend=c(TRUE,FALSE)){
 
   # Default options
   plot.legend <- plot.legend[1]
-    
+  ts=1 
+  
   # Initialise
-  sz <- Mod(mre)
+  if (is.null(maxmag)){
+    sz <- Mod(mre)  
+  } else {
+    sz <- maxmag
+  }
   max.sz <- max(sz)*1.05
   rr <- seq(pi/4,3*pi/4,length.out=200)
   bc <- c(1,.5,0,-.5,-1)
@@ -128,7 +135,7 @@ mre.plot <- function(mre,main=NULL,plot.legend=c(TRUE,FALSE)){
   xx <- xx[2:10]
   # Produce plot layout
   plot(NA,NA,ylim=c(0,sin(pi/2)*max.sz+max.sz*.125),xlim=c(cos(3*pi/4)*max.sz-max.sz*.05,cos(pi/4)*max.sz+max.sz*.05),
-       axes=FALSE,xlab="",ylab="",xaxs="i",yaxs="i",main=main,cex.main=0.9)
+       axes=FALSE,xlab="",ylab="",xaxs="i",yaxs="i",main=main,cex.main=ts)
   for (i in 1:5){
     if (i == 1 || i == 5){
       cc <- "black"
@@ -136,7 +143,7 @@ mre.plot <- function(mre,main=NULL,plot.legend=c(TRUE,FALSE)){
       cc <- "darkgrey"
     }
     lines(c(0,cos((pi/4)+((i-1)*pi/8)))*max.sz,c(0,sin((pi/4)+((i-1)*pi/8)))*max.sz,col=cc)  
-    text(cos((pi/4)+((i-1)*pi/8))*max.sz,sin((pi/4)+((i-1)*pi/8))*max.sz,bc[i],pos=3,cex=0.8)
+    text(cos((pi/4)+((i-1)*pi/8))*max.sz,sin((pi/4)+((i-1)*pi/8))*max.sz,bc[i],pos=3,cex=ts)
   }
   for (i in seq(2,8,2)){
     lines(c(0,cos((pi/4)+((i-1)*pi/16)))*max.sz,c(0,sin((pi/4)+((i-1)*pi/16)))*max.sz,col="darkgrey",lty=2)  
@@ -144,32 +151,66 @@ mre.plot <- function(mre,main=NULL,plot.legend=c(TRUE,FALSE)){
   lines(cos(rr)*max.sz,sin(rr)*max.sz,col="black")
   for (i in 1:9){
     lines(cos(rr)*xx[i],sin(rr)*xx[i],col="darkgrey",lty=2)
-    text(cos(pi/4)*xx[i],sin(pi/4)*xx[i],xx[i],pos=4,cex=0.8)
-    text(cos(3*pi/4)*xx[i],sin(3*pi/4)*xx[i],xx[i],pos=2,cex=0.8)
+    text(cos(pi/4)*xx[i],sin(pi/4)*xx[i],xx[i],pos=4,cex=ts)
+    text(cos(3*pi/4)*xx[i],sin(3*pi/4)*xx[i],xx[i],pos=2,cex=ts)
   } 
-  text(cos(pi/4)*max.sz/2,sin(pi/4)*max.sz/2,"\n\n\n\nError",srt=55,cex=0.8)
-  text(cos(3*pi/4)*max.sz/2,sin(3*pi/4)*max.sz/2,"\n\n\n\nError",srt=-55,cex=0.8)
-  text(0,sin(pi/2)*max.sz,"Bias coefficient\n",pos=3,cex=0.9)
-  text(cos(3*pi/8)*max.sz*1.1,sin(3*pi/8)*max.sz*1.1,"Positive bias\n",cex=0.8)
-  text(cos(5*pi/8)*max.sz*1.1,sin(5*pi/8)*max.sz*1.1,"Negative bias\n",cex=0.8)
+  text(cos(pi/4)*max.sz/2,sin(pi/4)*max.sz/2,"\n\n\n\nError",srt=45,cex=ts)
+  text(cos(3*pi/4)*max.sz/2,sin(3*pi/4)*max.sz/2,"\n\n\n\nError",srt=-45,cex=ts)
+  text(0,sin(pi/2)*max.sz,"Bias coefficient\n",pos=3,cex=ts)
+  text(cos(3*pi/8)*max.sz*1.1,sin(3*pi/8)*max.sz*1.1,"Positive bias\n",cex=ts)
+  text(cos(5*pi/8)*max.sz*1.1,sin(5*pi/8)*max.sz*1.1,"Negative bias\n",cex=ts)
   # Plot mre
   k <- length(mre)
-  cmp <- rainbow(k,start=3.4/6,end=4.4/6)
+  # Get colours
+  if (is.null(class)){
+    cmp <- colorRampPalette(brewer.pal(9,"YlGnBu")[2:8])(k)
+    cmp2 <- brewer.pal(3,"Set1")[1]
+  } else {
+    uc <- table(class)
+    un <- as.vector(uc)
+    uc <- names(uc)
+    u <- length(un)
+    plts <- c("Blues","Greens","Reds","Purples","RdPu")
+    if (u > 5){
+      plts <- rep(plts,ceiling(u/5))
+    }
+    cmp <- vector("character",sum(un))
+    for (i in 1:u){
+      cmp[class==uc[i]] <- colorRampPalette(brewer.pal(9,plts[i])[3:7])(un[i])
+    }
+    cmpl <- unlist(lapply(plts[1:u],function(x){brewer.pal(5,x)[5]}))
+    cmpo <- unlist(lapply(plts[1:u],function(x){brewer.pal(3,x)[2]}))
+    cmp2 <- "black"
+  }
+  # cmp <- rainbow(k,start=3.4/6,end=4.4/6)
   for (i in 1:k){
     temp.gamma <- Arg(mre[i])+pi/4
     temp.r <- Mod(mre[i])
-    lines(c(0,cos(temp.gamma)*temp.r),c(0,sin(temp.gamma)*temp.r),col=cmp[i])
-    lines(cos(temp.gamma)*temp.r,sin(temp.gamma)*temp.r,type="o",col=cmp[i],pch=20)
+    lines(c(0,cos(temp.gamma)*temp.r),c(0,sin(temp.gamma)*temp.r),col=cmp[i],lwd=2)
+    lines(cos(temp.gamma)*temp.r,sin(temp.gamma)*temp.r,type="o",col=cmp[i],pch=20,cex=1.5)
   }
   # Plot overall behaviour
   if (k>1){
+    if (!is.null(class)){
+      for (i in 1:u){
+        mean.mre <- mean(mre[class==uc[i]])
+        temp.gamma <- Arg(mean.mre)+pi/4
+        temp.r <- Mod(mean.mre)
+        lines(c(0,cos(temp.gamma)*temp.r),c(0,sin(temp.gamma)*temp.r),col=cmpo,lwd=3)
+        lines(cos(temp.gamma)*temp.r,sin(temp.gamma)*temp.r,type="o",col=cmp2,pch=20,cex=2.5)
+      }
+    }
     mean.mre <- mean(mre)
     temp.gamma <- Arg(mean.mre)+pi/4
     temp.r <- Mod(mean.mre)
-    lines(c(0,cos(temp.gamma)*temp.r),c(0,sin(temp.gamma)*temp.r),col="red")
-    lines(cos(temp.gamma)*temp.r,sin(temp.gamma)*temp.r,type="o",col="red",pch=20)
+    lines(c(0,cos(temp.gamma)*temp.r),c(0,sin(temp.gamma)*temp.r),col=cmp2,lwd=3)
+    lines(cos(temp.gamma)*temp.r,sin(temp.gamma)*temp.r,type="o",col=cmp2,pch=20,cex=2.5)
     if (plot.legend == TRUE){
-      legend("bottomleft",c("MRE","Overall"),lty=1,col=c(cmp[1],"red"),bty="n",pch=20,cex=0.8)
+      if (is.null(class)){
+        legend("bottomleft",c("MRE","Overall"),lty=1,col=c(cmp[round(k/2)],cmp2),bty="n",pch=20,lwd=2,cex=ts)
+      } else {
+        legend("bottomleft",c(uc,paste(uc,"overall"),"Overall"),lty=1,col=c(cmpl,cmpo,cmp2),pt.bg=c(cmpl,rep(cmp2,u),cmp2),bty="n",pch=21,lwd=2,cex=ts)
+      }
     }
   }
 }
