@@ -77,7 +77,7 @@ cmav <- function(y,ma=NULL,fill=c(TRUE,FALSE),outplot=c(FALSE,TRUE),fast=c(TRUE,
       }
       if ((mlbounds[1]-1) >= 1){   
         cma[1:(mlbounds[1]-1)] <- rev(as.vector(forecast(ets(rev(cma[mlbounds[1]:mlbounds[2]]),
-                                                             fit),h=(mlbounds[1]-1))$mean))
+                                                             fit,use.initial.values=FALSE),h=(mlbounds[1]-1))$mean))
       }
     }
   }
