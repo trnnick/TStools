@@ -623,10 +623,10 @@ preprocess <- function(y,m,lags,keep,difforder,sel.lag,allow.det.season,det.type
     # other checks fail by using lasso
     cf.temp <- tryCatch({
       keep.all <- c(keep,unlist(xreg.keep),rep(FALSE,ff.n))
-      if (any(keep.all==TRUE)){
-        scp <- list(lower = as.formula(paste("~",paste(attributes(fit$terms)$term.labels[keep.all],collapse=" + "))))
+      if (all(!keep.all)){
+        scp <- NULL
       } else {
-        scp <- list(lower = NULL)
+        scp <- list(lower = as.formula(paste("~",paste(attributes(fit$terms)$term.labels[keep.all],collapse=" + "))))
       }
       fit <- stepAIC(fit,trace=0,direction="backward",scope=scp)
       # Get useful lags
