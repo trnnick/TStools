@@ -1,6 +1,3 @@
-library(forecast, quietly=TRUE)
-library(tseries, quietly=TRUE)
-
 cmav <- function(y,ma=NULL,fill=c(TRUE,FALSE),outplot=c(FALSE,TRUE),fast=c(TRUE,FALSE)){
 # Calculate centred moving average
 #
@@ -20,7 +17,7 @@ cmav <- function(y,ma=NULL,fill=c(TRUE,FALSE),outplot=c(FALSE,TRUE),fast=c(TRUE,
 #   cmav(wineind,outplot=TRUE)
 #
 # Nikolaos Kourentzes, 2014 <nikolaos@kourentzes.com>
-
+    
   # Set defaults
   fill <- fill[1]
   outplot <- outplot[1]
@@ -46,6 +43,7 @@ cmav <- function(y,ma=NULL,fill=c(TRUE,FALSE),outplot=c(FALSE,TRUE),fast=c(TRUE,
   }
   
   # Calculate MA
+  # Loop across MA-order to speed up things
   mamat <- matrix(NA,nrow=ml,ncol=(n-ml+1))
   for (i in 1:ml){
     mamat[i,] <- y[i:(n-ml+i)]

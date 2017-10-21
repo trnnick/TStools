@@ -22,7 +22,7 @@ coxstuart <- function(y,type=c("trend","deviation","dispersion"),alpha=0.05){
 #
 # Nikolaos Kourentzes, 2014 <nikolaos@kourentzes.com>
   
-  type <- type[1]
+  type <- match.arg(type,c("trend","deviation","dispersion"))
   
   switch(type,
          "trend" = {

@@ -39,7 +39,7 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
 # Nikolaos Kourentzes, 2014 <nikolaos@kourentzes.com>
   
   # Defaults
-  decomposition <- decomposition[1]
+  decomposition <- match.arg(decomposition,c("multiplicative","additive"))
   outplot <- outplot[1]
   
   # Get m (seasonality)

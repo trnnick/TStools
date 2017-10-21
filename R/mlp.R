@@ -7,7 +7,7 @@ mlp <- function(y,m=frequency(y),hd=NULL,reps=20,comb=c("median","mean","mode"),
     # hd.max is only relevant to valid and cv
     
     # Defaults
-    comb <- comb[1]
+    comb <- match.arg(comb,c("median","mean","mode"))
     outplot <- outplot[1]
     sel.lag <- sel.lag[1]
     allow.det.season <- allow.det.season[1]

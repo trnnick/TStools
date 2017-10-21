@@ -2,7 +2,7 @@ seasdummy <- function(n,m=NULL,y=NULL,type=c("bin","trg"),full=c(FALSE,TRUE)){
 # Create deterministic seasonality dummies
 
     # Default
-    type <- type[1]
+    type <- match.arg(type,c("bin","trg"))
     full <- full[1]
 
     # Get time series information if available
