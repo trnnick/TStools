@@ -90,10 +90,15 @@ theta <- function(y,m=NULL,sign.level=0.05,
       ynt <- y - cma
     }
     k <- m - (n %% m)
+    if (k == m){k <- 0}
     ynt <- c(as.vector(ynt),rep(NA,times=k))
     ns <- length(ynt)/m
     ynt <- matrix(ynt,nrow=ns,ncol=m,byrow=TRUE)
-    season.exist <- friedman.test(ynt)$p.value <= sign.level 
+    if (diff(range(colSums(ynt))) <= .Machine$double.eps ^ 0.5){
+        season.exist <- FALSE
+    } else {
+        season.exist <- friedman.test(ynt)$p.value <= sign.level 
+    }
   } else {
     season.exist <- FALSE
   }
