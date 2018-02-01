@@ -126,6 +126,8 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
   k <- m - (n %% m)
   ks <- s-1
   ke <- m - ((n+ks) %% m)
+  if (ke == m){ke <- 0}
+  if (ks == m){ks <- 0}
   ynt <- c(rep(NA,times=ks),as.vector(ynt),rep(NA,times=ke))
   ns <- length(ynt)/m
   ynt <- matrix(ynt,nrow=ns,ncol=m,byrow=TRUE)
@@ -134,8 +136,13 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
   
   # Check seasonality with Friedman
   if (m>1 && (length(y)/m)>=2){
-    season.pval <- friedman.test(ynt)$p.value
-    season.exist <- season.pval <= alpha
+      # Check if ynt is a constant, if it is do not get it through friedman, as it fails
+      if (diff(range(colSums(ynt))) <= .Machine$double.eps ^ 0.5){
+          season.pval <- 1
+      } else {
+          season.pval <- friedman.test(ynt)$p.value
+      }
+      season.exist <- season.pval <= alpha
     if (season.exist==TRUE){
       title.season <- "Seasonal"
     } else {
