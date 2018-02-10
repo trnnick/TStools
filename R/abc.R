@@ -45,10 +45,10 @@ abc <- function(x,prc=c(0.2,0.3,0.5)){
     for (i in 1:k){
         p[i] <- round(n*prc[i])
         if (i == 1){
-            x.ind[x.rank <= p[i]] <- i
+            x.ind[x.rank[1:p[i]]] <- i
             x.imp[i] <- sum(x.sort[1:sum(p[1:i])])
         } else if (i != k) {
-            x.ind[sum(p[1:(i-1)])<x.rank & x.rank<=sum(p[1:i])] <- i
+            x.ind[x.rank[(sum(p[1:(i-1)])+1):sum(p[1:i])]] <- i
             x.imp[i] <- sum(x.sort[1:sum(p[1:i])]) - sum(x.imp[1:(i-1)])
         } else {
             p[i] <- n - sum(p[1:(i-1)])
