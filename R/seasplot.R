@@ -137,7 +137,7 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
   # Check seasonality with Friedman
   if (m>1 && (length(y)/m)>=2){
       # Check if ynt is a constant, if it is do not get it through friedman, as it fails
-      if (diff(range(colSums(ynt))) <= .Machine$double.eps ^ 0.5){
+      if (diff(range(colSums(ynt,na.rm=TRUE))) <= .Machine$double.eps ^ 0.5){
           season.pval <- 1
       } else {
           season.pval <- friedman.test(ynt)$p.value
