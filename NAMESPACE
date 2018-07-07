@@ -19,7 +19,7 @@ import(forecast,zoo,MAPA,RColorBrewer,neuralnet,glmnet,MASS,plotrix)
 export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        coxstuart,wins,rowWins,colWins,
        nzlength,init.ets,mre,mre.plot,bias.coeff,
-       sowhat,ro,
+       sowhat,
        # Intervals
        intervals.ts,intervals.hm,intervals.qr,intervals.kde,
        intervals.empir,intervals.lowess,intervals.qr2,
