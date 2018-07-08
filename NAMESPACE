@@ -39,7 +39,9 @@ export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        theta,forecast.theta,plot.theta,theta.thief)
 
 S3method(print,classseas)
+S3method(print,nemenyi)
 S3method(summary,classseas)
+S3method(summary,nemenyi)
 
 # Theta method
 S3method(forecast,theta)
