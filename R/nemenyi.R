@@ -94,7 +94,8 @@ nemenyi <- function(data, conf.int=0.95, sort=c(TRUE,FALSE),
     
     # Nemenyi critical distance and bounds of intervals
     r.stat <- qtukey(conf.int,cols.number,Inf) * sqrt((cols.number*(cols.number+1))/(12*rows.number))
-    r.stat <- c(-r.stat,r.stat)
+    # 0.5 is needed in order to place the mean ranks in the centre of the interval
+    r.stat <- 0.5*c(-r.stat,r.stat)
     
     # Rank methods for each time series
     ranks.matrix <- matrix(NA, nrow=rows.number, ncol=cols.number)
