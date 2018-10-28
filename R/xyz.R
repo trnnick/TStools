@@ -29,6 +29,9 @@ xyz <- function(x,m=NULL,prc=c(0.2,0.3,0.5),type=c("naive","ets","cv")){
     type <- type[1]
     
     n <- dim(x)[2]              # Number of series total
+    if (is.null(n)){            # If x is not an array, then get length
+        n <- length(x)
+    }
     
     if (sum(dim(x)==1)>0 | class(x)=="numeric"){
         x.mean <- x
