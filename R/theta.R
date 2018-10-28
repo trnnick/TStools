@@ -246,6 +246,9 @@ forecast.theta <- function(object,h=NULL,...){
     # Forecast theta line
     frc.theta0 <- b[1] + b[2]*((n+1):(n+h))
     if (!is.null(X.out)){
+        #### This is added because this is not defined anywhere in this function! ####
+        n.out <- length(X.out)
+        ####
         a.frc <- rbind(a,array(p[,2],c(n.out,1)))
     } else {
         a.frc <- a

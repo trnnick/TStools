@@ -107,7 +107,8 @@ nemenyi <- function(data, conf.int=0.95, sort=c(TRUE,FALSE),
     ranks.means <- colMeans(ranks.matrix)
     
     # Calculate intervals for each of the methods
-    ranks.intervals <- rbind(ranks.means + r.stat[1],ranks.means + r.stat[2])
+    # 0.5 is needed in order to place the mean ranks in the centre of the interval
+    ranks.intervals <- rbind(ranks.means + 0.5*r.stat[1],ranks.means + 0.5*r.stat[2])
     colnames(ranks.intervals) <- labels
     
     # Sort interval matrix and means

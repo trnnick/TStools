@@ -42,6 +42,9 @@ elm <- function(y,hd=NULL,type=c("lasso","ridge","step","lm"),reps=20,comb=c("me
   xreg.keep <- xreg.ls$xreg.keep
   rm("xreg.ls")
   
+  #### This is added because this is not defined anywhere in this function! ####
+  m <- max(ff)
+  ####
   # Pre-process data (same for MLP and ELM)
   PP <- preprocess(y,m,lags,keep,difforder,sel.lag,allow.det.season,det.type,ff,ff.n,xreg,xreg.lags,xreg.keep)
   Y <- PP$Y
