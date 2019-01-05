@@ -6,7 +6,7 @@
 \description{Plots the `Bias Plot' for MRE.}
 
 \usage{
-mre.plot(mre,main=NULL,plot.legend=c(TRUE,FALSE))
+mre.plot(mre,main=NULL,plot.legend=c(TRUE,FALSE),maxmag=NULL,ts=1,group=NULL)
 }
 
 \arguments{
@@ -18,6 +18,15 @@ mre.plot(mre,main=NULL,plot.legend=c(TRUE,FALSE))
 }
   \item{plot.legend}{
     If TRUE plot legend when k>1.
+}
+  \item{maxmag}{
+    Maximum MRE magnitude.
+}
+  \item{ts}{
+    Text size cex.
+}
+  \item{group}{
+    Vector containing either characters or numerics to group errors.
 }
 }
 \references{

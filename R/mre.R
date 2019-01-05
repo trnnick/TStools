@@ -95,7 +95,7 @@ mre <- function(e,op=c("mean","sum","gm")){
   
 }
 
-mre.plot <- function(mre,main=NULL,plot.legend=c(TRUE,FALSE),maxmag=NULL,ts=1,class=NULL){
+mre.plot <- function(mre,main=NULL,plot.legend=c(TRUE,FALSE),maxmag=NULL,ts=1,group=NULL){
 # Mean Root Error Bias Plot
 # Plots the `Bias Plot' for MRE.
 #
@@ -103,8 +103,9 @@ mre.plot <- function(mre,main=NULL,plot.legend=c(TRUE,FALSE),maxmag=NULL,ts=1,cl
 #   mre         k Root or Mean Root Errors to be plotted. These must already be complex numbers.
 #   main        Main title for plot
 #   plot.legend Plot legend if k > 1. Default is TRUE.
-#   maxmag      Maximum MRE magnitude
-#   ts          Text size cex
+#   maxmag      Maximum MRE magnitude.
+#   ts          Text size cex.
+#   group       Vector containing either characters or numerics to group errors.
 #
 # Example
 #   # Create some random MRE
@@ -162,11 +163,11 @@ mre.plot <- function(mre,main=NULL,plot.legend=c(TRUE,FALSE),maxmag=NULL,ts=1,cl
   # Plot mre
   k <- length(mre)
   # Get colours
-  if (is.null(class)){
-    cmp <- colorRampPalette(brewer.pal(9,"YlGnBu")[2:8])(k)
-    cmp2 <- brewer.pal(3,"Set1")[1]
+  if (is.null(group)){
+    cmp <- colorRampPalette(RColorBrewer::brewer.pal(9,"YlGnBu")[2:8])(k)
+    cmp2 <- RColorBrewer::brewer.pal(3,"Set1")[1]
   } else {
-    uc <- table(class)
+    uc <- table(group)
     un <- as.vector(uc)
     uc <- names(uc)
     u <- length(un)
@@ -176,10 +177,10 @@ mre.plot <- function(mre,main=NULL,plot.legend=c(TRUE,FALSE),maxmag=NULL,ts=1,cl
     }
     cmp <- vector("character",sum(un))
     for (i in 1:u){
-      cmp[class==uc[i]] <- colorRampPalette(brewer.pal(9,plts[i])[3:7])(un[i])
+      cmp[group==uc[i]] <- colorRampPalette(RColorBrewer::brewer.pal(9,plts[i])[3:7])(un[i])
     }
-    cmpl <- unlist(lapply(plts[1:u],function(x){brewer.pal(5,x)[5]}))
-    cmpo <- unlist(lapply(plts[1:u],function(x){brewer.pal(3,x)[2]}))
+    cmpl <- unlist(lapply(plts[1:u],function(x){RColorBrewer::brewer.pal(5,x)[5]}))
+    cmpo <- unlist(lapply(plts[1:u],function(x){RColorBrewer::brewer.pal(3,x)[2]}))
     cmp2 <- "black"
   }
   # cmp <- rainbow(k,start=3.4/6,end=4.4/6)
@@ -191,9 +192,9 @@ mre.plot <- function(mre,main=NULL,plot.legend=c(TRUE,FALSE),maxmag=NULL,ts=1,cl
   }
   # Plot overall behaviour
   if (k>1){
-    if (!is.null(class)){
+    if (!is.null(group)){
       for (i in 1:u){
-        mean.mre <- mean(mre[class==uc[i]])
+        mean.mre <- mean(mre[group==uc[i]])
         temp.gamma <- Arg(mean.mre)+pi/4
         temp.r <- Mod(mean.mre)
         lines(c(0,cos(temp.gamma)*temp.r),c(0,sin(temp.gamma)*temp.r),col=cmpo,lwd=3)
@@ -206,7 +207,7 @@ mre.plot <- function(mre,main=NULL,plot.legend=c(TRUE,FALSE),maxmag=NULL,ts=1,cl
     lines(c(0,cos(temp.gamma)*temp.r),c(0,sin(temp.gamma)*temp.r),col=cmp2,lwd=3)
     lines(cos(temp.gamma)*temp.r,sin(temp.gamma)*temp.r,type="o",col=cmp2,pch=20,cex=2.5)
     if (plot.legend == TRUE){
-      if (is.null(class)){
+      if (is.null(group)){
         legend("bottomleft",c("MRE","Overall"),lty=1,col=c(cmp[round(k/2)],cmp2),bty="n",pch=20,lwd=2,cex=ts)
       } else {
         legend("bottomleft",c(uc,paste(uc,"overall"),"Overall"),lty=1,col=c(cmpl,cmpo,cmp2),pt.bg=c(cmpl,rep(cmp2,u),cmp2),bty="n",pch=21,lwd=2,cex=ts)

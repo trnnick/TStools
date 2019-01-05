@@ -1,4 +1,3 @@
-importFrom(tseries,kpss.test)
 importFrom("grDevices", "colorRampPalette", "gray", "rainbow", "rgb")
 importFrom("graphics", "abline", "axis", "box", "boxplot", "hist",
            "image", "legend", "lines", "mtext", "par", "plot",
@@ -12,9 +11,11 @@ importFrom("stats", "qnorm", "runif")
 importFrom("graphics", "arrows")
 importFrom("stats", "alias", "as.formula", "coef", "lm", "approx", "mad")
 importFrom("utils", "head", "tail")
-importFrom("smooth", "hm")
+importFrom("RColorBrewer", "brewer.pal")
+importFrom("smooth", "hm", "es", "auto.ssarima", "auto.ces")
+importFrom("MAPA", "tsaggr")
 
-import(forecast,zoo,MAPA,RColorBrewer,neuralnet,glmnet,MASS,plotrix)
+import(forecast)
 
 export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        coxstuart,wins,rowWins,colWins,
@@ -28,11 +29,7 @@ export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
        geomean, lambdaseq,
        residout,stlboot,get.opt.k,leadtrail,
        smooth.thief,trendtest,
-       # Neural networks
-       linscale,lagmatrix,seasdummy,
-       elm,forecast.elm,plot.elm,elm.thief,
-       mlp,forecast.mlp,plot.mlp,mlp.thief,
-       elm.fast,plot.elm.fast,predict.elm.fast,
+       lagmatrix,seasdummy,
        # ABC-XYZ analysis
        abc,xyz,abcxyz,plot.abc,
        # Theta method
@@ -53,15 +50,3 @@ S3method(summary,theta)
 S3method(plot,abc)
 S3method(print,abc)
 S3method(summary,abc)
-
-# Neural networks
-S3method(print,elm)
-S3method(print,elm.fast)
-S3method(print,mlp)
-S3method(forecast,elm)
-S3method(forecast,mlp)
-S3method(predict,elm.fast)
-S3method(plot,elm)
-S3method(plot,elm.fast)
-S3method(plot,mlp)
-S3method(plot,forecast.net)

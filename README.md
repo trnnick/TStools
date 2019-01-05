@@ -13,4 +13,4 @@ To install use:
 
 Note
 -------
-Functions es() and sim.ets() are now maintained in "smooth" package: https://github.com/config-i1/smooth. They are no longer included in TStools.
+Neural network related functions are now maintained in "nnfor" package: https://cran.r-project.org/package=nnfor. They are no longer included in TStools.

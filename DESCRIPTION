@@ -1,13 +1,14 @@
 Package: TStools
 Type: Package
 Title: Time Series Analysis Tools and Functions
-Version: 2.3.0
-Date: 2017-05-19
+Version: 2.4.0
+Date: 2019-01-05
 Author: Nikolaos Kourentzes and Ivan Svetunkov
 Maintainer: Ivan Svetunkov <i.svetunkov@lancaster.ac.uk>
 Description: Here in this magnificent world of fascinating R functions we introduce set of species created in order to help in time series modelling, analysis and forecasting.
 LazyData: yes
 License: GPL (>=2)
-Depends: zoo, forecast, tseries, smooth, MAPA, RColorBrewer, glmnet, neuralnet, MASS, plotrix
-Suggests: Mcomp, parallel, foreach, doMC, doParallel, thief
+Depends: forecast
+Imports: smooth, MAPA, RColorBrewer
+Suggests: Mcomp, parallel, thief
 URL: http://kourentzes.com/forecasting/2014/04/19/tstools-for-r/

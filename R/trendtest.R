@@ -35,13 +35,13 @@ trendtest <- function(y,extract=c("FALSE","TRUE"),type=c("aicc","cs"),mta=c(FALS
     # MTA if needed
     if (mta == TRUE){
         f <- frequency(y) 
-        yaggr <- tsaggr(y.in,1:f)$out
+        yaggr <- MAPA::tsaggr(y.in,1:f)$out
         # Remove levels with very few observations, but always keep dissagregate
         idx <- unlist(lapply(yaggr,function(x){length(x)>=5}))
         idx[1] <- TRUE
         yaggr <- yaggr[idx]
     } else {
-        yaggr <- tsaggr(y.in,1)$out
+        yaggr <- MAPA::tsaggr(y.in,1)$out
     }
         
     if (type == "cs"){

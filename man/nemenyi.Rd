@@ -7,7 +7,7 @@
 
 \usage{
 nemenyi(data, conf.int=0.95, sort=c(TRUE,FALSE), 
-        plottype=c("vline","none","mcb","vmcb","line"), 
+        plottype=c("vline","none","mcb","vmcb","line","matrix"), 
         select=NULL, labels=NULL, ...)
 }
 

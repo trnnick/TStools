@@ -190,7 +190,7 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
   if (outplot == 1){
     # Conventional seasonal diagramme
     if (is.null(colour)){
-      cmp <- colorRampPalette(brewer.pal(9,"YlGnBu")[4:8])(ns)
+      cmp <- colorRampPalette(RColorBrewer::brewer.pal(9,"YlGnBu")[4:8])(ns)
     } else {
       cmp <- rep(colour,times=ns)
     }
@@ -217,7 +217,7 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
   if (outplot == 2){
     # Seasonal boxplots
     if (is.null(colour)){
-      cmp <- brewer.pal(3,"Set3")[1]
+      cmp <- RColorBrewer::brewer.pal(3,"Set3")[1]
     } else {
       cmp <- colour
     }
@@ -237,7 +237,7 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
   if (outplot == 3){
     # Subseries plots
     if (is.null(colour)){
-      cmp <- brewer.pal(3,"Set1")
+      cmp <- RColorBrewer::brewer.pal(3,"Set1")
     } else {
       cmp <- colour
     }
@@ -305,7 +305,7 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
         llc <- tmp$x
        }
     }
-    cmp <- c(rgb(0,0,0,0), colorRampPalette((brewer.pal(9,"Blues")[3:9]))(100))
+    cmp <- c(rgb(0,0,0,0), colorRampPalette((RColorBrewer::brewer.pal(9,"Blues")[3:9]))(100))
     # Additional plot options
     if (addtitle){
       args$main <- paste0("Seasonal density ",main=plottitle)
@@ -317,7 +317,7 @@ seasplot <- function(y,m=NULL,s=NULL,trend=NULL,colour=NULL,alpha=0.05,
     args$z <- dnst
     # Produce plot
     do.call(image,args)
-    lines(colMeans(ynt,na.rm=TRUE),type="o",lty=1,bg=brewer.pal(3,"Set1")[1],pch=21,cex=1.1,lwd=2)
+    lines(colMeans(ynt,na.rm=TRUE),type="o",lty=1,bg=RColorBrewer::brewer.pal(3,"Set1")[1],pch=21,cex=1.1,lwd=2)
     lines(c(0,m*ns+1),c(ymid,ymid),col="black",lty=2)
     box()
     axis(1,at=1:m,labels=labels)

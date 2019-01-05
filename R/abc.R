@@ -103,9 +103,9 @@ plot.abc <- function(x,cex.prc=0.8,...){
     
     # Get colours
     if (type == "ABC"){
-        cmp <- colorRampPalette(brewer.pal(9,"Greens")[4:7])(k)    
+        cmp <- colorRampPalette(RColorBrewer::brewer.pal(9,"Greens")[4:7])(k)    
     } else if (type == "XYZ"){
-        cmp <- colorRampPalette(brewer.pal(9,"Oranges")[4:7])(k)
+        cmp <- colorRampPalette(RColorBrewer::brewer.pal(9,"Oranges")[4:7])(k)
     }
     
     # Allow user to override plot defaults

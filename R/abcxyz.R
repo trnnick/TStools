@@ -39,7 +39,7 @@ abcxyz <- function(imp,frc,outplot=c(TRUE,FALSE),error=NULL,...){
   if (outplot==TRUE){
     
     # Get colours
-    cmp <- colorRampPalette(brewer.pal(11,"RdYlGn")[2:10])(k.abc+k.xyz-1)
+    cmp <- colorRampPalette(RColorBrewer::brewer.pal(11,"RdYlGn")[2:10])(k.abc+k.xyz-1)
     # Create colour map matrix
     cmp.loc <- array(NA, c(1,1)*(k.abc+k.xyz-1))
     cmp.loc[,1] <- 1:(k.abc+k.xyz-1)

@@ -80,6 +80,8 @@ x <- as.matrix(mtcars[,2:11])
 lambda <- lambdaseq(x, y, standardise = TRUE, lambdaRatio = 0.0001,
                     nLambda = 100, addZeroLambda = FALSE)$lambda
 
+
+\dontrun{
 # fit and obtain coefficients from LASSO model using glmnet package
 library(glmnet)
 
@@ -87,6 +89,8 @@ fit.lasso <- cv.glmnet(y = y, x = x, family = "gaussian", alpha = 1,
                        standardize = TRUE, lambda = lambda, intercept = TRUE)
 
 coef.lasso <- coef(fit.lasso, s = "lambda.1se")
+}
+
 }
 \keyword{ ~lasso }
 

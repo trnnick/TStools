@@ -50,7 +50,7 @@ get.opt.k <- function(y,m=12,type=c("ar","ma","arma")){
   }
   
   # Aggregate series
-  Y <- tsaggr(y,1:m)
+  Y <- MAPA::tsaggr(y,1:m)
   
   # Calculate MSE
   mse <- vector("numeric",m)
