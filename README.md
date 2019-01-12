@@ -2,7 +2,7 @@ TStools
 =======
 ![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/TStools)
 
-Collection of R functions for time series analysis
+Collection of experimental R functions for time series modelling and analysis.
 
 To install use:
 
@@ -13,5 +13,5 @@ devtools::install_github("trnnick/TStools")
 
 Note
 -------
-+ Neural network related functions are now maintained in "nnfor" package: https://cran.r-project.org/package=nnfor. They are no longer included in TStools.
-+ Several functions related to time series exploration and modelling are now maintained in "tsutils" package: https://cran.r-project.org/package=tsutils. They are no longer included in TStools.
++ Neural network related functions are now maintained in [nnfor](https://cran.r-project.org/package=nnfor) package that is available on CRAN. 
++ Several functions related to time series exploration and modelling have now graduated to [tsutils](https://cran.r-project.org/package=tsutils) package that is available on CRAN. The development version, together with a list of functions can be found [here](https://github.com/trnnick/tsutils). 
