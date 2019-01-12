@@ -29,7 +29,7 @@ stlboot  <- function(ts,k=1,test.season=c(TRUE,FALSE),outplot=c(FALSE,TRUE)){
   if (m > 1){
     season.exist <- TRUE
     if (test.season == TRUE){
-      season.exist <- seasplot(ts.bc,outplot=0)$season.exist      
+      season.exist <- tsutils::seasplot(ts.bc,outplot=0)$season.exist      
     }
   } else {
     season.exist <- FALSE

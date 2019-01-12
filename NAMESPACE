@@ -14,39 +14,21 @@ importFrom("utils", "head", "tail")
 importFrom("RColorBrewer", "brewer.pal")
 importFrom("smooth", "hm", "es", "auto.ssarima", "auto.ces")
 importFrom("MAPA", "tsaggr")
+importFrom("tsutils","cmav","seasplot")
 
 import(forecast)
 
-export(cmav,nemenyi,regopt,seasplot,mseastest,kdemode,decomp,
-       coxstuart,wins,rowWins,colWins,
+export(regopt,mseastest,kdemode,
        nzlength,init.ets,mre,mre.plot,bias.coeff,
        sowhat,
        # Intervals
        intervals.ts,intervals.hm,intervals.qr,intervals.kde,
        intervals.empir,intervals.lowess,intervals.qr2,
        intervals.sd,intervals.mad,intervals.mae,
-       # Other stuff
-       geomean, lambdaseq,
-       residout,stlboot,get.opt.k,leadtrail,
-       smooth.thief,trendtest,
-       lagmatrix,seasdummy,
-       # ABC-XYZ analysis
-       abc,xyz,abcxyz,plot.abc,
-       # Theta method
-       theta,forecast.theta,plot.theta,theta.thief)
-
-S3method(print,classseas)
-S3method(print,nemenyi)
-S3method(summary,classseas)
-S3method(summary,nemenyi)
-
-# Theta method
-S3method(forecast,theta)
-S3method(plot,theta)
-S3method(print,theta)
-S3method(summary,theta)
-
-# ABC-XYZ analysis
-S3method(plot,abc)
-S3method(print,abc)
-S3method(summary,abc)
+       # Other stuff       
+       stlboot,smooth.thief,
+       # Obsolete functions
+	   cmav,nemenyi,seasplot,decomp,
+	   coxstuart,wins,
+	   geomean, lambdaseq,residout,get.opt.k,leadtrail,
+       trendtest,lagmatrix,seasdummy,theta,abc,xyz,abcxyz)
